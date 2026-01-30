@@ -1,0 +1,177 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\froman\fcharset0 Times-Bold;\f1\froman\fcharset0 Times-Roman;\f2\fmodern\fcharset0 Courier;
+}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red109\green109\blue109;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c50196\c50196\c50196;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \uc0\u55358 \u56813  Checklist diario \'96 correr la app local\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\fs28 \cf0 1\uc0\u65039 \u8419  Abrir Docker Desktop\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 \uc0\u55357 \u56393  
+\f0\b SIEMPRE primero
+\f1\b0 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls1\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Abr\'ed 
+\f0\b Docker Desktop
+\f1\b0 \
+\ls1\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Esper\'e1 a que diga 
+\f0\b \'93Docker is running\'94
+\f1\b0  (ballenita arriba)\
+\pard\pardeftab720\sa240\partightenfactor0
+\cf0 Sin esto, 
+\f0\b la base no existe
+\f1\b0 .\
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f0\b\fs28 \cf0 \strokec2 2\uc0\u65039 \u8419  Levantar Postgres (base de datos)\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Abr\'ed una terminal y peg\'e1:\
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs26 \cf0 \
+cd ~/Documents/profesores-app\
+docker compose up -d\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\fs24 \cf0 \uc0\u10004  Esto levanta la DB\u8232 \u10004  Queda corriendo en segundo plano\u8232 \u10004  No necesit\'e1s volver a tocarlo ese d\'eda\
+Para chequear:\
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs26 \cf0 \
+docker ps\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f0\b\fs28 \cf0 \strokec2 3\uc0\u65039 \u8419  Levantar la API (backend)\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 En 
+\f0\b otra terminal
+\f1\b0  (o nueva pesta\'f1a):\
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs26 \cf0 \
+cd ~/Documents/profesores-app/apps/api\
+pnpm run start:dev\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\fs24 \cf0 \uc0\u10004  Esto levanta NestJS\u8232 \u10004  Escucha en: 
+\f0\b http://localhost:3000
+\f1\b0 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f0\b\fs28 \cf0 \strokec2 4\uc0\u65039 \u8419  (M\'e1s adelante) Levantar el frontend\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Cuando tengamos el front armado, ser\'e1:\
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs26 \cf0 \
+cd ~/Documents/profesores-app/apps/web\
+pnpm dev\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\fs24 \cf0 \uc0\u10004  Escucha en: 
+\f0\b http://localhost:5173
+\f1\b0 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 \strokec2 \uc0\u55358 \u56800  Resumen ultra corto (guard\'e1telo)\
+\pard\pardeftab720\partightenfactor0
+
+\f2\b0\fs26 \cf0 \
+# Terminal 1\
+cd ~/Documents/profesores-app\
+docker compose up -d\
+\
+# Terminal 2\
+cd ~/Documents/profesores-app/apps/api\
+pnpm run start:dev\
+\
+# Terminal 3 (cuando haya front)\
+cd ~/Documents/profesores-app/apps/web\
+pnpm dev\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 \strokec2 \uc0\u55357 \u57041  C\'f3mo apagar todo\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Cuando termin\'e1s de laburar:\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f0\b\fs28 \cf0 Apagar API\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 En la terminal de la API:\
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs26 \cf0 \
+Ctrl + C\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f0\b\fs28 \cf0 Apagar la base (opcional)\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Si quer\'e9s apagar Postgres tambi\'e9n:\
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs26 \cf0 \
+cd ~/Documents/profesores-app\
+docker compose down\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\fs24 \cf0 (Si no lo hac\'e9s, no pasa nada; Docker puede quedar prendido).\
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 \strokec2 \uc0\u55358 \u56809  Tip pro (opcional, m\'e1s adelante)\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Despu\'e9s podemos:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls2\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 armar un 
+\f0\b script \'fanico
+\f1\b0  (
+\f2\fs26 pnpm dev
+\f1\fs24 )\
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 o un 
+\f0\b alias
+\f1\b0  tipo 
+\f2\fs26 run-profesores
+\f1\fs24 \
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 o Dockerizar tambi\'e9n la API\
+\pard\pardeftab720\sa240\partightenfactor0
+\cf0 Pero 
+\f0\b no ahora
+\f1\b0 . Ahora lo importante es que 
+\f0\b ya sab\'e9s c\'f3mo revivir todo
+\f1\b0 .\
+}
