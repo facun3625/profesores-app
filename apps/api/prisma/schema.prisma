@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model HealthCheck {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+}
+
+enum AuthProvider {
+  local
+  google
+}
+
+enum UserStatus {
+  active
+  suspended
+}
+
+enum InstitutionPlan {
+  free
+  premium
+}
+
+enum InstitutionStatus {
+  active
+  inactive
+}
+
+enum InstitutionRole {
+  admin
+  professor
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String?
+  passwordHash String?
+  authProvider AuthProvider @default(local)
+  googleSub    String?      @unique
+  status       UserStatus   @default(active)
+
+  memberships         UserInstitution[]
+  activeInstitutionId String?
+  activeInstitution   Institution? @relation(fields: [activeInstitutionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([activeInstitutionId])
+}
+
+model Institution {
+  id     String            @id @default(cuid())
+  name   String
+  plan   InstitutionPlan   @default(free)
+  status InstitutionStatus @default(active)
+
+  memberships UserInstitution[]
+  activeUsers User[]
+
+  subjects Subject[]
+  topics   Topic[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserInstitution {
+  id String @id @default(cuid())
+
+  userId        String
+  institutionId String
+  role          InstitutionRole @default(admin)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, institutionId])
+  @@index([institutionId, role])
+  @@index([userId, role])
+}
+
+model Subject {
+  id            String      @id @default(cuid())
+  name          String
+
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  topics        Topic[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([institutionId, name])
+  @@index([institutionId])
+}
+
+model Topic {
+  id            String      @id @default(cuid())
+  name          String
+
+  subjectId     String
+  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subjectId, name])
+  @@index([institutionId])
+  @@index([subjectId])
+}
