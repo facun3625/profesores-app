@@ -48,7 +48,7 @@ model User {
 
   memberships         UserInstitution[]
   activeInstitutionId String?
-  activeInstitution   Institution? @relation(fields: [activeInstitutionId], references: [id])
+  activeInstitution   Institution?      @relation(fields: [activeInstitutionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -65,8 +65,9 @@ model Institution {
   memberships UserInstitution[]
   activeUsers User[]
 
-  subjects Subject[]
-  topics   Topic[]
+  subjects  Subject[]
+  topics    Topic[]
+  questions Question[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,13 +91,14 @@ model UserInstitution {
 }
 
 model Subject {
-  id            String      @id @default(cuid())
-  name          String
+  id   String @id @default(cuid())
+  name String
 
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
-  topics        Topic[]
+  topics    Topic[]
+  questions Question[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -106,14 +108,16 @@ model Subject {
 }
 
 model Topic {
-  id            String      @id @default(cuid())
-  name          String
+  id   String @id @default(cuid())
+  name String
 
-  subjectId     String
-  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  questions Question[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,4 +125,31 @@ model Topic {
   @@unique([subjectId, name])
   @@index([institutionId])
   @@index([subjectId])
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+}
+
+model Question {
+  id            String @id @default(cuid())
+  institutionId String
+  subjectId     String
+  topicId       String
+
+  type         QuestionType @default(MULTIPLE_CHOICE)
+  statement    String
+  options      Json
+  correctIndex Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  subject     Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic       Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId])
+  @@index([subjectId])
+  @@index([topicId])
 }

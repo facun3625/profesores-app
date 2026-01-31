@@ -5,9 +5,10 @@ import { InstitutionsModule } from './institutions/institutions.module';
 import { MeController } from './me/me.controller';
 import { SubjectsModule } from './subjects/subjects.module';
 import { TopicsModule } from './topics/topics.module';
+import { QuestionsModule } from './questions/questions.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, InstitutionsModule, SubjectsModule, TopicsModule],
+  imports: [PrismaModule, AuthModule, InstitutionsModule, SubjectsModule, TopicsModule, QuestionsModule],
   controllers: [MeController],
 })
 export class AppModule {}
