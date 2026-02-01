@@ -48,7 +48,7 @@ model User {
 
   memberships         UserInstitution[]
   activeInstitutionId String?
-  activeInstitution   Institution?      @relation(fields: [activeInstitutionId], references: [id])
+  activeInstitution   Institution? @relation(fields: [activeInstitutionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,6 +69,7 @@ model Institution {
   topics    Topic[]
   questions Question[]
   exams     Exam[]
+  signatures ExamSignature[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -176,7 +177,7 @@ model Exam {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  institution Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   items       ExamQuestion[]
 
   @@index([institutionId])
@@ -194,4 +195,16 @@ model ExamQuestion {
   @@unique([examId, questionId])
   @@index([examId])
   @@index([questionId])
+}
+
+model ExamSignature {
+  id            String   @id @default(cuid())
+  institutionId String
+  signature     String
+  createdAt     DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, signature])
+  @@index([institutionId])
 }
