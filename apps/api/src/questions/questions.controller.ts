@@ -16,7 +16,10 @@ export class QuestionsController {
     @Headers('x-user-id') userId: string,
     @Query('subjectId') subjectId?: string,
     @Query('topicId') topicId?: string,
-  ) {
-    return this.questionsService.list(userId, subjectId, topicId);
-  }
+    @Query('difficulty') difficulty?: 'easy' | 'medium' | 'hard',
+) {
+  return this.questionsService.list(userId, subjectId, topicId, difficulty);
+}
+
+ 
 }

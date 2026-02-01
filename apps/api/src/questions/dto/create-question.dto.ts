@@ -1,4 +1,19 @@
-import { IsArray, IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+
+export enum QuestionDifficulty {
+  easy = 'easy',
+  medium = 'medium',
+  hard = 'hard',
+}
 
 export class CreateQuestionDto {
   @IsString()
@@ -20,4 +35,8 @@ export class CreateQuestionDto {
   @Min(0)
   @Max(50)
   correctIndex: number;
+
+  @IsOptional()
+  @IsEnum(QuestionDifficulty)
+  difficulty?: QuestionDifficulty;
 }
