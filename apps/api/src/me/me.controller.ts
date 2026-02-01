@@ -1,20 +1,13 @@
-import { Controller, Get, Headers } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { Controller, Get, Headers } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
-@Controller("me")
+@Controller('me')
 export class MeController {
   constructor(private readonly prisma: PrismaService) {}
 
-  private getUserId(headers: Record<string, any>) {
-    const raw = headers["x-user-id"];
-    const userId = Array.isArray(raw) ? raw[0] : raw;
-    if (!userId) throw new Error("Missing x-user-id header (temporary dev auth)");
-    return userId;
-  }
-
   @Get()
-  async getMe(@Headers() headers: Record<string, any>) {
-    const userId = this.getUserId(headers);
+  async me(@Headers('x-user-id') userId?: string) {
+    if (!userId) return { user: null, institutions: [] };
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -28,22 +21,24 @@ export class MeController {
       },
     });
 
-    if (!user) return null;
-
-    const memberships = await this.prisma.userInstitution.findMany({
-      where: { userId },
-      select: {
-        role: true,
-        institution: {
-          select: { id: true, name: true, plan: true, status: true },
-        },
-      },
-      orderBy: { createdAt: "asc" },
-    });
+    const institutions = userId
+      ? await this.prisma.userInstitution.findMany({
+          where: { userId },
+          select: {
+            institution: {
+              select: { id: true, name: true, plan: true, status: true },
+            },
+            role: true,
+          },
+        })
+      : [];
 
     return {
       user,
-      institutions: memberships.map((m) => ({ ...m.institution, role: m.role })),
+      institutions: institutions.map((m) => ({
+        ...m.institution,
+        role: m.role,
+      })),
     };
   }
 }

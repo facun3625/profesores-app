@@ -17,9 +17,26 @@ export class QuestionsController {
     @Query('subjectId') subjectId?: string,
     @Query('topicId') topicId?: string,
     @Query('difficulty') difficulty?: 'easy' | 'medium' | 'hard',
-) {
-  return this.questionsService.list(userId, subjectId, topicId, difficulty);
-}
+  ) {
+    return this.questionsService.list(userId, subjectId, topicId, difficulty);
+  }
 
- 
+  @Get('stats')
+  stats(
+    @Headers('x-user-id') userId: string,
+    @Query('subjectIds') subjectIds?: string, // "id1,id2,id3"
+    @Query('topicIds') topicIds?: string, // "id1,id2,id3"
+    @Query('subjectId') subjectId?: string, // opcional, single
+    @Query('topicId') topicId?: string, // opcional, single
+  ) {
+    const subjectIdList =
+      subjectIds?.split(',').map(s => s.trim()).filter(Boolean) ??
+      (subjectId ? [subjectId] : undefined);
+
+    const topicIdList =
+      topicIds?.split(',').map(s => s.trim()).filter(Boolean) ??
+      (topicId ? [topicId] : undefined);
+
+    return this.questionsService.stats(userId, subjectIdList, topicIdList);
+  }
 }
