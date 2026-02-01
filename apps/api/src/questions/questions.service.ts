@@ -1,12 +1,16 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { QuestionType } from '@prisma/client';
 
 @Injectable()
 export class QuestionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 🔹 Helper común
   private async getActiveInstitutionId(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -20,7 +24,6 @@ export class QuestionsService {
     return user.activeInstitutionId;
   }
 
-  // 🔹 Crear pregunta
   async create(userId: string, dto: CreateQuestionDto) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
@@ -29,7 +32,9 @@ export class QuestionsService {
       select: { id: true },
     });
     if (!subject) {
-      throw new ForbiddenException('Subject does not belong to active institution');
+      throw new ForbiddenException(
+        'Subject does not belong to active institution',
+      );
     }
 
     const topic = await this.prisma.topic.findFirst({
@@ -41,15 +46,52 @@ export class QuestionsService {
       select: { id: true },
     });
     if (!topic) {
-      throw new ForbiddenException('Topic does not belong to subject/institution');
+      throw new ForbiddenException(
+        'Topic does not belong to subject/institution',
+      );
     }
 
-    if (!dto.options || dto.options.length < 2) {
-      throw new BadRequestException('Options must have at least 2 items');
-    }
+    // 🔹 Variables compatibles con Prisma
+    let options: any = undefined;
+    let correctIndex: number | null = null;
 
-    if (dto.correctIndex < 0 || dto.correctIndex >= dto.options.length) {
-      throw new BadRequestException('correctIndex is out of range');
+    switch (dto.type) {
+      case QuestionType.MULTIPLE_CHOICE:
+        if (!dto.options || dto.options.length < 2) {
+          throw new BadRequestException(
+            'MULTIPLE_CHOICE requires at least 2 options',
+          );
+        }
+        if (
+          dto.correctIndex === undefined ||
+          dto.correctIndex < 0 ||
+          dto.correctIndex >= dto.options.length
+        ) {
+          throw new BadRequestException(
+            'Invalid correctIndex for MULTIPLE_CHOICE',
+          );
+        }
+        options = dto.options;
+        correctIndex = dto.correctIndex;
+        break;
+
+      case QuestionType.TRUE_FALSE:
+        if (dto.correctIndex !== 0 && dto.correctIndex !== 1) {
+          throw new BadRequestException(
+            'TRUE_FALSE correctIndex must be 0 or 1',
+          );
+        }
+        options = ['Verdadero', 'Falso'];
+        correctIndex = dto.correctIndex;
+        break;
+
+      case QuestionType.OPEN:
+        options = null; // 👈 Prisma necesita null explícito
+        correctIndex = null;
+        break;
+
+      default:
+        throw new BadRequestException('Invalid question type');
     }
 
     return this.prisma.question.create({
@@ -58,15 +100,15 @@ export class QuestionsService {
         subjectId: dto.subjectId,
         topicId: dto.topicId,
         statement: dto.statement,
-        options: dto.options,
-        correctIndex: dto.correctIndex,
-        difficulty: dto.difficulty, // default: medium
-        type: 'MULTIPLE_CHOICE',
+        type: dto.type as QuestionType, // enum de Prisma
+        difficulty: dto.difficulty,
+        options,
+        correctIndex,
+        modelAnswer: dto.modelAnswer,
       },
     });
   }
 
-  // 🔹 Listar preguntas (con filtros)
   async list(
     userId: string,
     subjectId?: string,

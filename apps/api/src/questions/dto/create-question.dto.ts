@@ -9,6 +9,12 @@ import {
   Min,
 } from 'class-validator';
 
+export enum QuestionType {
+  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  TRUE_FALSE = 'TRUE_FALSE',
+  OPEN = 'OPEN',
+}
+
 export enum QuestionDifficulty {
   easy = 'easy',
   medium = 'medium',
@@ -16,6 +22,13 @@ export enum QuestionDifficulty {
 }
 
 export class CreateQuestionDto {
+  @IsEnum(QuestionType)
+  type: QuestionType;
+
+  @IsOptional()
+  @IsEnum(QuestionDifficulty)
+  difficulty?: QuestionDifficulty;
+
   @IsString()
   @IsNotEmpty()
   subjectId: string;
@@ -28,15 +41,17 @@ export class CreateQuestionDto {
   @IsNotEmpty()
   statement: string;
 
+  @IsOptional()
   @IsArray()
-  options: string[];
+  options?: string[];
 
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(50)
-  correctIndex: number;
+  correctIndex?: number;
 
   @IsOptional()
-  @IsEnum(QuestionDifficulty)
-  difficulty?: QuestionDifficulty;
+  @IsString()
+  modelAnswer?: string;
 }

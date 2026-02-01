@@ -130,6 +130,14 @@ model Topic {
 
 enum QuestionType {
   MULTIPLE_CHOICE
+  TRUE_FALSE
+  OPEN
+}
+
+enum QuestionDifficulty {
+  easy
+  medium
+  hard
 }
 
 model Question {
@@ -138,10 +146,13 @@ model Question {
   subjectId     String
   topicId       String
 
-  type         QuestionType @default(MULTIPLE_CHOICE)
+  type       QuestionType       @default(MULTIPLE_CHOICE)
+  difficulty QuestionDifficulty @default(medium)
+
   statement    String
-  options      Json
-  correctIndex Int
+  options      Json?
+  correctIndex Int?
+  modelAnswer  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
