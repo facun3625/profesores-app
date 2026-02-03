@@ -25,11 +25,15 @@ export class ExamsService {
   private async getActiveInstitutionId(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { activeInstitutionId: true },
+      select: { id: true, activeInstitutionId: true },
     });
 
-    const institutionId = user?.activeInstitutionId;
-    if (!institutionId) throw new BadRequestException('User has no active institution');
+    if (!user) throw new ForbiddenException('Invalid user');
+
+    const institutionId = user.activeInstitutionId;
+    if (!institutionId) {
+      throw new BadRequestException('User has no active institution');
+    }
 
     return institutionId;
   }
@@ -46,7 +50,9 @@ export class ExamsService {
     });
 
     if (count !== dto.questionIds.length) {
-      throw new ForbiddenException('One or more questions do not belong to active institution');
+      throw new ForbiddenException(
+        'One or more questions do not belong to active institution',
+      );
     }
 
     return this.prisma.exam.create({
@@ -152,7 +158,10 @@ export class ExamsService {
     return this.shuffle(pool).slice(0, n);
   }
 
-  private async resolveTopicIds(institutionId: string, dto: GenerateExamDto): Promise<string[]> {
+  private async resolveTopicIds(
+    institutionId: string,
+    dto: GenerateExamDto,
+  ): Promise<string[]> {
     const hasTopics = Array.isArray(dto.topicIds) && dto.topicIds.length > 0;
     const hasSubjects = Array.isArray(dto.subjectIds) && dto.subjectIds.length > 0;
 
@@ -165,7 +174,9 @@ export class ExamsService {
         where: { id: { in: dto.topicIds! }, institutionId },
       });
       if (count !== dto.topicIds!.length) {
-        throw new ForbiddenException('One or more topics do not belong to active institution');
+        throw new ForbiddenException(
+          'One or more topics do not belong to active institution',
+        );
       }
       return dto.topicIds!;
     }
@@ -174,7 +185,9 @@ export class ExamsService {
       where: { id: { in: dto.subjectIds! }, institutionId },
     });
     if (subjectCount !== dto.subjectIds!.length) {
-      throw new ForbiddenException('One or more subjects do not belong to active institution');
+      throw new ForbiddenException(
+        'One or more subjects do not belong to active institution',
+      );
     }
 
     const topics = await this.prisma.topic.findMany({
@@ -209,7 +222,10 @@ export class ExamsService {
     };
   }
 
-  private async getStockPlan(institutionId: string, topicIds: string[]): Promise<StockPlan> {
+  private async getStockPlan(
+    institutionId: string,
+    topicIds: string[],
+  ): Promise<StockPlan> {
     const grouped = await this.prisma.question.groupBy({
       by: ['type', 'difficulty'],
       where: { institutionId, topicId: { in: topicIds } },
@@ -234,15 +250,99 @@ export class ExamsService {
       splitEven: this.splitEven.bind(this),
     }) as unknown as StockPlan;
 
-    const { finalPlan, movements, shortage, isPossible } = rebalancePlanWithinAllowed({
-      plan: initialPlan as any,
-      stock: stockPlan as any,
-      allowed: dto.difficulties as any,
-    });
+    const { finalPlan, movements, shortage, isPossible } =
+      rebalancePlanWithinAllowed({
+        plan: initialPlan as any,
+        stock: stockPlan as any,
+        allowed: dto.difficulties as any,
+      });
 
     const buckets = planToBuckets(finalPlan as any, dto.difficulties as any);
 
     return { initialPlan, finalPlan, movements, shortage, isPossible, buckets };
+  }
+
+  private validateGenerateDto(dto: GenerateExamDto) {
+    if (!dto.totalQuestions || dto.totalQuestions < 1) {
+      throw new BadRequestException('totalQuestions must be >= 1');
+    }
+
+    if (!dto.typeCounts) {
+      throw new BadRequestException('typeCounts is required');
+    }
+
+    const sumTypes =
+      (dto.typeCounts.MULTIPLE_CHOICE ?? 0) +
+      (dto.typeCounts.TRUE_FALSE ?? 0) +
+      (dto.typeCounts.OPEN ?? 0);
+
+    if (sumTypes !== dto.totalQuestions) {
+      throw new BadRequestException('typeCounts sum must equal totalQuestions');
+    }
+
+    if (
+      !dto.difficulties ||
+      dto.difficulties.length < 1 ||
+      dto.difficulties.length > 3
+    ) {
+      throw new BadRequestException('difficulties must have 1 to 3 values');
+    }
+
+    const uniqueDiffs = new Set(dto.difficulties);
+    if (uniqueDiffs.size !== dto.difficulties.length) {
+      throw new BadRequestException('difficulties must not contain duplicates');
+    }
+  }
+
+  private async selectQuestionIdsOnce(
+    institutionId: string,
+    topicIds: string[],
+    dto: GenerateExamDto,
+  ): Promise<string[]> {
+    const stockPlan = await this.getStockPlan(institutionId, topicIds);
+    const { isPossible, shortage, buckets } = this.buildPlanWithFallback(
+      dto,
+      stockPlan,
+    );
+
+    if (!isPossible) {
+      throw new BadRequestException({
+        message: 'Not enough stock to generate exam with the requested constraints',
+        shortage,
+      });
+    }
+
+    const selectedIds: string[] = [];
+    const used = new Set<string>();
+
+    for (const d of buckets) {
+      const pool = await this.prisma.question.findMany({
+        where: {
+          institutionId,
+          topicId: { in: topicIds },
+          type: d.type,
+          difficulty: d.difficulty,
+        },
+        select: { id: true },
+      });
+
+      const ids = pool.map((p) => p.id).filter((id) => !used.has(id));
+
+      if (ids.length < d.count) {
+        throw new BadRequestException(
+          `Not enough questions for type=${d.type} difficulty=${d.difficulty}. ` +
+            `Needed ${d.count}, available ${ids.length}.`,
+        );
+      }
+
+      const picked = this.pickRandomIds(ids, d.count);
+      for (const id of picked) {
+        used.add(id);
+        selectedIds.push(id);
+      }
+    }
+
+    return selectedIds;
   }
 
   private async findExistingExamBySignature(institutionId: string, signature: string) {
@@ -276,76 +376,14 @@ export class ExamsService {
       throw new BadRequestException('title is required');
     }
 
-    if (!dto.totalQuestions || dto.totalQuestions < 1) {
-      throw new BadRequestException('totalQuestions must be >= 1');
-    }
-
-    if (!dto.typeCounts) {
-      throw new BadRequestException('typeCounts is required');
-    }
-
-    const sumTypes =
-      (dto.typeCounts.MULTIPLE_CHOICE ?? 0) +
-      (dto.typeCounts.TRUE_FALSE ?? 0) +
-      (dto.typeCounts.OPEN ?? 0);
-
-    if (sumTypes !== dto.totalQuestions) {
-      throw new BadRequestException('typeCounts sum must equal totalQuestions');
-    }
-
-    if (!dto.difficulties || dto.difficulties.length < 1 || dto.difficulties.length > 3) {
-      throw new BadRequestException('difficulties must have 1 to 3 values');
-    }
-
-    const uniqueDiffs = new Set(dto.difficulties);
-    if (uniqueDiffs.size !== dto.difficulties.length) {
-      throw new BadRequestException('difficulties must not contain duplicates');
-    }
+    this.validateGenerateDto(dto);
 
     const topicIds = await this.resolveTopicIds(institutionId, dto);
 
     const MAX_ATTEMPTS = 30;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const stockPlan = await this.getStockPlan(institutionId, topicIds);
-      const { isPossible, shortage, buckets } = this.buildPlanWithFallback(dto, stockPlan);
-
-      if (!isPossible) {
-        throw new BadRequestException({
-          message: 'Not enough stock to generate exam with the requested constraints',
-          shortage,
-        });
-      }
-
-      const selectedIds: string[] = [];
-      const used = new Set<string>();
-
-      for (const d of buckets) {
-        const pool = await this.prisma.question.findMany({
-          where: {
-            institutionId,
-            topicId: { in: topicIds },
-            type: d.type,
-            difficulty: d.difficulty,
-          },
-          select: { id: true },
-        });
-
-        const ids = pool.map((p) => p.id).filter((id) => !used.has(id));
-
-        if (ids.length < d.count) {
-          throw new BadRequestException(
-            `Not enough questions for type=${d.type} difficulty=${d.difficulty}. ` +
-              `Needed ${d.count}, available ${ids.length}.`,
-          );
-        }
-
-        const picked = this.pickRandomIds(ids, d.count);
-        for (const id of picked) {
-          used.add(id);
-          selectedIds.push(id);
-        }
-      }
+      const selectedIds = await this.selectQuestionIdsOnce(institutionId, topicIds, dto);
 
       const signature = this.buildSignature(selectedIds);
 
@@ -384,9 +422,16 @@ export class ExamsService {
           });
         });
 
+        if (!exam) {
+          throw new Error('Exam was not created correctly');
+        }
+
         return exam;
       } catch (err: any) {
-        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
           continue;
         }
         throw err;
@@ -405,78 +450,15 @@ export class ExamsService {
       throw new BadRequestException('title is required');
     }
 
-    if (!dto.totalQuestions || dto.totalQuestions < 1) {
-      throw new BadRequestException('totalQuestions must be >= 1');
-    }
-
-    if (!dto.typeCounts) {
-      throw new BadRequestException('typeCounts is required');
-    }
-
-    const sumTypes =
-      (dto.typeCounts.MULTIPLE_CHOICE ?? 0) +
-      (dto.typeCounts.TRUE_FALSE ?? 0) +
-      (dto.typeCounts.OPEN ?? 0);
-
-    if (sumTypes !== dto.totalQuestions) {
-      throw new BadRequestException('typeCounts sum must equal totalQuestions');
-    }
-
-    if (!dto.difficulties || dto.difficulties.length < 1 || dto.difficulties.length > 3) {
-      throw new BadRequestException('difficulties must have 1 to 3 values');
-    }
-
-    const uniqueDiffs = new Set(dto.difficulties);
-    if (uniqueDiffs.size !== dto.difficulties.length) {
-      throw new BadRequestException('difficulties must not contain duplicates');
-    }
+    this.validateGenerateDto(dto);
 
     const topicIds = await this.resolveTopicIds(institutionId, dto);
 
     const MAX_ATTEMPTS = 30;
-
     let lastCollidedSignature: string | null = null;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const stockPlan = await this.getStockPlan(institutionId, topicIds);
-      const { isPossible, shortage, buckets } = this.buildPlanWithFallback(dto, stockPlan);
-
-      if (!isPossible) {
-        throw new BadRequestException({
-          message: 'Not enough stock to generate exam with the requested constraints',
-          shortage,
-        });
-      }
-
-      const selectedIds: string[] = [];
-      const used = new Set<string>();
-
-      for (const d of buckets) {
-        const pool = await this.prisma.question.findMany({
-          where: {
-            institutionId,
-            topicId: { in: topicIds },
-            type: d.type,
-            difficulty: d.difficulty,
-          },
-          select: { id: true },
-        });
-
-        const ids = pool.map((p) => p.id).filter((id) => !used.has(id));
-
-        if (ids.length < d.count) {
-          throw new BadRequestException(
-            `Not enough questions for type=${d.type} difficulty=${d.difficulty}. ` +
-              `Needed ${d.count}, available ${ids.length}.`,
-          );
-        }
-
-        const picked = this.pickRandomIds(ids, d.count);
-        for (const id of picked) {
-          used.add(id);
-          selectedIds.push(id);
-        }
-      }
+      const selectedIds = await this.selectQuestionIdsOnce(institutionId, topicIds, dto);
 
       const signature = this.buildSignature(selectedIds);
 
@@ -515,9 +497,20 @@ export class ExamsService {
           });
         });
 
-        return { mode: 'created', exam };
+        if (!exam) {
+          throw new Error('Exam was not created correctly');
+        }
+
+        return {
+          mode: 'created',
+          exam,
+          exportPdfUrl: `/exams/${exam.id}/export/pdf`,
+        };
       } catch (err: any) {
-        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
           lastCollidedSignature = signature;
           continue;
         }
@@ -526,8 +519,18 @@ export class ExamsService {
     }
 
     if (lastCollidedSignature) {
-      const existingExam = await this.findExistingExamBySignature(institutionId, lastCollidedSignature);
-      if (existingExam) return { mode: 'reused', exam: existingExam };
+      const existingExam = await this.findExistingExamBySignature(
+        institutionId,
+        lastCollidedSignature,
+      );
+
+      if (existingExam) {
+        return {
+          mode: 'reused',
+          exam: existingExam,
+          exportPdfUrl: `/exams/${existingExam.id}/export/pdf`,
+        };
+      }
     }
 
     throw new ConflictException(
@@ -549,23 +552,7 @@ export class ExamsService {
   async preview(userId: string, dto: GenerateExamDto) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
-    const sumTypes =
-      (dto.typeCounts?.MULTIPLE_CHOICE ?? 0) +
-      (dto.typeCounts?.TRUE_FALSE ?? 0) +
-      (dto.typeCounts?.OPEN ?? 0);
-
-    if (sumTypes !== dto.totalQuestions) {
-      throw new BadRequestException('typeCounts sum must equal totalQuestions');
-    }
-
-    if (!dto.difficulties || dto.difficulties.length < 1 || dto.difficulties.length > 3) {
-      throw new BadRequestException('difficulties must have 1 to 3 values');
-    }
-
-    const uniqueDiffs = new Set(dto.difficulties);
-    if (uniqueDiffs.size !== dto.difficulties.length) {
-      throw new BadRequestException('difficulties must not contain duplicates');
-    }
+    this.validateGenerateDto(dto);
 
     const topicIds = await this.resolveTopicIds(institutionId, dto);
     const stockPlan = await this.getStockPlan(institutionId, topicIds);
@@ -597,6 +584,88 @@ export class ExamsService {
         combinationsEstimate <= 1
           ? 'Only 1 unique exam set is realistically possible with these parameters.'
           : undefined,
+    };
+  }
+
+  async previewQuestions(userId: string, dto: GenerateExamDto) {
+    const institutionId = await this.getActiveInstitutionId(userId);
+
+    if (!dto.title || dto.title.trim().length === 0) {
+      throw new BadRequestException('title is required');
+    }
+
+    this.validateGenerateDto(dto);
+
+    const topicIds = await this.resolveTopicIds(institutionId, dto);
+
+    const selectedIds = await this.selectQuestionIdsOnce(institutionId, topicIds, dto);
+
+    const questions = await this.prisma.question.findMany({
+      where: { institutionId, id: { in: selectedIds } },
+      select: {
+        id: true,
+        type: true,
+        difficulty: true,
+        statement: true,
+        options: true,
+        modelAnswer: true,
+        correctIndex: true,
+        topicId: true,
+        subjectId: true,
+      },
+    });
+
+    const byId = new Map(questions.map((q) => [q.id, q]));
+    const orderedQuestions = selectedIds.map((id) => byId.get(id)).filter(Boolean);
+
+    return {
+      topicIds,
+      totalQuestions: dto.totalQuestions,
+      typeCounts: dto.typeCounts,
+      difficulties: dto.difficulties,
+      questions: orderedQuestions,
+    };
+  }
+
+  async getExamForExport(userId: string, examId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) throw new ForbiddenException('Invalid user');
+
+    const exam = await this.prisma.exam.findUnique({
+      where: { id: examId },
+      include: {
+        items: {
+          orderBy: { order: 'asc' },
+          include: { question: true },
+        },
+      },
+    });
+
+    if (!exam) {
+      throw new ForbiddenException('Exam not found');
+    }
+
+    const membership = await this.prisma.userInstitution.findFirst({
+      where: { userId, institutionId: exam.institutionId },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Exam not accessible for this user');
+    }
+
+    const institution = await this.prisma.institution.findUnique({
+      where: { id: exam.institutionId },
+      select: { name: true },
+    });
+
+    return {
+      exam,
+      institutionName: institution?.name ?? 'Institución',
     };
   }
 }

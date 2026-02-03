@@ -25,6 +25,7 @@ model User {
   activeInstitutionId String?
   activeInstitution   Institution?      @relation(fields: [activeInstitutionId], references: [id])
   memberships         UserInstitution[]
+  sessions            Session[]
 
   @@index([activeInstitutionId])
 }
@@ -121,9 +122,7 @@ model Exam {
   updatedAt     DateTime       @updatedAt
   institution   Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   items         ExamQuestion[]
-
-  // back relation (un examen puede tener 0 o 1 firma de set)
-  signature ExamSignature?
+  signature     ExamSignature?
 
   @@index([institutionId])
 }
@@ -146,14 +145,24 @@ model ExamSignature {
   institutionId String
   signature     String
   createdAt     DateTime @default(now())
-
-  examId String @unique
-  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  examId        String   @unique
+  exam          Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
   @@unique([institutionId, signature], name: "institutionId_signature")
   @@index([institutionId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+  expiresAt DateTime
+
+  @@index([userId])
 }
 
 enum AuthProvider {

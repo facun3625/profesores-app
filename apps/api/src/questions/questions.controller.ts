@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, Post, Query } from '@nestjs/common';
 import { QuestionsService } from './questions.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { ListQuestionsDto } from './dto/list-questions.dto';
 
 @Controller('questions')
 export class QuestionsController {
@@ -12,13 +13,8 @@ export class QuestionsController {
   }
 
   @Get()
-  list(
-    @Headers('x-user-id') userId: string,
-    @Query('subjectId') subjectId?: string,
-    @Query('topicId') topicId?: string,
-    @Query('difficulty') difficulty?: 'easy' | 'medium' | 'hard',
-  ) {
-    return this.questionsService.list(userId, subjectId, topicId, difficulty);
+  list(@Headers('x-user-id') userId: string, @Query() query: ListQuestionsDto) {
+    return this.questionsService.list(userId, query);
   }
 
   @Get('stats')
@@ -30,11 +26,11 @@ export class QuestionsController {
     @Query('topicId') topicId?: string, // opcional, single
   ) {
     const subjectIdList =
-      subjectIds?.split(',').map(s => s.trim()).filter(Boolean) ??
+      subjectIds?.split(',').map((s) => s.trim()).filter(Boolean) ??
       (subjectId ? [subjectId] : undefined);
 
     const topicIdList =
-      topicIds?.split(',').map(s => s.trim()).filter(Boolean) ??
+      topicIds?.split(',').map((s) => s.trim()).filter(Boolean) ??
       (topicId ? [topicId] : undefined);
 
     return this.questionsService.stats(userId, subjectIdList, topicIdList);

@@ -5,7 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
-import { QuestionDifficulty, QuestionType } from '@prisma/client';
+import { QuestionDifficulty, QuestionType, Prisma } from '@prisma/client';
+import { ListQuestionsDto } from './dto/list-questions.dto';
 
 @Injectable()
 export class QuestionsService {
@@ -99,26 +100,55 @@ export class QuestionsService {
     });
   }
 
-  async list(
-    userId: string,
-    subjectId?: string,
-    topicId?: string,
-    difficulty?: 'easy' | 'medium' | 'hard',
-  ) {
+  async list(userId: string, query: ListQuestionsDto) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
-    return this.prisma.question.findMany({
-      where: {
-        institutionId,
-        ...(subjectId ? { subjectId } : {}),
-        ...(topicId ? { topicId } : {}),
-        ...(difficulty ? { difficulty } : {}),
+    const page = query.page ?? 1;
+    let limit = query.limit ?? 20;
+    if (limit > 100) limit = 100;
+
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.QuestionWhereInput = {
+      institutionId,
+      ...(query.subjectId ? { subjectId: query.subjectId } : {}),
+      ...(query.topicId ? { topicId: query.topicId } : {}),
+      ...(query.difficulty ? { difficulty: query.difficulty } : {}),
+      ...(query.type ? { type: query.type } : {}),
+      ...(query.q
+        ? {
+            statement: {
+              contains: query.q,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+    };
+
+    const [total, data] = await this.prisma.$transaction([
+      this.prisma.question.count({ where }),
+      this.prisma.question.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
-  // ✅ NUEVO: stats para saber stock por tipo + dificultad (antes de generar examen)
+  // ✅ stats para saber stock por tipo + dificultad (antes de generar examen)
   async stats(userId: string, subjectIds?: string[], topicIds?: string[]) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
