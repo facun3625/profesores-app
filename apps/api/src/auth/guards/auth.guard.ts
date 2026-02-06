@@ -12,6 +12,8 @@ export class AuthGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    console.log("AUTH GUARD RUNNING - v2");
+
     const req = context.switchToHttp().getRequest();
 
     const authHeader: string | undefined =
@@ -31,14 +33,8 @@ export class AuthGuard implements CanActivate {
       include: { user: true },
     });
 
-    if (!session) {
-      throw new UnauthorizedException("Invalid session");
-    }
-
-    if (session.revokedAt) {
-      throw new UnauthorizedException("Session revoked");
-    }
-
+    if (!session) throw new UnauthorizedException("Invalid session");
+    if (session.revokedAt) throw new UnauthorizedException("Session revoked");
     if (session.expiresAt && session.expiresAt.getTime() <= Date.now()) {
       throw new UnauthorizedException("Session expired");
     }
@@ -49,15 +45,38 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("User inactive");
     }
 
-    if (!user.activeInstitutionId) {
-      throw new ForbiddenException("No active institution selected");
+    // 1) Determinar institución activa
+    let activeInstitutionId = user.activeInstitutionId;
+
+    // 2) Si no hay institución activa, elegimos automáticamente la primera membership
+    if (!activeInstitutionId) {
+      const firstMembership = await this.prisma.userInstitution.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+      });
+
+      if (!firstMembership) {
+        throw new ForbiddenException("User has no institution membership");
+      }
+
+      activeInstitutionId = firstMembership.institutionId;
+
+      // Persistimos en DB
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { activeInstitutionId },
+      });
+
+      // Y también lo reflejamos en memoria para lo que sigue del request
+      user.activeInstitutionId = activeInstitutionId;
     }
 
+    // 3) Validar que realmente sea miembro de la institución activa
     const membership = await this.prisma.userInstitution.findUnique({
       where: {
         userId_institutionId: {
           userId: user.id,
-          institutionId: user.activeInstitutionId,
+          institutionId: activeInstitutionId,
         },
       },
     });
@@ -66,9 +85,10 @@ export class AuthGuard implements CanActivate {
       throw new ForbiddenException("User not member of active institution");
     }
 
+    // 4) Inyectar datos útiles en req
     req.user = user;
     req.userId = user.id;
-    req.activeInstitutionId = user.activeInstitutionId;
+    req.activeInstitutionId = activeInstitutionId;
     req.role = membership.role;
     req.sessionToken = token;
 

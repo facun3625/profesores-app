@@ -1,10 +1,12 @@
 // apps/web/src/lib/api.ts
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-const USER_ID = process.env.NEXT_PUBLIC_USER_ID!;
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://localhost:3000";
 
 type ApiError = {
-  message?: string;
+  message?: string | string[];
   error?: string;
   statusCode?: number;
 };
@@ -12,63 +14,53 @@ type ApiError = {
 async function parseError(res: Response): Promise<string> {
   try {
     const data = (await res.json()) as ApiError;
-    return data.message || data.error || `HTTP ${res.status}`;
+    if (Array.isArray(data.message)) return data.message.join(", ");
+    return (data.message as string) || data.error || `HTTP ${res.status}`;
   } catch {
     return `HTTP ${res.status}`;
   }
 }
 
-/**
- * Headers base compartidos por TODAS las llamadas
- * (clave: mismo user para generate + export)
- */
-function baseHeaders(extra?: HeadersInit): HeadersInit {
-  return {
-    "x-user-id": USER_ID,
-    ...(extra || {}),
-  };
+function getAuthHeader(): HeadersInit {
+  if (typeof window === "undefined") return {};
+
+  const token = localStorage.getItem("accessToken");
+  if (token) return { Authorization: `Bearer ${token}` };
+
+  return {};
 }
 
 /**
  * API JSON (GET/POST/etc)
  */
-export async function api<T>(
-  path: string,
-  init?: RequestInit
-): Promise<T> {
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...baseHeaders(init?.headers),
+      ...getAuthHeader(),
+      ...(init.headers || {}),
     },
     cache: "no-store",
   });
 
-  if (!res.ok) {
-    throw new Error(await parseError(res));
-  }
-
-  return res.json() as Promise<T>;
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as T;
 }
 
 /**
  * API para descargar archivos (PDF, etc)
- * NO setea Content-Type y devuelve Blob
  */
-export async function apiBlob(
-  path: string,
-  init?: RequestInit
-): Promise<Blob> {
+export async function apiBlob(path: string, init: RequestInit = {}): Promise<Blob> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: baseHeaders(init?.headers),
+    headers: {
+      ...getAuthHeader(),
+      ...(init.headers || {}),
+    },
     cache: "no-store",
   });
 
-  if (!res.ok) {
-    throw new Error(await parseError(res));
-  }
-
-  return res.blob();
+  if (!res.ok) throw new Error(await parseError(res));
+  return await res.blob();
 }

@@ -1,38 +1,41 @@
-import { Body, Controller, Get, Headers, Post, Query } from '@nestjs/common';
-import { QuestionsService } from './questions.service';
-import { CreateQuestionDto } from './dto/create-question.dto';
-import { ListQuestionsDto } from './dto/list-questions.dto';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { QuestionsService } from "./questions.service";
+import { CreateQuestionDto } from "./dto/create-question.dto";
+import { ListQuestionsDto } from "./dto/list-questions.dto";
+import { AuthGuard } from "../auth/guards/auth.guard";
 
-@Controller('questions')
+@Controller("questions")
+@UseGuards(AuthGuard)
 export class QuestionsController {
   constructor(private readonly questionsService: QuestionsService) {}
 
   @Post()
-  create(@Headers('x-user-id') userId: string, @Body() dto: CreateQuestionDto) {
-    return this.questionsService.create(userId, dto);
+  create(@Req() req: any, @Body() dto: CreateQuestionDto) {
+    // Ojo: el service todavía espera userId, no institutionId.
+    return this.questionsService.create(req.userId, dto);
   }
 
   @Get()
-  list(@Headers('x-user-id') userId: string, @Query() query: ListQuestionsDto) {
-    return this.questionsService.list(userId, query);
+  list(@Req() req: any, @Query() query: ListQuestionsDto) {
+    return this.questionsService.list(req.userId, query);
   }
 
-  @Get('stats')
+  @Get("stats")
   stats(
-    @Headers('x-user-id') userId: string,
-    @Query('subjectIds') subjectIds?: string, // "id1,id2,id3"
-    @Query('topicIds') topicIds?: string, // "id1,id2,id3"
-    @Query('subjectId') subjectId?: string, // opcional, single
-    @Query('topicId') topicId?: string, // opcional, single
+    @Req() req: any,
+    @Query("subjectIds") subjectIds?: string, // "id1,id2,id3"
+    @Query("topicIds") topicIds?: string, // "id1,id2,id3"
+    @Query("subjectId") subjectId?: string, // opcional single
+    @Query("topicId") topicId?: string, // opcional single
   ) {
     const subjectIdList =
-      subjectIds?.split(',').map((s) => s.trim()).filter(Boolean) ??
+      subjectIds?.split(",").map((s) => s.trim()).filter(Boolean) ??
       (subjectId ? [subjectId] : undefined);
 
     const topicIdList =
-      topicIds?.split(',').map((s) => s.trim()).filter(Boolean) ??
+      topicIds?.split(",").map((s) => s.trim()).filter(Boolean) ??
       (topicId ? [topicId] : undefined);
 
-    return this.questionsService.stats(userId, subjectIdList, topicIdList);
+    return this.questionsService.stats(req.userId, subjectIdList, topicIdList);
   }
 }

@@ -1,43 +1,20 @@
-import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
-import { SubjectsService } from './subjects.service';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { SubjectsService } from "./subjects.service";
+import { CreateSubjectDto } from "./dto/create-subject.dto";
+import { AuthGuard } from "../auth/guards/auth.guard";
 
-@Controller('subjects')
+@Controller("subjects")
+@UseGuards(AuthGuard)
 export class SubjectsController {
-  constructor(
-    private readonly subjectsService: SubjectsService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly subjectsService: SubjectsService) {}
 
   @Post()
-  async create(
-    @Headers('x-user-id') userId: string | undefined,
-    @Body() dto: CreateSubjectDto,
-  ) {
-    if (!userId) {
-      return this.subjectsService.create(null, dto);
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { activeInstitutionId: true },
-    });
-
-    return this.subjectsService.create(user?.activeInstitutionId ?? null, dto);
+  async create(@Req() req: any, @Body() dto: CreateSubjectDto) {
+    return this.subjectsService.create(req.activeInstitutionId, dto);
   }
 
   @Get()
-  async findAll(@Headers('x-user-id') userId: string | undefined) {
-    if (!userId) {
-      return this.subjectsService.findAll(null);
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { activeInstitutionId: true },
-    });
-
-    return this.subjectsService.findAll(user?.activeInstitutionId ?? null);
+  async findAll(@Req() req: any) {
+    return this.subjectsService.findAll(req.activeInstitutionId);
   }
 }

@@ -28,6 +28,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* 
+          ClientLayout es client-side:
+          - maneja sesión
+          - puede renderizar AppHeader
+          - puede hacer logout
+        */}
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

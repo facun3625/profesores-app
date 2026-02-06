@@ -6,137 +6,167 @@ import { api } from "@/lib/api";
 type Institution = {
   id: string;
   name: string;
+  plan?: string;
+  role?: string;
+  status?: string;
 };
 
-type MeResponse = {
-  user: {
-    id: string;
-    activeInstitutionId?: string | null;
-  };
-  institutions: Institution[];
-};
+type MeAny =
+  | {
+      activeInstitutionId?: string | null;
+      user?: { activeInstitutionId?: string | null } | null;
+    }
+  | null;
 
 export default function InstitutionsPage() {
-  const [me, setMe] = useState<MeResponse | null>(null);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [activeInstitutionId, setActiveInstitutionId] = useState<string | null>(null);
+
   const [name, setName] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
 
   async function load() {
     setError("");
-    const data = await api<MeResponse>("/me");
-    setMe(data);
+
+    const instRes = await Promise.allSettled([api<Institution[]>("/institutions")]);
+
+    if (instRes[0].status === "fulfilled") {
+      setInstitutions(instRes[0].value ?? []);
+    } else {
+      setError((instRes[0] as PromiseRejectedResult).reason?.message || "Error cargando instituciones");
+    }
+
+    let me: MeAny = null;
+    try {
+      me = await api<MeAny>("/auth/me");
+    } catch {
+      try {
+        me = await api<MeAny>("/me");
+      } catch {
+        me = null;
+      }
+    }
+
+    const activeId = me?.user?.activeInstitutionId ?? me?.activeInstitutionId ?? null;
+    setActiveInstitutionId(activeId);
   }
 
   useEffect(() => {
-    load().catch((e) => setError(e.message));
+    load();
   }, []);
 
   async function createInstitution() {
-    if (!name.trim()) return;
+    setError("");
+    const trimmed = name.trim();
+    if (!trimmed) return;
 
     setLoading(true);
-    setError("");
     try {
       await api("/institutions", {
         method: "POST",
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: trimmed }),
       });
       setName("");
       await load();
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message || "Error creando institución");
     } finally {
       setLoading(false);
     }
   }
 
-  async function setActiveInstitution(institutionId: string) {
-    setLoading(true);
+  async function activateInstitution(institutionId: string) {
     setError("");
+    setLoading(true);
     try {
       await api("/institutions/active", {
         method: "POST",
         body: JSON.stringify({ institutionId }),
       });
+
+      setActiveInstitutionId(institutionId);
+
+      // 🔥 AVISAMOS AL HEADER (ClientLayout) QUE CAMBIÓ LA ACTIVA
+      window.dispatchEvent(new Event("active-institution-changed"));
+
       await load();
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message || "Error activando institución");
     } finally {
       setLoading(false);
     }
   }
 
-  const activeId = me?.user.activeInstitutionId;
-
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>Instituciones</h1>
-
-      <p style={{ marginBottom: 16, opacity: 0.8 }}>
-        Solo una institución puede estar activa.  
-        Todo lo que crees (materias, temas, exámenes) pertenece a la institución activa.
-      </p>
+    <main style={{ padding: 24, maxWidth: 900 }}>
+      <h1>Instituciones</h1>
 
       {error && (
-        <div style={{ border: "1px solid red", padding: 12, marginBottom: 12 }}>
+        <div style={{ border: "1px solid red", padding: 10, marginBottom: 12 }}>
           {error}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+      <div style={{ marginBottom: 12 }}>
+        <b>Activa:</b> {activeInstitutionId ?? "—"}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nueva institución"
-          style={{ padding: 8, flex: 1 }}
+          style={{ flex: 1 }}
         />
-        <button onClick={createInstitution} disabled={loading}>
+        <button disabled={loading} onClick={createInstitution}>
           Crear
         </button>
       </div>
 
-      {!me ? (
-        <div>Cargando…</div>
-      ) : (
-        <ul style={{ display: "grid", gap: 12 }}>
-          {me.institutions.map((inst) => {
-            const isActive = inst.id === activeId;
+      <div style={{ border: "1px solid #ddd" }}>
+        {institutions.length ? (
+          institutions.map((inst) => {
+            const isActive = inst.id === activeInstitutionId;
 
             return (
-              <li
+              <div
                 key={inst.id}
                 style={{
-                  padding: 16,
-                  border: "1px solid",
-                  background: isActive ? "#e6ffe6" : "transparent",
                   display: "flex",
                   justifyContent: "space-between",
+                  padding: 12,
+                  borderTop: "1px solid #eee",
                   alignItems: "center",
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 700 }}>{inst.name}</div>
-                  {isActive && (
-                    <div style={{ fontSize: 13, opacity: 0.7 }}>
-                      Institución activa
-                    </div>
-                  )}
+                  <div style={{ fontWeight: 600 }}>{inst.name}</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    {inst.plan ? `plan: ${inst.plan}` : "plan: —"}
+                    {" · "}
+                    {inst.role ? `role: ${inst.role}` : "role: —"}
+                    {inst.status ? ` · status: ${inst.status}` : ""}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.6 }}>{inst.id}</div>
                 </div>
 
-                {!isActive && (
-                  <button
-                    onClick={() => setActiveInstitution(inst.id)}
-                    disabled={loading}
-                  >
-                    Cambiar a esta institución
+                {isActive ? (
+                  <button disabled style={{ opacity: 0.6 }}>
+                    Activa
+                  </button>
+                ) : (
+                  <button disabled={loading} onClick={() => activateInstitution(inst.id)}>
+                    Activar
                   </button>
                 )}
-              </li>
+              </div>
             );
-          })}
-        </ul>
-      )}
+          })
+        ) : (
+          <div style={{ padding: 12 }}>No hay instituciones todavía.</div>
+        )}
+      </div>
     </main>
   );
 }

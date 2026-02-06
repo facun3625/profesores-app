@@ -3,18 +3,18 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateExamDto } from './dto/create-exam.dto';
-import { GenerateExamDto } from './dto/generate-exam.dto';
-import { Prisma, QuestionDifficulty, QuestionType } from '@prisma/client';
-import * as crypto from 'crypto';
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateExamDto } from "./dto/create-exam.dto";
+import { GenerateExamDto } from "./dto/generate-exam.dto";
+import { Prisma, QuestionDifficulty, QuestionType } from "@prisma/client";
+import * as crypto from "crypto";
 
 import {
   buildInitialPlan,
   rebalancePlanWithinAllowed,
   planToBuckets,
-} from './utils/difficulty-plan';
+} from "./utils/difficulty-plan";
 
 type StockPlan = Record<QuestionType, Record<QuestionDifficulty, number>>;
 
@@ -22,27 +22,18 @@ type StockPlan = Record<QuestionType, Record<QuestionDifficulty, number>>;
 export class ExamsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async getActiveInstitutionId(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, activeInstitutionId: true },
-    });
-
-    if (!user) throw new ForbiddenException('Invalid user');
-
-    const institutionId = user.activeInstitutionId;
+  private requireInstitutionId(institutionId: string | null | undefined) {
     if (!institutionId) {
-      throw new BadRequestException('User has no active institution');
+      throw new ForbiddenException("No active institution selected");
     }
-
     return institutionId;
   }
 
-  async create(userId: string, dto: CreateExamDto) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async create(institutionIdRaw: string, dto: CreateExamDto) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     if (!dto.questionIds || dto.questionIds.length === 0) {
-      throw new BadRequestException('questionIds must not be empty');
+      throw new BadRequestException("questionIds must not be empty");
     }
 
     const count = await this.prisma.question.count({
@@ -51,7 +42,7 @@ export class ExamsService {
 
     if (count !== dto.questionIds.length) {
       throw new ForbiddenException(
-        'One or more questions do not belong to active institution',
+        "One or more questions do not belong to active institution",
       );
     }
 
@@ -69,55 +60,55 @@ export class ExamsService {
       },
       include: {
         items: {
-          orderBy: { order: 'asc' },
+          orderBy: { order: "asc" },
           include: { question: true },
         },
       },
     });
   }
 
-  async list(userId: string) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async list(institutionIdRaw: string) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     return this.prisma.exam.findMany({
       where: { institutionId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         items: {
-          orderBy: { order: 'asc' },
+          orderBy: { order: "asc" },
           include: { question: true },
         },
       },
     });
   }
 
-  async getById(userId: string, examId: string) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async getById(institutionIdRaw: string, examId: string) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     const exam = await this.prisma.exam.findFirst({
       where: { id: examId, institutionId },
       include: {
         items: {
-          orderBy: { order: 'asc' },
+          orderBy: { order: "asc" },
           include: { question: true },
         },
       },
     });
 
-    if (!exam) throw new ForbiddenException('Exam not found for active institution');
+    if (!exam) throw new ForbiddenException("Exam not found for active institution");
 
     return exam;
   }
 
-  async remove(userId: string, examId: string) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async remove(institutionIdRaw: string, examId: string) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     const exam = await this.prisma.exam.findFirst({
       where: { id: examId, institutionId },
       select: { id: true },
     });
 
-    if (!exam) throw new ForbiddenException('Exam not found for active institution');
+    if (!exam) throw new ForbiddenException("Exam not found for active institution");
 
     await this.prisma.exam.delete({ where: { id: examId } });
 
@@ -126,8 +117,8 @@ export class ExamsService {
 
   private buildSignature(questionIds: string[]): string {
     const sorted = [...questionIds].sort();
-    const joined = sorted.join('|');
-    return crypto.createHash('sha256').update(joined).digest('hex');
+    const joined = sorted.join("|");
+    return crypto.createHash("sha256").update(joined).digest("hex");
   }
 
   private splitEven(total: number, parts: number): number[] {
@@ -166,7 +157,7 @@ export class ExamsService {
     const hasSubjects = Array.isArray(dto.subjectIds) && dto.subjectIds.length > 0;
 
     if (!hasTopics && !hasSubjects) {
-      throw new BadRequestException('You must provide topicIds or subjectIds');
+      throw new BadRequestException("You must provide topicIds or subjectIds");
     }
 
     if (hasTopics) {
@@ -175,7 +166,7 @@ export class ExamsService {
       });
       if (count !== dto.topicIds!.length) {
         throw new ForbiddenException(
-          'One or more topics do not belong to active institution',
+          "One or more topics do not belong to active institution",
         );
       }
       return dto.topicIds!;
@@ -186,7 +177,7 @@ export class ExamsService {
     });
     if (subjectCount !== dto.subjectIds!.length) {
       throw new ForbiddenException(
-        'One or more subjects do not belong to active institution',
+        "One or more subjects do not belong to active institution",
       );
     }
 
@@ -196,7 +187,7 @@ export class ExamsService {
     });
 
     if (topics.length === 0) {
-      throw new BadRequestException('No topics found for selected subjects');
+      throw new BadRequestException("No topics found for selected subjects");
     }
 
     return topics.map((t) => t.id);
@@ -227,7 +218,7 @@ export class ExamsService {
     topicIds: string[],
   ): Promise<StockPlan> {
     const grouped = await this.prisma.question.groupBy({
-      by: ['type', 'difficulty'],
+      by: ["type", "difficulty"],
       where: { institutionId, topicId: { in: topicIds } },
       _count: { _all: true },
     });
@@ -264,11 +255,11 @@ export class ExamsService {
 
   private validateGenerateDto(dto: GenerateExamDto) {
     if (!dto.totalQuestions || dto.totalQuestions < 1) {
-      throw new BadRequestException('totalQuestions must be >= 1');
+      throw new BadRequestException("totalQuestions must be >= 1");
     }
 
     if (!dto.typeCounts) {
-      throw new BadRequestException('typeCounts is required');
+      throw new BadRequestException("typeCounts is required");
     }
 
     const sumTypes =
@@ -277,20 +268,16 @@ export class ExamsService {
       (dto.typeCounts.OPEN ?? 0);
 
     if (sumTypes !== dto.totalQuestions) {
-      throw new BadRequestException('typeCounts sum must equal totalQuestions');
+      throw new BadRequestException("typeCounts sum must equal totalQuestions");
     }
 
-    if (
-      !dto.difficulties ||
-      dto.difficulties.length < 1 ||
-      dto.difficulties.length > 3
-    ) {
-      throw new BadRequestException('difficulties must have 1 to 3 values');
+    if (!dto.difficulties || dto.difficulties.length < 1 || dto.difficulties.length > 3) {
+      throw new BadRequestException("difficulties must have 1 to 3 values");
     }
 
     const uniqueDiffs = new Set(dto.difficulties);
     if (uniqueDiffs.size !== dto.difficulties.length) {
-      throw new BadRequestException('difficulties must not contain duplicates');
+      throw new BadRequestException("difficulties must not contain duplicates");
     }
   }
 
@@ -300,14 +287,11 @@ export class ExamsService {
     dto: GenerateExamDto,
   ): Promise<string[]> {
     const stockPlan = await this.getStockPlan(institutionId, topicIds);
-    const { isPossible, shortage, buckets } = this.buildPlanWithFallback(
-      dto,
-      stockPlan,
-    );
+    const { isPossible, shortage, buckets } = this.buildPlanWithFallback(dto, stockPlan);
 
     if (!isPossible) {
       throw new BadRequestException({
-        message: 'Not enough stock to generate exam with the requested constraints',
+        message: "Not enough stock to generate exam with the requested constraints",
         shortage,
       });
     }
@@ -362,18 +346,18 @@ export class ExamsService {
       where: { id: sig.examId },
       include: {
         items: {
-          orderBy: { order: 'asc' },
+          orderBy: { order: "asc" },
           include: { question: true },
         },
       },
     });
   }
 
-  async generate(userId: string, dto: GenerateExamDto) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async generate(institutionIdRaw: string, dto: GenerateExamDto) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     if (!dto.title || dto.title.trim().length === 0) {
-      throw new BadRequestException('title is required');
+      throw new BadRequestException("title is required");
     }
 
     this.validateGenerateDto(dto);
@@ -384,7 +368,6 @@ export class ExamsService {
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const selectedIds = await this.selectQuestionIdsOnce(institutionId, topicIds, dto);
-
       const signature = this.buildSignature(selectedIds);
 
       try {
@@ -415,22 +398,19 @@ export class ExamsService {
             where: { id: createdExam.id },
             include: {
               items: {
-                orderBy: { order: 'asc' },
+                orderBy: { order: "asc" },
                 include: { question: true },
               },
             },
           });
         });
 
-        if (!exam) {
-          throw new Error('Exam was not created correctly');
-        }
-
+        if (!exam) throw new Error("Exam was not created correctly");
         return exam;
       } catch (err: any) {
         if (
           err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === 'P2002'
+          err.code === "P2002"
         ) {
           continue;
         }
@@ -439,15 +419,15 @@ export class ExamsService {
     }
 
     throw new ConflictException(
-      'No more unique exams can be generated with these parameters (combinations exhausted)',
+      "No more unique exams can be generated with these parameters (combinations exhausted)",
     );
   }
 
-  async generateOrReuse(userId: string, dto: GenerateExamDto) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async generateOrReuse(institutionIdRaw: string, dto: GenerateExamDto) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     if (!dto.title || dto.title.trim().length === 0) {
-      throw new BadRequestException('title is required');
+      throw new BadRequestException("title is required");
     }
 
     this.validateGenerateDto(dto);
@@ -459,7 +439,6 @@ export class ExamsService {
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const selectedIds = await this.selectQuestionIdsOnce(institutionId, topicIds, dto);
-
       const signature = this.buildSignature(selectedIds);
 
       try {
@@ -490,26 +469,24 @@ export class ExamsService {
             where: { id: createdExam.id },
             include: {
               items: {
-                orderBy: { order: 'asc' },
+                orderBy: { order: "asc" },
                 include: { question: true },
               },
             },
           });
         });
 
-        if (!exam) {
-          throw new Error('Exam was not created correctly');
-        }
+        if (!exam) throw new Error("Exam was not created correctly");
 
         return {
-          mode: 'created',
+          mode: "created",
           exam,
           exportPdfUrl: `/exams/${exam.id}/export/pdf`,
         };
       } catch (err: any) {
         if (
           err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === 'P2002'
+          err.code === "P2002"
         ) {
           lastCollidedSignature = signature;
           continue;
@@ -526,7 +503,7 @@ export class ExamsService {
 
       if (existingExam) {
         return {
-          mode: 'reused',
+          mode: "reused",
           exam: existingExam,
           exportPdfUrl: `/exams/${existingExam.id}/export/pdf`,
         };
@@ -534,7 +511,7 @@ export class ExamsService {
     }
 
     throw new ConflictException(
-      'No more unique exams can be generated with these parameters (combinations exhausted)',
+      "No more unique exams can be generated with these parameters (combinations exhausted)",
     );
   }
 
@@ -549,8 +526,8 @@ export class ExamsService {
     return res;
   }
 
-  async preview(userId: string, dto: GenerateExamDto) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async preview(institutionIdRaw: string, dto: GenerateExamDto) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     this.validateGenerateDto(dto);
 
@@ -582,16 +559,16 @@ export class ExamsService {
       combinationsEstimate,
       note:
         combinationsEstimate <= 1
-          ? 'Only 1 unique exam set is realistically possible with these parameters.'
+          ? "Only 1 unique exam set is realistically possible with these parameters."
           : undefined,
     };
   }
 
-  async previewQuestions(userId: string, dto: GenerateExamDto) {
-    const institutionId = await this.getActiveInstitutionId(userId);
+  async previewQuestions(institutionIdRaw: string, dto: GenerateExamDto) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     if (!dto.title || dto.title.trim().length === 0) {
-      throw new BadRequestException('title is required');
+      throw new BadRequestException("title is required");
     }
 
     this.validateGenerateDto(dto);
@@ -633,20 +610,20 @@ export class ExamsService {
       select: { id: true },
     });
 
-    if (!user) throw new ForbiddenException('Invalid user');
+    if (!user) throw new ForbiddenException("Invalid user");
 
     const exam = await this.prisma.exam.findUnique({
       where: { id: examId },
       include: {
         items: {
-          orderBy: { order: 'asc' },
+          orderBy: { order: "asc" },
           include: { question: true },
         },
       },
     });
 
     if (!exam) {
-      throw new ForbiddenException('Exam not found');
+      throw new ForbiddenException("Exam not found");
     }
 
     const membership = await this.prisma.userInstitution.findFirst({
@@ -655,7 +632,7 @@ export class ExamsService {
     });
 
     if (!membership) {
-      throw new ForbiddenException('Exam not accessible for this user');
+      throw new ForbiddenException("Exam not accessible for this user");
     }
 
     const institution = await this.prisma.institution.findUnique({
@@ -665,7 +642,7 @@ export class ExamsService {
 
     return {
       exam,
-      institutionName: institution?.name ?? 'Institución',
+      institutionName: institution?.name ?? "Institución",
     };
   }
 }

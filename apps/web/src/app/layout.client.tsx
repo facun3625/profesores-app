@@ -8,30 +8,79 @@ type Institution = {
   name: string;
 };
 
-type MeResponse = {
-  user: {
-    activeInstitutionId?: string | null;
-  };
-  institutions: Institution[];
-};
+type MeAny =
+  | {
+      activeInstitutionId?: string | null;
+      user?: { activeInstitutionId?: string | null } | null;
+      institutions?: Institution[];
+    }
+  | null;
 
 export default function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [me, setMe] = useState<MeResponse | null>(null);
+  const [me, setMe] = useState<MeAny>(null);
+  const [loadingLogout, setLoadingLogout] = useState(false);
+
+  async function loadMe() {
+    let res: MeAny = null;
+
+    try {
+      res = await api<MeAny>("/auth/me");
+    } catch {
+      try {
+        res = await api<MeAny>("/me");
+      } catch {
+        res = null;
+      }
+    }
+
+    setMe(res);
+  }
 
   useEffect(() => {
-    api<MeResponse>("/me")
-      .then(setMe)
-      .catch(() => {});
+    let mounted = true;
+
+    async function firstLoad() {
+      if (!mounted) return;
+      await loadMe();
+    }
+
+    function onInstitutionChanged() {
+      loadMe();
+    }
+
+    firstLoad();
+
+    window.addEventListener("active-institution-changed", onInstitutionChanged);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("active-institution-changed", onInstitutionChanged);
+    };
   }, []);
 
-  const activeInstitution =
-    me?.institutions.find(
-      (i) => i.id === me.user.activeInstitutionId
-    )?.name || "—";
+  const activeInstitutionId =
+    me?.user?.activeInstitutionId ?? me?.activeInstitutionId ?? null;
+
+  const institutions = me?.institutions ?? [];
+
+  const activeInstitutionName =
+    institutions.find((i) => i.id === activeInstitutionId)?.name ?? "—";
+
+  async function logout() {
+    setLoadingLogout(true);
+
+    try {
+      await api("/auth/logout", { method: "POST" });
+    } catch {
+      // aunque falle, forzamos logout local igual
+    } finally {
+      window.location.href = "/login";
+    }
+  }
 
   return (
     <>
@@ -47,11 +96,18 @@ export default function ClientLayout({
         <div style={{ fontWeight: 700 }}>Profesores App</div>
 
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <span style={{ opacity: 0.8 }}>
-            Institución activa: <b>{activeInstitution}</b>
-          </span>
-          <a href="/institutions">Cambiar</a>
-        </div>
+  <a href="http://localhost:3001">🏠 Home</a>
+
+  <span style={{ opacity: 0.8 }}>
+    Institución activa: <b>{activeInstitutionName}</b>
+  </span>
+
+  <a href="/institutions">Cambiar</a>
+
+  <button disabled={loadingLogout} onClick={logout}>
+    {loadingLogout ? "Cerrando..." : "Cerrar sesión"}
+  </button>
+</div>
       </header>
 
       <main>{children}</main>

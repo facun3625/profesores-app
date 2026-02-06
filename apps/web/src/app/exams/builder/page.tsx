@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { apiBlob } from "@/lib/api";
 
 /* =====================
    Types
@@ -284,37 +285,28 @@ export default function Page() {
   const pdfHref = result ? `${API_BASE}${result.exportPdfUrl}` : null;
 
   async function downloadPdf() {
-    setError("");
-    if (!pdfHref || !result) return;
+  setError("");
+  if (!result) return;
 
-    try {
-      const res = await fetch(pdfHref, {
-        headers: { "x-user-id": userId },
-      });
+  try {
+    const safeName =
+      (result.exam.title || "exam").replace(/[^a-z0-9\-_ ]/gi, "").trim() || "exam";
 
-      if (!res.ok) {
-        const msg = await res.text();
-        console.error("PDF download failed:", res.status, msg);
-        setError(`No se pudo descargar el PDF (${res.status}).`);
-        return;
-      }
+    const blob = await apiBlob(result.exportPdfUrl);
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${result.exam.title}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-    } catch (e: any) {
-      console.error(e);
-      setError(e?.message ?? "Error descargando PDF");
-    }
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${safeName}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (e: any) {
+    console.error(e);
+    setError(e?.message ?? "Error descargando PDF");
   }
+}
 
   /* =====================
      UI

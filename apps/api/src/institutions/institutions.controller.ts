@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Headers, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
 import { IsString } from "class-validator";
 import { InstitutionsService } from "./institutions.service";
+import { AuthGuard } from "../auth/guards/auth.guard";
 
 class CreateInstitutionDto {
   @IsString()
@@ -13,42 +14,22 @@ class SetActiveInstitutionDto {
 }
 
 @Controller("institutions")
+@UseGuards(AuthGuard)
 export class InstitutionsController {
   constructor(private readonly institutionsService: InstitutionsService) {}
 
-  private getUserId(headers: Record<string, any>) {
-    const raw = headers["x-user-id"];
-    const userId = Array.isArray(raw) ? raw[0] : raw;
-    if (!userId) {
-      throw new Error("Missing x-user-id header (temporary dev auth)");
-    }
-    return userId;
-  }
-
   @Get()
-  list(@Headers() headers: Record<string, any>) {
-    const userId = this.getUserId(headers);
-    return this.institutionsService.listForUser(userId);
+  list(@Req() req: any) {
+    return this.institutionsService.listForUser(req.userId);
   }
 
   @Post()
-  create(
-    @Headers() headers: Record<string, any>,
-    @Body() dto: CreateInstitutionDto
-  ) {
-    const userId = this.getUserId(headers);
-    return this.institutionsService.createForAdmin(userId, dto.name);
+  create(@Req() req: any, @Body() dto: CreateInstitutionDto) {
+    return this.institutionsService.createForAdmin(req.userId, dto.name);
   }
 
   @Post("active")
-  setActive(
-    @Headers() headers: Record<string, any>,
-    @Body() dto: SetActiveInstitutionDto
-  ) {
-    const userId = this.getUserId(headers);
-    return this.institutionsService.setActiveInstitution(
-      userId,
-      dto.institutionId
-    );
+  setActive(@Req() req: any, @Body() dto: SetActiveInstitutionDto) {
+    return this.institutionsService.setActiveInstitution(req.userId, dto.institutionId);
   }
 }
