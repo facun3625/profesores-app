@@ -1,77 +1,76 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { usePathname, useRouter } from "next/navigation";
 
 type Institution = {
   id: string;
   name: string;
-  plan?: string;
-  status?: string;
-  role?: string;
 };
 
-type MeAny =
-  | {
-      activeInstitutionId?: string | null;
-      user?: { activeInstitutionId?: string | null } | null;
-      institutions?: Institution[];
-    }
-  | null;
+type MeResponse = {
+  user?: {
+    activeInstitutionId?: string | null;
+  } | null;
+  institutions?: Institution[];
+} | null;
 
-function hasAccessToken() {
+function hasToken() {
   if (typeof window === "undefined") return false;
   return !!localStorage.getItem("accessToken");
 }
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [me, setMe] = useState<MeAny>(null);
-  const [loadingMe, setLoadingMe] = useState(false);
-  const [loadingLogout, setLoadingLogout] = useState(false);
+  const [me, setMe] = useState<MeResponse>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   const isLoginRoute = pathname === "/login";
-  const tokenPresent = useMemo(() => hasAccessToken(), []);
-
-  async function loadMe() {
-    if (!hasAccessToken()) {
-      setMe(null);
-      return;
-    }
-
-    setLoadingMe(true);
-
-    let res: MeAny = null;
-
-    try {
-      res = await api<MeAny>("/auth/me");
-    } catch {
-      try {
-        res = await api<MeAny>("/me");
-      } catch {
-        res = null;
-      }
-    } finally {
-      setMe(res);
-      setLoadingMe(false);
-    }
-  }
 
   useEffect(() => {
-    if (isLoginRoute) return;
+    async function checkSession() {
+      const token = hasToken();
 
-    if (!hasAccessToken()) {
-      router.replace("/login");
-      return;
+      // 🔴 No logueado
+      if (!token) {
+        if (!isLoginRoute) {
+          router.replace("/login");
+        }
+        setCheckingAuth(false);
+        return;
+      }
+
+      // 🔵 Logueado pero entra a /login
+      if (isLoginRoute) {
+        router.replace("/");
+        return;
+      }
+
+      // 🔵 Validar sesión real contra backend
+      try {
+        const res = await api<MeResponse>("/auth/me");
+        setMe(res);
+      } catch {
+        // token inválido o sesión caída
+        localStorage.removeItem("accessToken");
+        router.replace("/login");
+        return;
+      } finally {
+        setCheckingAuth(false);
+      }
     }
 
-    loadMe();
+    checkSession();
 
     function onInstitutionChanged() {
-      loadMe();
+      checkSession();
     }
 
     window.addEventListener("active-institution-changed", onInstitutionChanged);
@@ -80,10 +79,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       window.removeEventListener("active-institution-changed", onInstitutionChanged);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoginRoute]);
+  }, [pathname]);
+
+  // 🕒 Pantalla de espera (sin flashes)
+  if (checkingAuth) {
+    return (
+      <div style={{ padding: 24, fontFamily: "system-ui" }}>
+        Cargando sesión…
+      </div>
+    );
+  }
+
+  // 🧼 Login sin header
+  if (isLoginRoute) {
+    return <main>{children}</main>;
+  }
 
   const activeInstitutionId =
-    me?.user?.activeInstitutionId ?? me?.activeInstitutionId ?? null;
+    me?.user?.activeInstitutionId ?? null;
 
   const institutions = me?.institutions ?? [];
 
@@ -91,28 +104,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     institutions.find((i) => i.id === activeInstitutionId)?.name ?? "—";
 
   async function logout() {
-    setLoadingLogout(true);
-
     try {
       await api("/auth/logout", { method: "POST" });
     } catch {
-      // aunque falle backend, limpiamos igual
     } finally {
       localStorage.removeItem("accessToken");
-      setMe(null);
-      setLoadingLogout(false);
       router.replace("/login");
     }
-  }
-
-  // ✅ No mostramos header en /login
-  if (isLoginRoute) {
-    return <main>{children}</main>;
-  }
-
-  // ✅ Si no hay token, evitamos renderizar header "falso" y navegamos a /login
-  if (!hasAccessToken()) {
-    return <main>{children}</main>;
   }
 
   return (
@@ -131,16 +129,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <a href="http://localhost:3001">🏠 Home</a>
 
-          <span style={{ opacity: 0.8 }}>
-            Institución activa:{" "}
-            <b>{loadingMe ? "Cargando..." : activeInstitutionName}</b>
+          <span>
+            Institución activa: <b>{activeInstitutionName}</b>
           </span>
 
-          <a href="/institutions">Cambiar</a>
+          {institutions.length > 1 && <a href="/institutions">Cambiar</a>}
 
-          <button disabled={loadingLogout} onClick={logout}>
-            {loadingLogout ? "Cerrando..." : "Cerrar sesión"}
-          </button>
+          <button onClick={logout}>Cerrar sesión</button>
         </div>
       </header>
 

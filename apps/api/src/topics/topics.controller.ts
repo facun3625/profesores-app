@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
-import { TopicsService } from "./topics.service";
-import { CreateTopicDto } from "./dto/create-topic.dto";
-import { AuthGuard } from "../auth/guards/auth.guard";
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { TopicsService } from './topics.service';
+import { CreateTopicDto } from './dto/create-topic.dto';
+import { AuthGuard } from '../auth/guards/auth.guard';
 
-@Controller("topics")
+@Controller('topics')
 @UseGuards(AuthGuard)
 export class TopicsController {
   constructor(private readonly topicsService: TopicsService) {}
@@ -13,8 +13,13 @@ export class TopicsController {
     return this.topicsService.create(req.activeInstitutionId, dto);
   }
 
-  @Get("subject/:subjectId")
-  async findBySubject(@Req() req: any, @Param("subjectId") subjectId: string) {
+  @Get('subject/:subjectId')
+  async findBySubject(@Req() req: any, @Param('subjectId') subjectId: string) {
     return this.topicsService.findBySubject(req.activeInstitutionId, subjectId);
+  }
+
+  @Get(':topicId')
+  async findOne(@Req() req: any, @Param('topicId') topicId: string) {
+    return this.topicsService.findOne(req.activeInstitutionId, topicId);
   }
 }

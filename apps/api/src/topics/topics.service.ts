@@ -2,6 +2,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
@@ -29,9 +30,7 @@ export class TopicsService {
     });
 
     if (!subject) {
-      throw new ForbiddenException(
-        'Subject not found for active institution',
-      );
+      throw new ForbiddenException('Subject not found for active institution');
     }
 
     // 2) Crear el topic
@@ -45,13 +44,8 @@ export class TopicsService {
       });
     } catch (err: any) {
       // Duplicado por @@unique([subjectId, name])
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
-        throw new ConflictException(
-          'Topic already exists in this subject',
-        );
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('Topic already exists in this subject');
       }
       throw err;
     }
@@ -60,10 +54,7 @@ export class TopicsService {
   // =========================
   // GET TOPICS BY SUBJECT
   // =========================
-  async findBySubject(
-    activeInstitutionId: string | null,
-    subjectId: string,
-  ) {
+  async findBySubject(activeInstitutionId: string | null, subjectId: string) {
     if (!activeInstitutionId) {
       throw new ForbiddenException('No active institution selected');
     }
@@ -78,9 +69,7 @@ export class TopicsService {
     });
 
     if (!subject) {
-      throw new ForbiddenException(
-        'Subject not found for active institution',
-      );
+      throw new ForbiddenException('Subject not found for active institution');
     }
 
     return this.prisma.topic.findMany({
@@ -93,5 +82,36 @@ export class TopicsService {
       },
     });
   }
-}
 
+  // =========================
+  // GET TOPIC BY ID (with Subject)
+  // =========================
+  async findOne(activeInstitutionId: string | null, topicId: string) {
+    if (!activeInstitutionId) {
+      throw new ForbiddenException('No active institution selected');
+    }
+
+    const topic = await this.prisma.topic.findFirst({
+      where: {
+        id: topicId,
+        institutionId: activeInstitutionId,
+      },
+      select: {
+        id: true,
+        name: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!topic) {
+      throw new NotFoundException('Topic not found for active institution');
+    }
+
+    return topic;
+  }
+}
