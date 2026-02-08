@@ -22,7 +22,6 @@ export async function getMe(): Promise<MeResponse> {
   return api<MeResponse>("/auth/me");
 }
 
-
 export async function login(
   email: string,
   password: string
@@ -32,9 +31,8 @@ export async function login(
     body: JSON.stringify({ email, password }),
   });
 
-  // guardar token
+  localStorage.setItem("accessToken", data.token);
   localStorage.setItem("token", data.token);
 
   return data.user;
 }
-

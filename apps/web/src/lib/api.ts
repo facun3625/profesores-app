@@ -1,5 +1,3 @@
-// apps/web/src/lib/api.ts
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -24,15 +22,13 @@ async function parseError(res: Response): Promise<string> {
 function getAuthHeader(): HeadersInit {
   if (typeof window === "undefined") return {};
 
-  const token = localStorage.getItem("accessToken");
-  if (token) return { Authorization: `Bearer ${token}` };
+  const token =
+    localStorage.getItem("accessToken") || localStorage.getItem("token");
 
+  if (token) return { Authorization: `Bearer ${token}` };
   return {};
 }
 
-/**
- * API JSON (GET/POST/etc)
- */
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -48,10 +44,10 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
-/**
- * API para descargar archivos (PDF, etc)
- */
-export async function apiBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+export async function apiBlob(
+  path: string,
+  init: RequestInit = {}
+): Promise<Blob> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {

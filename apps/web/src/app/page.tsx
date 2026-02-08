@@ -15,7 +15,13 @@ export default function Home() {
           <a href="/subjects">Materias</a>
         </li>
         <li>
-          <a href="/exams/builder">Crear examen</a>
+          <a href="/exams">Exámenes</a>
+        </li>
+        <li>
+          <a href="/exams/builder">Crear examen Automatico</a>
+        </li>
+        <li>
+          <a href="/exams/manual">Crear examen Manual</a>
         </li>
       </ul>
     </main>

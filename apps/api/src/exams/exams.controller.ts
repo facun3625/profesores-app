@@ -25,20 +25,20 @@ export class ExamsController {
     private readonly examPdfService: ExamPdfService,
   ) {}
 
-  @Post()
-  create(@Req() req: any, @Body() dto: CreateExamDto) {
+  // =========================
+  // MANUAL EXAM CREATION
+  // =========================
+  @Post("manual")
+  createManual(@Req() req: any, @Body() dto: CreateExamDto) {
     return this.examsService.create(req.activeInstitutionId, dto);
   }
 
+  // =========================
+  // AUTOMATIC GENERATION
+  // =========================
   @Post("generate")
   generate(@Req() req: any, @Body() dto: GenerateExamDto) {
     return this.examsService.generate(req.activeInstitutionId, dto);
-  }
-
-  // ✅ plan/stock preview (NO questions)
-  @Post("preview")
-  preview(@Req() req: any, @Body() dto: GenerateExamDto) {
-    return this.examsService.preview(req.activeInstitutionId, dto);
   }
 
   @Post("generate-or-reuse")
@@ -46,12 +46,25 @@ export class ExamsController {
     return this.examsService.generateOrReuse(req.activeInstitutionId, dto);
   }
 
-  // ✅ NEW: questions preview (DRY-RUN, NO persist)
+  // =========================
+  // PREVIEWS (NO PERSIST)
+  // =========================
+
+  // Stock / plan preview (NO questions)
+  @Post("preview")
+  preview(@Req() req: any, @Body() dto: GenerateExamDto) {
+    return this.examsService.preview(req.activeInstitutionId, dto);
+  }
+
+  // Questions preview (DRY-RUN, NO persist)
   @Post("preview-questions")
   previewQuestions(@Req() req: any, @Body() dto: GenerateExamDto) {
     return this.examsService.previewQuestions(req.activeInstitutionId, dto);
   }
 
+  // =========================
+  // READ
+  // =========================
   @Get()
   list(@Req() req: any) {
     return this.examsService.list(req.activeInstitutionId);
@@ -62,20 +75,22 @@ export class ExamsController {
     return this.examsService.getById(req.activeInstitutionId, id);
   }
 
-  // ✅ EXPORT PDF
+  // =========================
+  // EXPORT PDF
+  // =========================
   @Get(":id/export/pdf")
   async exportPdf(
     @Req() req: any,
     @Param("id") id: string,
     @Res({ passthrough: false }) res: Response,
   ) {
-    const { exam, institutionName } = await this.examsService.getExamForExport(
-      req.userId,
-      id,
-    );
+    const { exam, institutionName } =
+      await this.examsService.getExamForExport(req.userId, id);
 
     const safeName =
-      (exam.title || "exam").replace(/[^a-z0-9\-_ ]/gi, "").trim() || "exam";
+      (exam.title || "exam")
+        .replace(/[^a-z0-9\-_ ]/gi, "")
+        .trim() || "exam";
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -92,6 +107,9 @@ export class ExamsController {
     doc.end();
   }
 
+  // =========================
+  // DELETE
+  // =========================
   @Delete(":id")
   remove(@Req() req: any, @Param("id") id: string) {
     return this.examsService.remove(req.activeInstitutionId, id);
