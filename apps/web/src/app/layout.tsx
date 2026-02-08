@@ -1,3 +1,4 @@
+// apps/web/src/app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -18,22 +19,10 @@ export const metadata: Metadata = {
   description: "Sistema de gestión y generación de exámenes",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* 
-          ClientLayout es client-side:
-          - maneja sesión
-          - puede renderizar AppHeader
-          - puede hacer logout
-        */}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

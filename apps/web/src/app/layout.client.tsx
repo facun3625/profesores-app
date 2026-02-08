@@ -1,145 +1,323 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { getMe, logout } from "@/lib/auth";
 
-type Institution = {
-  id: string;
-  name: string;
-};
-
-type MeResponse = {
-  user?: {
-    activeInstitutionId?: string | null;
-  } | null;
-  institutions?: Institution[];
-} | null;
-
-function hasToken() {
-  if (typeof window === "undefined") return false;
-  return !!localStorage.getItem("accessToken");
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : null;
 }
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
+function hasToken() {
+  try {
+    const ls = localStorage.getItem("accessToken");
+    const ck = getCookie("accessToken");
+    return Boolean((ls && ls.length) || (ck && ck.length));
+  } catch {
+    return false;
+  }
+}
+
+type MeResponse = {
+  user?: { id: string; email: string; name?: string | null; activeInstitutionId?: string | null };
+  activeInstitution?: { id: string; name: string } | null;
+  activeInstitutionId?: string | null;
+  institution?: { id: string; name: string } | null;
+};
+
+function safeLSGet(key: string) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeLSSet(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
+}
+
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
-  const [me, setMe] = useState<MeResponse>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [ready, setReady] = useState(false);
 
-  const isLoginRoute = pathname === "/login";
-
-  useEffect(() => {
-    async function checkSession() {
-      const token = hasToken();
-
-      // 🔴 No logueado
-      if (!token) {
-        if (!isLoginRoute) {
-          router.replace("/login");
-        }
-        setCheckingAuth(false);
-        return;
-      }
-
-      // 🔵 Logueado pero entra a /login
-      if (isLoginRoute) {
-        router.replace("/");
-        return;
-      }
-
-      // 🔵 Validar sesión real contra backend
-      try {
-        const res = await api<MeResponse>("/auth/me");
-        setMe(res);
-      } catch {
-        // token inválido o sesión caída
-        localStorage.removeItem("accessToken");
-        router.replace("/login");
-        return;
-      } finally {
-        setCheckingAuth(false);
-      }
-    }
-
-    checkSession();
-
-    function onInstitutionChanged() {
-      checkSession();
-    }
-
-    window.addEventListener("active-institution-changed", onInstitutionChanged);
-
-    return () => {
-      window.removeEventListener("active-institution-changed", onInstitutionChanged);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const isPublic = useMemo(() => {
+    return pathname.startsWith("/login") || pathname.startsWith("/register");
   }, [pathname]);
 
-  // 🕒 Pantalla de espera (sin flashes)
-  if (checkingAuth) {
-    return (
-      <div style={{ padding: 24, fontFamily: "system-ui" }}>
-        Cargando sesión…
-      </div>
-    );
-  }
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [activeInstitutionName, setActiveInstitutionName] = useState("Sin institución");
 
-  // 🧼 Login sin header
-  if (isLoginRoute) {
-    return <main>{children}</main>;
-  }
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const activeInstitutionId =
-    me?.user?.activeInstitutionId ?? null;
+  useEffect(() => {
+    setReady(true);
+  }, []);
 
-  const institutions = me?.institutions ?? [];
+  useEffect(() => {
+    if (!ready) return;
+    if (isPublic) return;
 
-  const activeInstitutionName =
-    institutions.find((i) => i.id === activeInstitutionId)?.name ?? "—";
+    const ok = hasToken();
+    if (!ok) {
+      const next = pathname || "/";
+      router.replace(`/login?next=${encodeURIComponent(next)}`);
+    }
+  }, [ready, isPublic, pathname, router]);
 
-  async function logout() {
+  async function refreshActiveInstitution() {
+    const lsName = (safeLSGet("activeInstitutionName") || "").trim();
+    const lsId = (safeLSGet("activeInstitutionId") || "").trim();
+
+    if (lsName) setActiveInstitutionName(lsName);
+
     try {
-      await api("/auth/logout", { method: "POST" });
+      const meRes: any = await getMe();
+      setMe(meRes);
+
+      const activeId =
+        meRes?.activeInstitutionId ??
+        meRes?.user?.activeInstitutionId ??
+        meRes?.activeInstitution?.id ??
+        meRes?.institution?.id ??
+        null;
+
+      const activeNameFromMe =
+        meRes?.activeInstitution?.name ??
+        meRes?.institution?.name ??
+        "";
+
+      if (activeNameFromMe && String(activeNameFromMe).trim()) {
+        const n = String(activeNameFromMe).trim();
+        setActiveInstitutionName(n);
+        safeLSSet("activeInstitutionName", n);
+        if (activeId) safeLSSet("activeInstitutionId", String(activeId));
+        return;
+      }
+
+      const idToUse = String(activeId || lsId || "").trim();
+      if (!idToUse) {
+        setActiveInstitutionName(lsName || "Sin institución");
+        return;
+      }
+
+      const list: any[] = await api<any[]>("/institutions");
+      const found = list?.find((i) => i?.id === idToUse);
+      const finalName = found?.name?.trim?.() || lsName || "Sin institución";
+
+      setActiveInstitutionName(finalName);
+      safeLSSet("activeInstitutionName", finalName);
+      safeLSSet("activeInstitutionId", idToUse);
     } catch {
-    } finally {
-      localStorage.removeItem("accessToken");
-      router.replace("/login");
+      if (!lsName) setActiveInstitutionName("Sin institución");
     }
   }
 
+  useEffect(() => {
+    if (!ready) return;
+    if (isPublic) return;
+
+    let cancelled = false;
+
+    (async () => {
+      await refreshActiveInstitution();
+      if (cancelled) return;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, isPublic]);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    function onChanged() {
+      if (isPublic) return;
+      refreshActiveInstitution();
+    }
+
+    function onStorage(ev: StorageEvent) {
+      if (ev.key === "activeInstitutionId" || ev.key === "activeInstitutionName") {
+        onChanged();
+      }
+    }
+
+    window.addEventListener("active-institution-changed", onChanged);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("active-institution-changed", onChanged);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [ready, isPublic]);
+
+  useEffect(() => {
+    function onDocDown(ev: MouseEvent) {
+      if (!menuOpen) return;
+      const el = menuRef.current;
+      if (!el) return;
+      if (el.contains(ev.target as Node)) return;
+      setMenuOpen(false);
+    }
+
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key === "Escape") setMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  function onLogout() {
+    logout();
+    setMenuOpen(false);
+    router.push("/login");
+  }
+
+  function goProfile() {
+    setMenuOpen(false);
+    router.push("/profile");
+  }
+
+  const userLabel = me?.user?.name?.trim() || me?.user?.email || "Cuenta";
+
+  if (!ready) return null;
+
   return (
-    <>
-      <header
-        style={{
-          padding: "12px 24px",
-          borderBottom: "1px solid #e5e5e5",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>Profesores App</div>
+    <div style={{ minHeight: "100vh" }}>
+      {!isPublic && (
+        <header
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            borderBottom: "1px solid #e5e5e5",
+            background: "white",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1100,
+              margin: "0 auto",
+              padding: "12px 24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <a
+                href="/"
+                style={{ fontWeight: 700, textDecoration: "none", color: "inherit" }}
+              >
+                Profesores App
+              </a>
 
-        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <a href="http://localhost:3001">🏠 Home</a>
+              <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <a href="/institutions">Instituciones</a>
+                <a href="/subjects">Materias</a>
+                <a href="/exams">Exámenes</a>
+                <a href="/exams/builder">Examen automático</a>
+                <a href="/exams/manual">Examen manual</a>
+              </nav>
+            </div>
 
-          <span>
-            Institución activa: <b>{activeInstitutionName}</b>
-          </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ textAlign: "right", lineHeight: 1.1 }}>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>Institución activa</div>
+                <div style={{ fontWeight: 600 }}>
+                  {activeInstitutionName && activeInstitutionName.trim()
+                    ? activeInstitutionName
+                    : "Sin institución"}
+                </div>
+              </div>
 
-          {institutions.length > 1 && <a href="/institutions">Cambiar</a>}
+              <div ref={menuRef} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  style={{
+                    padding: "8px 10px",
+                    border: "1px solid #ddd",
+                    borderRadius: 8,
+                    background: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  {userLabel} ▾
+                </button>
 
-          <button onClick={logout}>Cerrar sesión</button>
-        </div>
-      </header>
+                {menuOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: "calc(100% + 8px)",
+                      minWidth: 200,
+                      border: "1px solid #e5e5e5",
+                      borderRadius: 10,
+                      background: "white",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                      padding: 8,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={goProfile}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 10px",
+                        border: 0,
+                        background: "transparent",
+                        cursor: "pointer",
+                        borderRadius: 8,
+                      }}
+                    >
+                      Profile
+                    </button>
 
-      <main>{children}</main>
-    </>
+                    <div style={{ height: 1, background: "#eee", margin: "6px 0" }} />
+
+                    <button
+                      type="button"
+                      onClick={onLogout}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 10px",
+                        border: 0,
+                        background: "transparent",
+                        cursor: "pointer",
+                        borderRadius: 8,
+                        color: "crimson",
+                      }}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>{children}</div>
+    </div>
   );
 }
