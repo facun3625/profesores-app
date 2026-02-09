@@ -152,7 +152,7 @@ export default function ProfilePage() {
         }}
       />
 
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="mx-auto w-full max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white/90 text-sm font-semibold text-gray-800 shadow-sm">

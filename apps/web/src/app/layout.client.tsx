@@ -60,7 +60,7 @@ function Brand() {
   return (
     <Link
       href="/"
-      className="font-semibold tracking-tight text-blue-600 text-xl leading-none whitespace-nowrap"
+      className="whitespace-nowrap text-xl font-semibold leading-none tracking-tight text-blue-600"
       style={{
         fontFamily:
           "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
@@ -75,17 +75,25 @@ function NavLink({
   href,
   label,
   active,
+  onClick,
+  emphasis,
 }: {
   href: string;
   label: string;
   active: boolean;
+  onClick?: () => void;
+  emphasis?: boolean;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
-        "rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900",
-        active && "bg-gray-100 font-medium text-gray-900"
+        "rounded-md px-3 py-2 text-sm transition",
+        emphasis
+          ? "text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+        active && (emphasis ? "bg-blue-50 font-medium" : "bg-gray-100 font-medium")
       )}
     >
       {label}
@@ -153,9 +161,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [me, setMe] = useState<MeResponse | null>(null);
 
   const [activeInstitutionName, setActiveInstitutionName] = useState("Sin institución");
+
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const menuRef = useOutsideClose<HTMLDivElement>(menuOpen, () => setMenuOpen(false));
+  const mobileRef = useOutsideClose<HTMLDivElement>(mobileOpen, () =>
+    setMobileOpen(false)
+  );
 
   const userLabel = useMemo(() => {
     const name = me?.user?.name?.trim();
@@ -165,18 +178,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const navItems = useMemo(
     () => [
-      { href: "/institutions", label: "Instituciones" },
-      { href: "/subjects", label: "Materias" },
-      { href: "/exams", label: "Exámenes" },
-      { href: "/exams/builder", label: "Automático" },
-      { href: "/exams/manual", label: "Manual" },
+      { href: "/institutions", label: "Mis instituciones", group: "core" as const },
+      { href: "/subjects", label: "Mis materias", group: "core" as const },
+      { href: "/exams", label: "Mis exámenes", group: "core" as const },
+      { href: "/exams/builder", label: "Examen automático", group: "gen" as const },
+      { href: "/exams/manual", label: "Examen manual", group: "gen" as const },
     ],
     []
   );
 
+  const coreItems = useMemo(() => navItems.filter((x) => x.group === "core"), [navItems]);
+  const genItems = useMemo(() => navItems.filter((x) => x.group === "gen"), [navItems]);
+
   useEffect(() => {
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!ready) return;
@@ -266,11 +287,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   function onLogout() {
     logout();
     setMenuOpen(false);
+    setMobileOpen(false);
     router.push("/login");
   }
 
   function goProfile() {
     setMenuOpen(false);
+    setMobileOpen(false);
     router.push("/profile");
   }
 
@@ -280,16 +303,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     ? activeInstitutionName
     : "Sin institución";
 
+  const container = "mx-auto w-full max-w-6xl px-6";
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {!publicPage && (
         <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-          <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4 px-6 py-3">
-            <div className="flex items-center gap-6 min-w-0">
+          <div className={`${container} flex items-center justify-between gap-4 py-3`}>
+            <div className="flex min-w-0 items-center gap-6">
               <Brand />
 
-              <nav className="hidden md:flex items-center gap-1 flex-wrap">
-                {navItems.map((it) => (
+              {/* Desktop nav */}
+              <nav className="hidden md:flex items-center gap-2">
+                {coreItems.map((it) => (
                   <NavLink
                     key={it.href}
                     href={it.href}
@@ -297,11 +323,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     active={pathname === it.href || pathname.startsWith(it.href + "/")}
                   />
                 ))}
+
+                {/* separador sutil */}
+                <span className="mx-1 h-4 w-px bg-gray-200" />
+
+                {genItems.map((it) => (
+                  <NavLink
+                    key={it.href}
+                    href={it.href}
+                    label={it.label}
+                    emphasis
+                    active={pathname === it.href || pathname.startsWith(it.href + "/")}
+                  />
+                ))}
               </nav>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Institución + botón Cambiar (sin dropdown) */}
+              {/* Institución (desktop) */}
               <div className="hidden sm:flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
                 <div className="text-right leading-tight">
                   <div className="text-[11px] text-gray-500">Institución activa</div>
@@ -318,8 +357,85 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 </Link>
               </div>
 
-              {/* User menu */}
-              <div ref={menuRef} className="relative">
+              {/* Hamburguesa (mobile) */}
+              <div ref={mobileRef} className="relative md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen((v) => !v)}
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 hover:bg-gray-50"
+                  aria-expanded={mobileOpen}
+                  aria-label="Abrir menú"
+                >
+                  {mobileOpen ? "✕" : "☰"}
+                </button>
+
+                {mobileOpen && (
+                  <div className="absolute right-0 top-[calc(100%+8px)] w-[min(92vw,320px)] rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+                    <div className="px-2 py-2">
+                      <div className="text-[11px] text-gray-500">Institución activa</div>
+                      <div className="truncate text-sm font-semibold text-gray-900">
+                        {activeLabel}
+                      </div>
+
+                      <Link
+                        href="/institutions"
+                        onClick={() => setMobileOpen(false)}
+                        className="mt-2 inline-flex h-9 w-full items-center justify-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
+                      >
+                        Cambiar institución
+                      </Link>
+                    </div>
+
+                    <div className="my-2 h-px bg-gray-200" />
+
+                    <div className="grid gap-1">
+                      {coreItems.map((it) => (
+                        <NavLink
+                          key={it.href}
+                          href={it.href}
+                          label={it.label}
+                          active={pathname === it.href || pathname.startsWith(it.href + "/")}
+                          onClick={() => setMobileOpen(false)}
+                        />
+                      ))}
+
+                      <div className="my-1 h-px bg-gray-200" />
+
+                      {genItems.map((it) => (
+                        <NavLink
+                          key={it.href}
+                          href={it.href}
+                          label={it.label}
+                          emphasis
+                          active={pathname === it.href || pathname.startsWith(it.href + "/")}
+                          onClick={() => setMobileOpen(false)}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="my-2 h-px bg-gray-200" />
+
+                    <button
+                      type="button"
+                      onClick={goProfile}
+                      className="w-full rounded-md px-3 py-2 text-left text-sm text-gray-900 hover:bg-gray-100"
+                    >
+                      Perfil
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={onLogout}
+                      className="w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* User menu (desktop/tablet) */}
+              <div ref={menuRef} className="relative hidden md:block">
                 <button
                   type="button"
                   onClick={() => setMenuOpen((v) => !v)}
@@ -354,34 +470,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </div>
           </div>
 
-          {/* Mobile nav */}
+          {/* Row compacta extra (solo mobile): user label */}
           <div className="md:hidden border-t border-gray-200">
-            <div className="mx-auto max-w-[1100px] px-6 py-2 flex items-center gap-2 flex-wrap">
-              {navItems.map((it) => (
-                <NavLink
-                  key={it.href}
-                  href={it.href}
-                  label={it.label}
-                  active={pathname === it.href || pathname.startsWith(it.href + "/")}
-                />
-              ))}
-
+            <div className={`${container} flex items-center justify-between py-2`}>
+              <div className="truncate text-sm font-medium text-gray-900">
+                {userLabel}
+              </div>
               <Link
-                href="/institutions"
-                className="ml-auto inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                href="/profile"
+                className="text-sm font-medium text-blue-600 hover:underline"
               >
-                <span className="text-gray-500">Inst:</span>
-                <span className="max-w-[170px] truncate font-medium text-gray-900">
-                  {activeLabel}
-                </span>
-                <span className="text-blue-600 font-medium">Cambiar</span>
+                Perfil
               </Link>
             </div>
           </div>
         </header>
       )}
 
-      <div className="mx-auto max-w-[1100px]">{children}</div>
+      <div className="mx-auto w-full max-w-6xl px-6">{children}</div>
     </div>
   );
 }
