@@ -14,50 +14,6 @@ function safeLSGet(key: string) {
   }
 }
 
-function ActiveInstitutionPill() {
-  const [name, setName] = useState<string>("");
-
-  useEffect(() => {
-    const read = () => setName((safeLSGet("activeInstitutionName") || "").trim());
-
-    read();
-
-    function onChanged() {
-      read();
-    }
-
-    function onStorage(ev: StorageEvent) {
-      if (ev.key === "activeInstitutionName") read();
-    }
-
-    window.addEventListener("active-institution-changed", onChanged as any);
-    window.addEventListener("storage", onStorage);
-
-    return () => {
-      window.removeEventListener("active-institution-changed", onChanged as any);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
-
-  return (
-    <div className="inline-flex items-center gap-3 rounded-xl border border-gray-200 bg-white/80 px-4 py-2 text-sm text-gray-700 shadow-sm">
-      <div className="leading-tight">
-        <div className="text-gray-500">Institución activa</div>
-        <div className="font-medium">{name || "Sin institución"}</div>
-      </div>
-
-      <div className="h-8 w-px bg-gray-200" />
-
-      <Link
-        href="/institutions"
-        className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
-      >
-        Cambiar
-      </Link>
-    </div>
-  );
-}
-
 function StatCard({
   title,
   value,
@@ -178,7 +134,8 @@ export default function Home() {
         }}
       />
 
-      <div className="mx-auto w-full max-w-5xl">
+      {/* mismo ancho que el resto de páginas */}
+      <div className="mx-auto w-full max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
@@ -189,7 +146,7 @@ export default function Home() {
             </p>
           </div>
 
-          <ActiveInstitutionPill />
+          {/* sacamos el "Cambiar institución" del Home (queda solo arriba en el header) */}
         </div>
 
         {err && (
