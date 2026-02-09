@@ -262,27 +262,50 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [ready, publicPage]);
 
   useEffect(() => {
-    if (!ready) return;
+  if (!ready) return;
 
-    function onChanged() {
-      if (publicPage) return;
-      refreshActiveInstitution();
+  function onChanged() {
+    if (publicPage) return;
+    refreshActiveInstitution();
+  }
+
+  function onStorage(ev: StorageEvent) {
+    if (ev.key === "activeInstitutionId" || ev.key === "activeInstitutionName") {
+      onChanged();
     }
+    if (ev.key === "me") {
+      onChanged();
+    }
+  }
 
-    function onStorage(ev: StorageEvent) {
-      if (ev.key === "activeInstitutionId" || ev.key === "activeInstitutionName") {
-        onChanged();
+  function onMeUpdated() {
+    if (publicPage) return;
+
+    // ✅ update instantáneo: leer cache si existe
+    try {
+      const raw = safeLSGet("me");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed) {
+  queueMicrotask(() => setMe(parsed));
+}
       }
-    }
+    } catch {}
 
-    window.addEventListener("active-institution-changed", onChanged as any);
-    window.addEventListener("storage", onStorage);
+    // ✅ y refresco real contra backend (por si cache quedó viejo)
+    onChanged();
+  }
 
-    return () => {
-      window.removeEventListener("active-institution-changed", onChanged as any);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, [ready, publicPage]);
+  window.addEventListener("active-institution-changed", onChanged as any);
+  window.addEventListener("me:updated", onMeUpdated as any);
+  window.addEventListener("storage", onStorage);
+
+  return () => {
+    window.removeEventListener("active-institution-changed", onChanged as any);
+    window.removeEventListener("me:updated", onMeUpdated as any);
+    window.removeEventListener("storage", onStorage);
+  };
+}, [ready, publicPage]);
 
   function onLogout() {
     logout();

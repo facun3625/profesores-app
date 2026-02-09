@@ -99,6 +99,10 @@ export class AuthService {
         id: result.user.id,
         email: result.user.email,
         name: result.user.name,
+        lastName: result.user.lastName,
+        city: result.user.city,
+        province: result.user.province,
+        country: result.user.country,
         status: result.user.status,
         activeInstitutionId: result.user.activeInstitutionId,
         createdAt: result.user.createdAt,
@@ -144,6 +148,10 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        lastName: user.lastName,
+        city: user.city,
+        province: user.province,
+        country: user.country,
         status: user.status,
         activeInstitutionId: user.activeInstitutionId,
         createdAt: user.createdAt,
@@ -156,6 +164,42 @@ export class AuthService {
         status: m.institution.status,
         role: m.role,
       })),
+    };
+  }
+
+  async updateMe(
+    userId: string,
+    input: {
+      name?: string;
+      lastName?: string;
+      city?: string;
+      province?: string;
+      country?: string;
+    }
+  ) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name ?? undefined,
+        lastName: input.lastName ?? undefined,
+        city: input.city ?? undefined,
+        province: input.province ?? undefined,
+        country: input.country ?? undefined,
+      },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      lastName: user.lastName,
+      city: user.city,
+      province: user.province,
+      country: user.country,
+      status: user.status,
+      activeInstitutionId: user.activeInstitutionId,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 

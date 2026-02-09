@@ -3,18 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMe, logout } from "@/lib/auth";
+import { api } from "@/lib/api";
 
 type MeResponse = {
   user?: {
     id: string;
     email: string;
     name?: string | null;
+    lastName?: string | null;
+    city?: string | null;
+    province?: string | null;
+    country?: string | null;
     activeInstitutionId?: string | null;
   };
-  activeInstitution?: { id: string; name: string } | null;
-  activeInstitutionId?: string | null;
-  institution?: { id: string; name: string } | null;
 };
+
+type FieldKey = "name" | "lastName" | "city" | "province" | "country";
 
 function FluxMark() {
   return (
@@ -33,30 +37,6 @@ function FluxMark() {
   );
 }
 
-function Row({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-      <div className="text-xs text-gray-500">{label}</div>
-      <div
-        className={[
-          "text-sm font-medium text-gray-900 sm:max-w-[60%] sm:text-right",
-          mono ? "font-mono text-[12px] font-normal text-gray-700" : "",
-        ].join(" ")}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function initials(nameOrEmail: string) {
   const s = (nameOrEmail || "").trim();
   if (!s) return "U";
@@ -65,15 +45,120 @@ function initials(nameOrEmail: string) {
   return s.slice(0, 2).toUpperCase();
 }
 
+function cn(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+function FieldRowPro({
+  label,
+  value,
+  editing,
+  draft,
+  onEdit,
+  onCancel,
+  onSave,
+  onDraftChange,
+  saving,
+}: {
+  label: string;
+  value: string;
+  editing: boolean;
+  draft: string;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+  onDraftChange: (v: string) => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-2 rounded-xl border border-gray-200 bg-white/70 px-4 py-3 sm:grid-cols-[180px_1fr_auto] sm:items-center">
+      <div className="text-xs font-medium text-gray-500">{label}</div>
+
+      {!editing ? (
+        <div className="text-sm font-medium text-gray-900">
+          {value.trim() ? value : <span className="text-gray-400">—</span>}
+        </div>
+      ) : (
+        <input
+          value={draft}
+          onChange={(e) => onDraftChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onSave();
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              onCancel();
+            }
+          }}
+          className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          autoFocus
+        />
+      )}
+
+      <div className="flex gap-2 sm:justify-end">
+        {!editing ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="h-9 rounded-md border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Editar
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className={cn(
+                "h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700",
+                saving && "opacity-60"
+              )}
+            >
+              {saving ? "Guardando…" : "Guardar"}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={saving}
+              className={cn(
+                "h-9 rounded-md border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 hover:bg-gray-50",
+                saving && "opacity-60"
+              )}
+            >
+              Cancelar
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
-  const [saving, setSaving] = useState(false);
+  const user = me?.user;
+
+  const avatarLabel = useMemo(() => {
+    const base = user?.name?.trim() || user?.email || "";
+    return initials(base);
+  }, [user?.name, user?.email]);
+
+  const [editing, setEditing] = useState<FieldKey | null>(null);
+  const [draft, setDraft] = useState<Record<FieldKey, string>>({
+    name: "",
+    lastName: "",
+    city: "",
+    province: "",
+    country: "",
+  });
+  const [savingField, setSavingField] = useState<FieldKey | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +169,19 @@ export default function ProfilePage() {
         if (cancelled) return;
         setMe(r);
         setErr(null);
+
+        const u = r?.user;
+        setDraft({
+          name: u?.name ?? "",
+          lastName: u?.lastName ?? "",
+          city: u?.city ?? "",
+          province: u?.province ?? "",
+          country: u?.country ?? "",
+        });
+
+        try {
+          localStorage.setItem("me", JSON.stringify(r));
+        } catch {}
       } catch (e: any) {
         if (cancelled) return;
         setErr(e?.message ?? "No se pudo cargar el perfil");
@@ -97,47 +195,95 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const user = me?.user;
-
-  useEffect(() => {
-    if (user?.name && !editingName) {
-      setNameDraft(user.name);
-    }
-  }, [user?.name, editingName]);
-
-  const avatarLabel = useMemo(() => {
-    const base = user?.name?.trim() || user?.email || "";
-    return initials(base);
-  }, [user?.name, user?.email]);
-
-  async function saveName() {
-    const nextName = nameDraft.trim();
-    if (!nextName) return;
-
-    try {
-      setSaving(true);
-
-      // TODO: cuando quieras lo conectamos al backend con un PATCH /me
-      // await api("/me", { method: "PATCH", body: JSON.stringify({ name: nextName }) });
-
-      setMe((prev) =>
-        prev
-          ? {
-              ...prev,
-              user: prev.user ? { ...prev.user, name: nextName } : prev.user,
-            }
-          : prev
-      );
-
-      setEditingName(false);
-    } finally {
-      setSaving(false);
-    }
-  }
-
   function onLogout() {
     logout();
     router.push("/login");
+  }
+
+  function startEdit(k: FieldKey) {
+    if (!user) return;
+    setErr(null);
+    setEditing(k);
+    setDraft((p) => ({
+      ...p,
+      [k]: (user as any)[k] ?? "",
+    }));
+  }
+
+  function cancelEdit() {
+    if (!user) {
+      setEditing(null);
+      return;
+    }
+    const k = editing;
+    if (!k) return;
+
+    setDraft((p) => ({
+      ...p,
+      [k]: (user as any)[k] ?? "",
+    }));
+    setEditing(null);
+  }
+
+  async function saveField(k: FieldKey) {
+    if (!user) return;
+
+    const value = draft[k].trim();
+
+    try {
+      setSavingField(k);
+      setErr(null);
+
+      const updated = await api(`/auth/me`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          [k]: value ? value : null,
+        }),
+      });
+
+      setMe((prev) => {
+        if (!prev) return prev;
+
+        const next = {
+          ...prev,
+          user: prev.user ? { ...prev.user, ...(updated as any) } : prev.user,
+        };
+
+        // ✅ Esto hace que la barra/header se entere (y pueda re-leer)
+        try {
+          localStorage.setItem("me", JSON.stringify(next));
+          window.dispatchEvent(new Event("me:updated"));
+        } catch {}
+
+        return next;
+      });
+
+      setEditing(null);
+    } catch (e: any) {
+      setErr(e?.message ?? "No se pudo guardar el perfil");
+    } finally {
+      setSavingField(null);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-[calc(100vh-64px)] px-6 py-8">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">
+                  Cargando…
+                </div>
+                <div className="mt-1 text-sm text-gray-600">Traemos tu info.</div>
+              </div>
+              <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
+            </div>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -173,145 +319,133 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {loading && (
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">
-                  Cargando…
-                </div>
-                <div className="mt-1 text-sm text-gray-600">Traemos tu info.</div>
-              </div>
-              <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
-            </div>
+        {err ? (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
+            {err}
           </div>
-        )}
+        ) : null}
 
-        {err && !loading && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700 shadow-sm">
-            <div className="text-base font-semibold">Ups.</div>
-            <div className="mt-1">{err}</div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => router.push("/")}
-                className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-              >
-                Volver al dashboard
-              </button>
-              <button
-                type="button"
-                onClick={onLogout}
-                className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!loading && !err && (
-          <>
-            <div className="mt-6">
-              <section className="rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      Cuenta
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                      Lo básico (pero importante).
-                    </div>
-                  </div>
-                  <FluxMark />
-                </div>
-
-                <div className="mt-5 space-y-4">
-                  {/* Nombre editable */}
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="text-xs text-gray-500">Nombre</div>
-
-                    {!editingName ? (
-                      <div className="flex items-center gap-2 sm:justify-end">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user?.name?.trim() || "—"}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setEditingName(true)}
-                          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                          Editar
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 sm:justify-end">
-                        <input
-                          value={nameDraft}
-                          onChange={(e) => setNameDraft(e.target.value)}
-                          className="h-8 w-48 rounded-md border border-gray-300 px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                          autoFocus
-                        />
-                        <button
-                          type="button"
-                          onClick={saveName}
-                          disabled={saving}
-                          className="rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-                        >
-                          {saving ? "Guardando…" : "Guardar"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingName(false);
-                            setNameDraft(user?.name || "");
-                          }}
-                          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <Row label="Email" value={user?.email || "—"} />
-                  <Row label="User ID" value={user?.id || "—"} mono />
-                </div>
-              </section>
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm">
+        <div className="mt-6">
+          <section className="rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-gray-900">Acciones</div>
+                <div className="text-sm font-semibold text-gray-900">Cuenta</div>
                 <div className="mt-1 text-sm text-gray-600">
-                  Lo justo y necesario.
+                  Edición por campo (sin romper nada).
                 </div>
               </div>
+              <FluxMark />
+            </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => router.push("/")}
-                  className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
-                >
-                  Volver al dashboard
-                </button>
+            <div className="mt-5 grid gap-3">
+              <FieldRowPro
+                label="Nombre"
+                value={user?.name ?? ""}
+                editing={editing === "name"}
+                draft={draft.name}
+                onEdit={() => startEdit("name")}
+                onCancel={cancelEdit}
+                onSave={() => saveField("name")}
+                onDraftChange={(v) => setDraft((p) => ({ ...p, name: v }))}
+                saving={savingField === "name"}
+              />
+              <FieldRowPro
+                label="Apellido"
+                value={user?.lastName ?? ""}
+                editing={editing === "lastName"}
+                draft={draft.lastName}
+                onEdit={() => startEdit("lastName")}
+                onCancel={cancelEdit}
+                onSave={() => saveField("lastName")}
+                onDraftChange={(v) =>
+                  setDraft((p) => ({ ...p, lastName: v }))
+                }
+                saving={savingField === "lastName"}
+              />
+              <FieldRowPro
+                label="Ciudad"
+                value={user?.city ?? ""}
+                editing={editing === "city"}
+                draft={draft.city}
+                onEdit={() => startEdit("city")}
+                onCancel={cancelEdit}
+                onSave={() => saveField("city")}
+                onDraftChange={(v) => setDraft((p) => ({ ...p, city: v }))}
+                saving={savingField === "city"}
+              />
+              <FieldRowPro
+                label="Provincia"
+                value={user?.province ?? ""}
+                editing={editing === "province"}
+                draft={draft.province}
+                onEdit={() => startEdit("province")}
+                onCancel={cancelEdit}
+                onSave={() => saveField("province")}
+                onDraftChange={(v) =>
+                  setDraft((p) => ({ ...p, province: v }))
+                }
+                saving={savingField === "province"}
+              />
+              <FieldRowPro
+                label="País"
+                value={user?.country ?? ""}
+                editing={editing === "country"}
+                draft={draft.country}
+                onEdit={() => startEdit("country")}
+                onCancel={cancelEdit}
+                onSave={() => saveField("country")}
+                onDraftChange={(v) =>
+                  setDraft((p) => ({ ...p, country: v }))
+                }
+                saving={savingField === "country"}
+              />
 
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="inline-flex h-9 items-center rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700"
-                >
-                  Logout
-                </button>
+              <div className="mt-2 grid gap-2 rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="text-xs font-medium text-gray-500">Email</div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {user?.email || "—"}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="text-xs font-medium text-gray-500">User ID</div>
+                  <div className="font-mono text-[12px] text-gray-700">
+                    {user?.id || "—"}
+                  </div>
+                </div>
               </div>
             </div>
+          </section>
+        </div>
 
-            <div className="mt-6 text-center text-xs text-gray-500">
-              © {new Date().getFullYear()} Flux
-            </div>
-          </>
-        )}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">Acciones</div>
+            <div className="mt-1 text-sm text-gray-600">Lo justo y necesario.</div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+            >
+              Volver al dashboard
+            </button>
+
+            <button
+              type="button"
+              onClick={onLogout}
+              className="inline-flex h-9 items-center rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 text-center text-xs text-gray-500">
+          © {new Date().getFullYear()} Flux
+        </div>
       </div>
     </main>
   );

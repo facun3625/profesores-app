@@ -17,6 +17,10 @@ model User {
   email               String            @unique
   name                String?
   passwordHash        String?
+  lastName            String?
+  city                String?
+  province            String?
+  country             String?
   authProvider        AuthProvider      @default(local)
   googleSub           String?           @unique
   status              UserStatus        @default(active)
