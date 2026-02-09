@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 
@@ -189,6 +189,9 @@ export default function TopicQuestionsPage() {
 
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
 
+  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const scrollTimers = useRef<Record<string, number[]>>({});
+
   const options = useMemo(() => {
     if (type === "TRUE_FALSE") return ["Verdadero", "Falso"];
     if (type === "OPEN") return null;
@@ -260,6 +263,17 @@ export default function TopicQuestionsPage() {
   useEffect(() => {
     setOpenQuestionId(null);
   }, [view, filterType, filterDifficulty, searchText]);
+
+  // Limpia timeouts si el componente se desmonta
+  useEffect(() => {
+    return () => {
+      const map = scrollTimers.current;
+      for (const key of Object.keys(map)) {
+        for (const t of map[key]) window.clearTimeout(t);
+      }
+      scrollTimers.current = {};
+    };
+  }, []);
 
   function validateCreate(): string | null {
     if (!subjectId) return "Falta subjectId (entrar desde Temas).";
@@ -366,8 +380,63 @@ export default function TopicQuestionsPage() {
 
   const canCreate = statement.trim().length > 0 && !loading;
 
+  function ensureCardFullyVisible(el: HTMLElement) {
+    const rect = el.getBoundingClientRect();
+    const topPadding = 12;
+    const bottomPadding = 16;
+
+    if (rect.top < topPadding) {
+      window.scrollBy({
+        top: rect.top - topPadding,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    const overflowBottom = rect.bottom - (window.innerHeight - bottomPadding);
+    if (overflowBottom > 0) {
+      window.scrollBy({
+        top: overflowBottom,
+        behavior: "smooth",
+      });
+    }
+  }
+
+  function clearTimersFor(id: string) {
+    const list = scrollTimers.current[id];
+    if (!list?.length) return;
+    for (const t of list) window.clearTimeout(t);
+    scrollTimers.current[id] = [];
+  }
+
   function toggleQuestion(id: string) {
-    setOpenQuestionId((prev) => (prev === id ? null : id));
+    setOpenQuestionId((prev) => {
+      const next = prev === id ? null : id;
+
+      // cancelamos cualquier timer previo de ese item
+      clearTimersFor(id);
+
+      if (next) {
+        requestAnimationFrame(() => {
+          const el = questionRefs.current[id];
+          if (!el) return;
+
+          // 1) Traer la tarjeta al viewport (arriba)
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+
+          // 2) Cuando termina de abrir (duration-300), ajustar para que se vea completa
+          const t = window.setTimeout(() => {
+            const el2 = questionRefs.current[id];
+            if (!el2) return;
+            ensureCardFullyVisible(el2);
+          }, 340);
+
+          scrollTimers.current[id] = [t];
+        });
+      }
+
+      return next;
+    });
   }
 
   return (
@@ -402,22 +471,12 @@ export default function TopicQuestionsPage() {
                 <span className="font-semibold text-gray-900">
                   {topicInfo?.subject?.name ?? "—"}
                 </span>
-                {topicInfo?.subject?.id ? (
-                  <span className="ml-2">
-                    <Mono>{topicInfo.subject.id}</Mono>
-                  </span>
-                ) : null}
               </div>
               <div className="mt-0.5">
                 Tema:{" "}
                 <span className="font-semibold text-gray-900">
                   {topicInfo?.name ?? "—"}
                 </span>
-                {topicInfo?.id ? (
-                  <span className="ml-2">
-                    <Mono>{topicInfo.id}</Mono>
-                  </span>
-                ) : null}
               </div>
             </div>
           </div>
@@ -433,44 +492,67 @@ export default function TopicQuestionsPage() {
           </div>
         )}
 
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 px-6 py-4 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <PillButton
-                active={view === "summary"}
-                disabled={view === "summary"}
+            <div className="inline-flex w-full overflow-hidden rounded-xl border border-gray-200 bg-white sm:w-auto">
+              <button
+                type="button"
                 onClick={() => {
                   setError("");
                   setView("summary");
                 }}
+                className={cn(
+                  "h-10 px-4 text-sm font-semibold transition focus:outline-none",
+                  view === "summary"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                )}
               >
                 Resumen
-              </PillButton>
-              <PillButton
-                active={view === "create"}
-                disabled={view === "create"}
+              </button>
+
+              <div className="w-px bg-gray-200" />
+
+              <button
+                type="button"
                 onClick={() => {
                   setError("");
                   setView("create");
                 }}
+                className={cn(
+                  "h-10 px-4 text-sm font-semibold transition focus:outline-none",
+                  view === "create"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                )}
               >
-                ➕ Añadir pregunta
-              </PillButton>
-              <PillButton
-                active={view === "list"}
-                disabled={view === "list"}
+                Añadir pregunta
+              </button>
+
+              <div className="w-px bg-gray-200" />
+
+              <button
+                type="button"
                 onClick={() => {
                   setError("");
                   setView("list");
                 }}
+                className={cn(
+                  "h-10 px-4 text-sm font-semibold transition focus:outline-none",
+                  view === "list"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                )}
               >
-                📋 Ver listado
-              </PillButton>
+                Ver listado de preguntas
+              </button>
             </div>
 
-            <div className="text-sm text-gray-600">
-              Total:{" "}
-              <span className="font-semibold text-gray-900">{stats.total}</span>
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <span className="text-sm text-gray-600">Total de Preguntas</span>
+              <span className="inline-flex h-9 items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                {stats.total}
+              </span>
             </div>
           </div>
         </section>
@@ -768,7 +850,13 @@ export default function TopicQuestionsPage() {
                     const open = openQuestionId === q.id;
 
                     return (
-                      <div key={q.id} className="px-6 py-5">
+                      <div
+                        key={q.id}
+                        ref={(el) => {
+                          questionRefs.current[q.id] = el;
+                        }}
+                        className="px-6 py-5"
+                      >
                         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                           <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
@@ -780,10 +868,10 @@ export default function TopicQuestionsPage() {
 
                               <div className="mt-2 flex flex-wrap items-center gap-2">
                                 <Badge tone="gray">{labelType(q.type)}</Badge>
-                                <Badge tone="gray">{labelDifficulty(q.difficulty)}</Badge>
-                                <span className="ml-1">
-                                  <Mono>{q.id}</Mono>
-                                </span>
+                                <Badge tone="gray">
+                                  {labelDifficulty(q.difficulty)}
+                                </Badge>
+                                <span className="ml-1"></span>
                               </div>
                             </div>
 
@@ -815,7 +903,9 @@ export default function TopicQuestionsPage() {
                               <div
                                 className={cn(
                                   "px-5 py-4 transition-all duration-200",
-                                  open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
+                                  open
+                                    ? "opacity-100 translate-y-0"
+                                    : "opacity-0 -translate-y-1"
                                 )}
                               >
                                 {q.options?.length ? (
@@ -842,7 +932,9 @@ export default function TopicQuestionsPage() {
                                             <span className="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-xs text-gray-600">
                                               {oIdx + 1}
                                             </span>
-                                            <span className="text-sm text-gray-800">{opt}</span>
+                                            <span className="text-sm text-gray-800">
+                                              {opt}
+                                            </span>
                                             {isCorrect ? (
                                               <span className="ml-auto">
                                                 <Badge tone="green">Correcta</Badge>
