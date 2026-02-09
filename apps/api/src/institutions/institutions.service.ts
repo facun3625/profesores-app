@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -79,6 +79,41 @@ export class InstitutionsService {
       },
     });
   }
+
+  async updateName(userId: string, institutionId: string, name: string) {
+    const trimmed = (name ?? "").trim();
+    if (!trimmed) throw new BadRequestException("Name is required");
+
+    const membership = await this.prisma.userInstitution.findUnique({
+      where: {
+        userId_institutionId: {
+          userId,
+          institutionId,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException("You don't have access to this institution");
+    }
+
+    const exists = await this.prisma.institution.findUnique({
+      where: { id: institutionId },
+      select: { id: true },
+    });
+
+    if (!exists) throw new NotFoundException("Institution not found");
+
+    return this.prisma.institution.update({
+      where: { id: institutionId },
+      data: { name: trimmed },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        status: true,
+      },
+    });
+  }
 }
-
-

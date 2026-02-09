@@ -1,9 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getMe, logout } from "@/lib/auth";
+
+type MeResponse = {
+  user?: {
+    id: string;
+    email: string;
+    name?: string | null;
+    activeInstitutionId?: string | null;
+  };
+  activeInstitution?: { id: string; name: string } | null;
+  activeInstitutionId?: string | null;
+  institution?: { id: string; name: string } | null;
+};
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return null;
@@ -21,13 +34,6 @@ function hasToken() {
   }
 }
 
-type MeResponse = {
-  user?: { id: string; email: string; name?: string | null; activeInstitutionId?: string | null };
-  activeInstitution?: { id: string; name: string } | null;
-  activeInstitutionId?: string | null;
-  institution?: { id: string; name: string } | null;
-};
-
 function safeLSGet(key: string) {
   try {
     return localStorage.getItem(key);
@@ -42,21 +48,131 @@ function safeLSSet(key: string, value: string) {
   } catch {}
 }
 
+function isPublicPath(pathname: string) {
+  return pathname.startsWith("/login") || pathname.startsWith("/register");
+}
+
+function cn(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+function Brand() {
+  return (
+    <Link
+      href="/"
+      className="font-semibold tracking-tight text-blue-600 text-xl leading-none whitespace-nowrap"
+      style={{
+        fontFamily:
+          "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
+      }}
+    >
+      flux
+    </Link>
+  );
+}
+
+function NavLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+        active && "bg-gray-100 font-medium text-gray-900"
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function useOutsideClose<T extends HTMLElement>(open: boolean, onClose: () => void) {
+  const ref = useRef<T | null>(null);
+
+  useEffect(() => {
+    function onDocDown(ev: MouseEvent) {
+      if (!open) return;
+      const el = ref.current;
+      if (!el) return;
+      if (el.contains(ev.target as Node)) return;
+      onClose();
+    }
+
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key === "Escape") onClose();
+    }
+
+    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  return ref;
+}
+
+function pickActiveFromMe(meRes: any) {
+  const activeId =
+    meRes?.activeInstitutionId ??
+    meRes?.user?.activeInstitutionId ??
+    meRes?.activeInstitution?.id ??
+    meRes?.institution?.id ??
+    null;
+
+  const activeName =
+    meRes?.activeInstitution?.name ?? meRes?.institution?.name ?? "";
+
+  return {
+    activeId: activeId ? String(activeId) : "",
+    activeName: activeName ? String(activeName).trim() : "",
+  };
+}
+
+async function resolveInstitutionNameById(id: string) {
+  const list: any[] = await api<any[]>("/institutions");
+  const found = list?.find((i) => String(i?.id) === String(id));
+  return (found?.name?.trim?.() as string) || "";
+}
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const publicPage = useMemo(() => isPublicPath(pathname), [pathname]);
+
   const [ready, setReady] = useState(false);
-
-  const isPublic = useMemo(() => {
-    return pathname.startsWith("/login") || pathname.startsWith("/register");
-  }, [pathname]);
-
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [activeInstitutionName, setActiveInstitutionName] = useState("Sin institución");
 
+  const [activeInstitutionName, setActiveInstitutionName] = useState("Sin institución");
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const menuRef = useOutsideClose<HTMLDivElement>(menuOpen, () => setMenuOpen(false));
+
+  const userLabel = useMemo(() => {
+    const name = me?.user?.name?.trim();
+    const email = me?.user?.email;
+    return name || email || "Cuenta";
+  }, [me?.user?.name, me?.user?.email]);
+
+  const navItems = useMemo(
+    () => [
+      { href: "/institutions", label: "Instituciones" },
+      { href: "/subjects", label: "Materias" },
+      { href: "/exams", label: "Exámenes" },
+      { href: "/exams/builder", label: "Automático" },
+      { href: "/exams/manual", label: "Manual" },
+    ],
+    []
+  );
 
   useEffect(() => {
     setReady(true);
@@ -64,14 +180,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!ready) return;
-    if (isPublic) return;
+    if (publicPage) return;
 
-    const ok = hasToken();
-    if (!ok) {
+    if (!hasToken()) {
       const next = pathname || "/";
       router.replace(`/login?next=${encodeURIComponent(next)}`);
     }
-  }, [ready, isPublic, pathname, router]);
+  }, [ready, publicPage, pathname, router]);
 
   async function refreshActiveInstitution() {
     const lsName = (safeLSGet("activeInstitutionName") || "").trim();
@@ -83,35 +198,23 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       const meRes: any = await getMe();
       setMe(meRes);
 
-      const activeId =
-        meRes?.activeInstitutionId ??
-        meRes?.user?.activeInstitutionId ??
-        meRes?.activeInstitution?.id ??
-        meRes?.institution?.id ??
-        null;
+      const fromMe = pickActiveFromMe(meRes);
 
-      const activeNameFromMe =
-        meRes?.activeInstitution?.name ??
-        meRes?.institution?.name ??
-        "";
-
-      if (activeNameFromMe && String(activeNameFromMe).trim()) {
-        const n = String(activeNameFromMe).trim();
-        setActiveInstitutionName(n);
-        safeLSSet("activeInstitutionName", n);
-        if (activeId) safeLSSet("activeInstitutionId", String(activeId));
+      if (fromMe.activeName) {
+        setActiveInstitutionName(fromMe.activeName);
+        safeLSSet("activeInstitutionName", fromMe.activeName);
+        if (fromMe.activeId) safeLSSet("activeInstitutionId", fromMe.activeId);
         return;
       }
 
-      const idToUse = String(activeId || lsId || "").trim();
+      const idToUse = (fromMe.activeId || lsId).trim();
       if (!idToUse) {
         setActiveInstitutionName(lsName || "Sin institución");
         return;
       }
 
-      const list: any[] = await api<any[]>("/institutions");
-      const found = list?.find((i) => i?.id === idToUse);
-      const finalName = found?.name?.trim?.() || lsName || "Sin institución";
+      const nameFromList = await resolveInstitutionNameById(idToUse);
+      const finalName = (nameFromList || lsName || "Sin institución").trim();
 
       setActiveInstitutionName(finalName);
       safeLSSet("activeInstitutionName", finalName);
@@ -123,7 +226,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!ready) return;
-    if (isPublic) return;
+    if (publicPage) return;
 
     let cancelled = false;
 
@@ -135,13 +238,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return () => {
       cancelled = true;
     };
-  }, [ready, isPublic]);
+  }, [ready, publicPage]);
 
   useEffect(() => {
     if (!ready) return;
 
     function onChanged() {
-      if (isPublic) return;
+      if (publicPage) return;
       refreshActiveInstitution();
     }
 
@@ -151,35 +254,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       }
     }
 
-    window.addEventListener("active-institution-changed", onChanged);
+    window.addEventListener("active-institution-changed", onChanged as any);
     window.addEventListener("storage", onStorage);
 
     return () => {
-      window.removeEventListener("active-institution-changed", onChanged);
+      window.removeEventListener("active-institution-changed", onChanged as any);
       window.removeEventListener("storage", onStorage);
     };
-  }, [ready, isPublic]);
-
-  useEffect(() => {
-    function onDocDown(ev: MouseEvent) {
-      if (!menuOpen) return;
-      const el = menuRef.current;
-      if (!el) return;
-      if (el.contains(ev.target as Node)) return;
-      setMenuOpen(false);
-    }
-
-    function onKey(ev: KeyboardEvent) {
-      if (ev.key === "Escape") setMenuOpen(false);
-    }
-
-    document.addEventListener("mousedown", onDocDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
+  }, [ready, publicPage]);
 
   function onLogout() {
     logout();
@@ -192,120 +274,77 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     router.push("/profile");
   }
 
-  const userLabel = me?.user?.name?.trim() || me?.user?.email || "Cuenta";
-
   if (!ready) return null;
 
-  return (
-    <div style={{ minHeight: "100vh" }}>
-      {!isPublic && (
-        <header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-            borderBottom: "1px solid #e5e5e5",
-            background: "white",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: 1100,
-              margin: "0 auto",
-              padding: "12px 24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <a
-                href="/"
-                style={{ fontWeight: 700, textDecoration: "none", color: "inherit" }}
-              >
-                Profesores App
-              </a>
+  const activeLabel = activeInstitutionName?.trim()
+    ? activeInstitutionName
+    : "Sin institución";
 
-              <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <a href="/institutions">Instituciones</a>
-                <a href="/subjects">Materias</a>
-                <a href="/exams">Exámenes</a>
-                <a href="/exams/builder">Examen automático</a>
-                <a href="/exams/manual">Examen manual</a>
+  return (
+    <div className="min-h-screen bg-white text-gray-900">
+      {!publicPage && (
+        <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
+          <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4 px-6 py-3">
+            <div className="flex items-center gap-6 min-w-0">
+              <Brand />
+
+              <nav className="hidden md:flex items-center gap-1 flex-wrap">
+                {navItems.map((it) => (
+                  <NavLink
+                    key={it.href}
+                    href={it.href}
+                    label={it.label}
+                    active={pathname === it.href || pathname.startsWith(it.href + "/")}
+                  />
+                ))}
               </nav>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ textAlign: "right", lineHeight: 1.1 }}>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>Institución activa</div>
-                <div style={{ fontWeight: 600 }}>
-                  {activeInstitutionName && activeInstitutionName.trim()
-                    ? activeInstitutionName
-                    : "Sin institución"}
+            <div className="flex items-center gap-3">
+              {/* Institución + botón Cambiar (sin dropdown) */}
+              <div className="hidden sm:flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+                <div className="text-right leading-tight">
+                  <div className="text-[11px] text-gray-500">Institución activa</div>
+                  <div className="max-w-[220px] truncate text-sm font-semibold text-gray-900">
+                    {activeLabel}
+                  </div>
                 </div>
+
+                <Link
+                  href="/institutions"
+                  className="inline-flex h-8 items-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
+                >
+                  Cambiar
+                </Link>
               </div>
 
-              <div ref={menuRef} style={{ position: "relative" }}>
+              {/* User menu */}
+              <div ref={menuRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setMenuOpen((v) => !v)}
-                  style={{
-                    padding: "8px 10px",
-                    border: "1px solid #ddd",
-                    borderRadius: 8,
-                    background: "white",
-                    cursor: "pointer",
-                  }}
+                  className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-50"
                 >
-                  {userLabel} ▾
+                  <span className="max-w-[160px] truncate">{userLabel}</span>
+                  <span className="text-gray-500">▾</span>
                 </button>
 
                 {menuOpen && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: "calc(100% + 8px)",
-                      minWidth: 200,
-                      border: "1px solid #e5e5e5",
-                      borderRadius: 10,
-                      background: "white",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-                      padding: 8,
-                    }}
-                  >
+                  <div className="absolute right-0 top-[calc(100%+8px)] min-w-[200px] rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
                     <button
                       type="button"
                       onClick={goProfile}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "10px 10px",
-                        border: 0,
-                        background: "transparent",
-                        cursor: "pointer",
-                        borderRadius: 8,
-                      }}
+                      className="w-full rounded-md px-3 py-2 text-left text-sm text-gray-900 hover:bg-gray-100"
                     >
-                      Profile
+                      Perfil
                     </button>
 
-                    <div style={{ height: 1, background: "#eee", margin: "6px 0" }} />
+                    <div className="my-2 h-px bg-gray-200" />
 
                     <button
                       type="button"
                       onClick={onLogout}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "10px 10px",
-                        border: 0,
-                        background: "transparent",
-                        cursor: "pointer",
-                        borderRadius: 8,
-                        color: "crimson",
-                      }}
+                      className="w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                     >
                       Logout
                     </button>
@@ -314,10 +353,35 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               </div>
             </div>
           </div>
+
+          {/* Mobile nav */}
+          <div className="md:hidden border-t border-gray-200">
+            <div className="mx-auto max-w-[1100px] px-6 py-2 flex items-center gap-2 flex-wrap">
+              {navItems.map((it) => (
+                <NavLink
+                  key={it.href}
+                  href={it.href}
+                  label={it.label}
+                  active={pathname === it.href || pathname.startsWith(it.href + "/")}
+                />
+              ))}
+
+              <Link
+                href="/institutions"
+                className="ml-auto inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                <span className="text-gray-500">Inst:</span>
+                <span className="max-w-[170px] truncate font-medium text-gray-900">
+                  {activeLabel}
+                </span>
+                <span className="text-blue-600 font-medium">Cambiar</span>
+              </Link>
+            </div>
+          </div>
         </header>
       )}
 
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>{children}</div>
+      <div className="mx-auto max-w-[1100px]">{children}</div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { ConflictException, ForbiddenException, Injectable } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { Prisma } from '@prisma/client';
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 @Injectable()
 export class SubjectsService {
@@ -44,4 +45,21 @@ export class SubjectsService {
       },
     });
   }
+  async updateName(activeInstitutionId: string, id: string, name: string) {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) throw new BadRequestException("Name is required");
+
+  const subject = await this.prisma.subject.findFirst({
+    where: { id, institutionId: activeInstitutionId },
+    select: { id: true },
+  });
+
+  if (!subject) throw new NotFoundException("Subject not found");
+
+  return this.prisma.subject.update({
+    where: { id },
+    data: { name: trimmed },
+    select: { id: true, name: true },
+  });
+}
 }

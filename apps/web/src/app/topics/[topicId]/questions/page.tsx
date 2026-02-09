@@ -38,6 +38,62 @@ type TopicInfo = {
 
 type ViewMode = "summary" | "create" | "list";
 
+function cn(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+function Badge({
+  children,
+  tone = "neutral",
+}: {
+  children: React.ReactNode;
+  tone?: "neutral" | "blue" | "green" | "gray";
+}) {
+  const cls =
+    tone === "blue"
+      ? "border-blue-200 bg-blue-50 text-blue-700"
+      : tone === "green"
+      ? "border-green-200 bg-green-50 text-green-700"
+      : tone === "gray"
+      ? "border-gray-200 bg-gray-50 text-gray-700"
+      : "border-gray-200 bg-white text-gray-700";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs",
+        cls
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Mono({ children }: { children: React.ReactNode }) {
+  return <span className="font-mono text-[12px] text-gray-500">{children}</span>;
+}
+
+function highlight(text: string, q: string) {
+  const query = q.trim();
+  if (!query) return text;
+
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+
+  const a = text.slice(0, idx);
+  const b = text.slice(idx, idx + query.length);
+  const c = text.slice(idx + query.length);
+
+  return (
+    <>
+      {a}
+      <mark className="rounded bg-yellow-100 px-1 text-gray-900">{b}</mark>
+      {c}
+    </>
+  );
+}
+
 function labelType(t: QType) {
   if (t === "MULTIPLE_CHOICE") return "Multiple choice";
   if (t === "TRUE_FALSE") return "True/False";
@@ -50,11 +106,61 @@ function labelDifficulty(d: Difficulty) {
   return "hard";
 }
 
+function PillButton({
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition disabled:opacity-60",
+        active
+          ? "border-blue-200 bg-blue-50 text-blue-700"
+          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className={cn(
+        "h-4 w-4 text-blue-700 transition-transform duration-200",
+        open ? "rotate-180" : "rotate-0"
+      )}
+    >
+      <path
+        d="M5 8l5 5 5-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function TopicQuestionsPage() {
   const params = useParams();
   const search = useSearchParams();
 
-  const topicId = params.topicId as string;
+  const topicId = (params.topicId as string) || "";
   const subjectId = (search.get("subjectId") || "").trim();
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -62,21 +168,26 @@ export default function TopicQuestionsPage() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const [view, setView] = useState<ViewMode>("summary");
 
-  // filtros para listado
   const [filterType, setFilterType] = useState<QType | "ALL">("ALL");
-  const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | "ALL">("ALL");
+  const [filterDifficulty, setFilterDifficulty] = useState<Difficulty | "ALL">(
+    "ALL"
+  );
   const [searchText, setSearchText] = useState("");
 
-  // form create
   const [statement, setStatement] = useState("");
   const [type, setType] = useState<QType>("TRUE_FALSE");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [optionsText, setOptionsText] = useState("Opción A\nOpción B\nOpción C\nOpción D");
+  const [optionsText, setOptionsText] = useState(
+    "Opción A\nOpción B\nOpción C\nOpción D"
+  );
   const [correctIndex, setCorrectIndex] = useState<number>(0);
   const [modelAnswer, setModelAnswer] = useState("");
+
+  const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
 
   const options = useMemo(() => {
     if (type === "TRUE_FALSE") return ["Verdadero", "Falso"];
@@ -98,17 +209,22 @@ export default function TopicQuestionsPage() {
       return;
     }
     if (!subjectId) {
-      setError("Falta subjectId en la URL. Volvé a Temas y entrá por el botón 'Gestionar preguntas'.");
+      setError(
+        "Falta subjectId en la URL. Volvé a Temas y entrá por el botón 'Gestionar preguntas'."
+      );
       return;
     }
 
     try {
       const r = await api<ListResponse>(
-        `/questions?subjectId=${encodeURIComponent(subjectId)}&topicId=${encodeURIComponent(topicId)}&limit=100&page=1`
+        `/questions?subjectId=${encodeURIComponent(
+          subjectId
+        )}&topicId=${encodeURIComponent(topicId)}&limit=100&page=1`
       );
       setQuestions(r.data || []);
     } catch (e: any) {
-      setError(e.message || "No se pudieron cargar preguntas");
+      setError(e?.message || "No se pudieron cargar preguntas");
+      setQuestions([]);
     }
   }
 
@@ -124,9 +240,26 @@ export default function TopicQuestionsPage() {
   }
 
   useEffect(() => {
-    load();
-    loadTopicInfo();
+    let cancelled = false;
+
+    (async () => {
+      setInitialLoading(true);
+      try {
+        await Promise.all([load(), loadTopicInfo()]);
+      } finally {
+        if (!cancelled) setInitialLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topicId, subjectId]);
+
+  useEffect(() => {
+    setOpenQuestionId(null);
+  }, [view, filterType, filterDifficulty, searchText]);
 
   function validateCreate(): string | null {
     if (!subjectId) return "Falta subjectId (entrar desde Temas).";
@@ -134,8 +267,10 @@ export default function TopicQuestionsPage() {
     if (!statement.trim()) return "Escribí el enunciado.";
 
     if (type === "MULTIPLE_CHOICE") {
-      if (!options || options.length < 2) return "Multiple choice requiere al menos 2 opciones.";
-      if (correctIndex < 0 || correctIndex >= options.length) return "correctIndex inválido para las opciones.";
+      if (!options || options.length < 2)
+        return "Multiple choice requiere al menos 2 opciones.";
+      if (correctIndex < 0 || correctIndex >= options.length)
+        return "correctIndex inválido para las opciones.";
     }
 
     if (type === "TRUE_FALSE") {
@@ -173,7 +308,7 @@ export default function TopicQuestionsPage() {
       }
 
       if (type === "TRUE_FALSE") {
-        payload.correctIndex = correctIndex; // 0 = Verdadero, 1 = Falso
+        payload.correctIndex = correctIndex;
       }
 
       await api("/questions", {
@@ -185,20 +320,18 @@ export default function TopicQuestionsPage() {
       setModelAnswer("");
       setCorrectIndex(0);
 
-      if (type === "MULTIPLE_CHOICE") setOptionsText("Opción A\nOpción B\nOpción C\nOpción D");
+      if (type === "MULTIPLE_CHOICE")
+        setOptionsText("Opción A\nOpción B\nOpción C\nOpción D");
 
       await load();
-
-      // UX: después de crear, volvemos al resumen
       setView("summary");
     } catch (e: any) {
-      setError(e.message || "Error creando pregunta");
+      setError(e?.message || "Error creando pregunta");
     } finally {
       setLoading(false);
     }
   }
 
-  // stats (resumen)
   const stats = useMemo(() => {
     const byType: Record<QType, number> = {
       MULTIPLE_CHOICE: 0,
@@ -224,304 +357,547 @@ export default function TopicQuestionsPage() {
 
     return questions.filter((q) => {
       if (filterType !== "ALL" && q.type !== filterType) return false;
-      if (filterDifficulty !== "ALL" && q.difficulty !== filterDifficulty) return false;
+      if (filterDifficulty !== "ALL" && q.difficulty !== filterDifficulty)
+        return false;
       if (text && !q.statement.toLowerCase().includes(text)) return false;
       return true;
     });
   }, [questions, filterType, filterDifficulty, searchText]);
 
-  function goCreate() {
-    setError("");
-    setView("create");
-  }
+  const canCreate = statement.trim().length > 0 && !loading;
 
-  function goList() {
-    setError("");
-    setView("list");
-  }
-
-  function goSummary() {
-    setError("");
-    setView("summary");
+  function toggleQuestion(id: string) {
+    setOpenQuestionId((prev) => (prev === id ? null : id));
   }
 
   return (
-    <main style={{ padding: 24 }}>
-      <div style={{ marginBottom: 12 }}>
-        <a href="/subjects">← Volver a materias</a>
-      </div>
+    <main className="min-h-[calc(100vh-64px)] px-6 py-8">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
+      <div
+        className="fixed inset-0 -z-10 opacity-[0.06]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
+          backgroundSize: "72px 72px",
+        }}
+      />
 
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>Preguntas del tema</h1>
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <a
+              href={subjectId ? `/subjects/${subjectId}/topics` : "/subjects"}
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              ← Volver a temas
+            </a>
 
-      <div style={{ marginBottom: 14, opacity: 0.85 }}>
-        <div>
-          Materia: <b>{topicInfo?.subject?.name ?? "—"}</b>
-        </div>
-        <div>
-          Tema: <b>{topicInfo?.name ?? "—"}</b>
-        </div>
-      </div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-blue-900">
+              Preguntas del tema
+            </h1>
 
-      {error && (
-        <div style={{ border: "1px solid red", padding: 12, marginBottom: 12 }}>
-          {error}
-        </div>
-      )}
-
-      {/* barra de acciones */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
-        <button onClick={goSummary} disabled={view === "summary"} style={{ padding: "8px 12px" }}>
-          Resumen
-        </button>
-        <button onClick={goCreate} disabled={view === "create"} style={{ padding: "8px 12px" }}>
-          ➕ Añadir pregunta
-        </button>
-        <button onClick={goList} disabled={view === "list"} style={{ padding: "8px 12px" }}>
-          📋 Ver listado
-        </button>
-
-        <div style={{ marginLeft: "auto", fontSize: 13, opacity: 0.85 }}>
-          Total: <b>{stats.total}</b>
-        </div>
-      </div>
-
-      {/* ✅ VISTA: RESUMEN */}
-      {view === "summary" && (
-        <div style={{ border: "1px solid #333", padding: 12, marginBottom: 18 }}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>
-            Tenés <b>{stats.total}</b> preguntas en este tema
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ border: "1px solid #ccc", padding: 10 }}>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Por tipo</div>
+            <div className="mt-1 text-sm text-gray-600">
               <div>
-                Multiple choice: <b>{stats.byType.MULTIPLE_CHOICE}</b>
+                Materia:{" "}
+                <span className="font-semibold text-gray-900">
+                  {topicInfo?.subject?.name ?? "—"}
+                </span>
+                {topicInfo?.subject?.id ? (
+                  <span className="ml-2">
+                    <Mono>{topicInfo.subject.id}</Mono>
+                  </span>
+                ) : null}
               </div>
-              <div>
-                True/False: <b>{stats.byType.TRUE_FALSE}</b>
-              </div>
-              <div>
-                Open: <b>{stats.byType.OPEN}</b>
-              </div>
-            </div>
-
-            <div style={{ border: "1px solid #ccc", padding: 10 }}>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Por dificultad</div>
-              <div>
-                easy: <b>{stats.byDifficulty.easy}</b>
-              </div>
-              <div>
-                medium: <b>{stats.byDifficulty.medium}</b>
-              </div>
-              <div>
-                hard: <b>{stats.byDifficulty.hard}</b>
+              <div className="mt-0.5">
+                Tema:{" "}
+                <span className="font-semibold text-gray-900">
+                  {topicInfo?.name ?? "—"}
+                </span>
+                {topicInfo?.id ? (
+                  <span className="ml-2">
+                    <Mono>{topicInfo.id}</Mono>
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
 
-          <div style={{ marginTop: 12, fontSize: 13, opacity: 0.85 }}>
-            Tip: el botón “Añadir pregunta” te abre el formulario. “Ver listado” te deja filtrar y buscar.
+          <div className="flex items-center gap-2">
+            <Badge tone="blue">{stats.total} total</Badge>
           </div>
         </div>
-      )}
 
-      {/* ✅ VISTA: CREAR */}
-      {view === "create" && (
-        <div style={{ border: "1px solid #333", padding: 12, marginBottom: 18 }}>
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>Añadir pregunta</div>
+        {error && (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+            {error}
+          </div>
+        )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 10 }}>
-            <label style={{ display: "grid", gap: 6 }}>
-              Tipo
-              <select
-                value={type}
-                onChange={(e) => {
-                  const next = e.target.value as QType;
-                  setType(next);
-                  setCorrectIndex(0);
-
-                  if (next === "MULTIPLE_CHOICE") setOptionsText("Opción A\nOpción B\nOpción C\nOpción D");
-                  if (next === "TRUE_FALSE") setOptionsText("");
-                  if (next === "OPEN") setOptionsText("");
+        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 px-6 py-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <PillButton
+                active={view === "summary"}
+                disabled={view === "summary"}
+                onClick={() => {
+                  setError("");
+                  setView("summary");
                 }}
-                style={{ width: "100%", padding: 8 }}
               >
-                <option value="MULTIPLE_CHOICE">Multiple choice</option>
-                <option value="TRUE_FALSE">True/False</option>
-                <option value="OPEN">Open</option>
-              </select>
-            </label>
-
-            <label style={{ display: "grid", gap: 6 }}>
-              Dificultad
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                style={{ width: "100%", padding: 8 }}
+                Resumen
+              </PillButton>
+              <PillButton
+                active={view === "create"}
+                disabled={view === "create"}
+                onClick={() => {
+                  setError("");
+                  setView("create");
+                }}
               >
-                <option value="easy">easy</option>
-                <option value="medium">medium</option>
-                <option value="hard">hard</option>
-              </select>
-            </label>
-          </div>
-
-          <label style={{ display: "grid", gap: 6, marginBottom: 10 }}>
-            Enunciado
-            <textarea
-              value={statement}
-              onChange={(e) => setStatement(e.target.value)}
-              style={{ width: "100%", padding: 8, minHeight: 80 }}
-            />
-          </label>
-
-          {type === "MULTIPLE_CHOICE" && (
-            <>
-              <label style={{ display: "grid", gap: 6, marginBottom: 10 }}>
-                Opciones (una por línea)
-                <textarea
-                  value={optionsText}
-                  onChange={(e) => setOptionsText(e.target.value)}
-                  style={{ width: "100%", padding: 8, minHeight: 90 }}
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6, marginBottom: 10 }}>
-                Índice correcto (0 a {Math.max(0, (options?.length ?? 0) - 1)})
-                <input
-                  type="number"
-                  value={correctIndex}
-                  onChange={(e) => setCorrectIndex(Number(e.target.value))}
-                  min={0}
-                  style={{ padding: 8 }}
-                />
-              </label>
-            </>
-          )}
-
-          {type === "TRUE_FALSE" && (
-            <div style={{ display: "grid", gap: 8, marginBottom: 10 }}>
-              <div style={{ fontSize: 13, opacity: 0.85 }}>Respuesta correcta</div>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input type="radio" checked={correctIndex === 0} onChange={() => setCorrectIndex(0)} />
-                Verdadero
-              </label>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input type="radio" checked={correctIndex === 1} onChange={() => setCorrectIndex(1)} />
-                Falso
-              </label>
+                ➕ Añadir pregunta
+              </PillButton>
+              <PillButton
+                active={view === "list"}
+                disabled={view === "list"}
+                onClick={() => {
+                  setError("");
+                  setView("list");
+                }}
+              >
+                📋 Ver listado
+              </PillButton>
             </div>
-          )}
 
-          <label style={{ display: "grid", gap: 6, marginBottom: 10 }}>
-            Respuesta modelo (opcional)
-            <textarea
-              value={modelAnswer}
-              onChange={(e) => setModelAnswer(e.target.value)}
-              style={{ width: "100%", padding: 8, minHeight: 70 }}
-            />
-          </label>
+            <div className="text-sm text-gray-600">
+              Total:{" "}
+              <span className="font-semibold text-gray-900">{stats.total}</span>
+            </div>
+          </div>
+        </section>
 
-          <button onClick={createQuestion} disabled={loading} style={{ padding: "10px 14px" }}>
-            {loading ? "Creando..." : "Crear"}
-          </button>
-        </div>
-      )}
+        {initialLoading ? (
+          <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 px-6 py-8 shadow-sm">
+            <div className="text-sm text-gray-600">Cargando…</div>
+          </section>
+        ) : null}
 
-      {/* ✅ VISTA: LISTADO */}
-      {view === "list" && (
-        <>
-          <div style={{ border: "1px solid #333", padding: 12, marginBottom: 18 }}>
-            <div style={{ fontWeight: 700, marginBottom: 10 }}>Listado de preguntas</div>
+        {!initialLoading && view === "summary" ? (
+          <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-1 rounded-full bg-blue-600" />
+              <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                Resumen
+              </div>
+            </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: 12 }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                Tipo
+            <div className="mt-3 text-sm text-gray-700">
+              Tenés{" "}
+              <span className="font-semibold text-gray-900">{stats.total}</span>{" "}
+              preguntas en este tema.
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-sm font-semibold text-gray-900">Por tipo</div>
+                <div className="mt-3 grid gap-2 text-sm text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span>Multiple choice</span>
+                    <Badge tone="gray">{stats.byType.MULTIPLE_CHOICE}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>True/False</span>
+                    <Badge tone="gray">{stats.byType.TRUE_FALSE}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Open</span>
+                    <Badge tone="gray">{stats.byType.OPEN}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-sm font-semibold text-gray-900">
+                  Por dificultad
+                </div>
+                <div className="mt-3 grid gap-2 text-sm text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span>easy</span>
+                    <Badge tone="gray">{stats.byDifficulty.easy}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>medium</span>
+                    <Badge tone="gray">{stats.byDifficulty.medium}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>hard</span>
+                    <Badge tone="gray">{stats.byDifficulty.hard}</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 text-sm text-gray-600">
+              Tip: “Añadir pregunta” abre el formulario. “Ver listado” te deja filtrar
+              y buscar.
+            </div>
+          </section>
+        ) : null}
+
+        {!initialLoading && view === "create" ? (
+          <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-1 rounded-full bg-blue-600" />
+              <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                Añadir pregunta
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-gray-900">Tipo</span>
                 <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value as any)}
-                  style={{ width: "100%", padding: 8 }}
+                  value={type}
+                  onChange={(e) => {
+                    const next = e.target.value as QType;
+                    setType(next);
+                    setCorrectIndex(0);
+
+                    if (next === "MULTIPLE_CHOICE")
+                      setOptionsText("Opción A\nOpción B\nOpción C\nOpción D");
+                    if (next === "TRUE_FALSE") setOptionsText("");
+                    if (next === "OPEN") setOptionsText("");
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <option value="ALL">Todos</option>
                   <option value="MULTIPLE_CHOICE">Multiple choice</option>
                   <option value="TRUE_FALSE">True/False</option>
                   <option value="OPEN">Open</option>
                 </select>
               </label>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                Dificultad
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-gray-900">
+                  Dificultad
+                </span>
                 <select
-                  value={filterDifficulty}
-                  onChange={(e) => setFilterDifficulty(e.target.value as any)}
-                  style={{ width: "100%", padding: 8 }}
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <option value="ALL">Todas</option>
                   <option value="easy">easy</option>
                   <option value="medium">medium</option>
                   <option value="hard">hard</option>
                 </select>
               </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                Buscar enunciado
-                <input
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="Ej: músculos, capital, fracciones..."
-                  style={{ width: "100%", padding: 8 }}
-                />
-              </label>
             </div>
 
-            <div style={{ marginTop: 10, fontSize: 13, opacity: 0.85 }}>
-              Mostrando <b>{filteredQuestions.length}</b> de <b>{questions.length}</b>
+            <label className="mt-4 grid gap-2">
+              <span className="text-sm font-semibold text-gray-900">Enunciado</span>
+              <textarea
+                value={statement}
+                onChange={(e) => setStatement(e.target.value)}
+                className="min-h-[96px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+            </label>
+
+            {type === "MULTIPLE_CHOICE" ? (
+              <>
+                <label className="mt-4 grid gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    Opciones (una por línea)
+                  </span>
+                  <textarea
+                    value={optionsText}
+                    onChange={(e) => setOptionsText(e.target.value)}
+                    className="min-h-[110px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </label>
+
+                <label className="mt-4 grid gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    Índice correcto (0 a {Math.max(0, (options?.length ?? 0) - 1)})
+                  </span>
+                  <input
+                    type="number"
+                    value={correctIndex}
+                    onChange={(e) => setCorrectIndex(Number(e.target.value))}
+                    min={0}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </label>
+              </>
+            ) : null}
+
+            {type === "TRUE_FALSE" ? (
+              <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-sm font-semibold text-gray-900">
+                  Respuesta correcta
+                </div>
+
+                <div className="mt-3 grid gap-2 text-sm text-gray-700">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={correctIndex === 0}
+                      onChange={() => setCorrectIndex(0)}
+                    />
+                    Verdadero
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={correctIndex === 1}
+                      onChange={() => setCorrectIndex(1)}
+                    />
+                    Falso
+                  </label>
+                </div>
+              </div>
+            ) : null}
+
+            <label className="mt-4 grid gap-2">
+              <span className="text-sm font-semibold text-gray-900">
+                Respuesta modelo (opcional)
+              </span>
+              <textarea
+                value={modelAnswer}
+                onChange={(e) => setModelAnswer(e.target.value)}
+                className="min-h-[88px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+            </label>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={createQuestion}
+                disabled={!canCreate || loading}
+                className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+              >
+                {loading ? "Creando..." : "Crear"}
+              </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  setError("");
+                  setView("summary");
+                }}
+                className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
             </div>
-          </div>
+          </section>
+        ) : null}
 
-          {filteredQuestions.length === 0 ? (
-            <div>No hay preguntas con esos filtros.</div>
-          ) : (
-            <ol style={{ display: "grid", gap: 12, paddingLeft: 18, margin: 0 }}>
-              {filteredQuestions.map((q) => (
-                <li key={q.id} style={{ border: "1px solid #333", padding: 12 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>{q.statement}</div>
-                  <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-                    {labelType(q.type)} · {labelDifficulty(q.difficulty)}
-                  </div>
+        {!initialLoading && view === "list" ? (
+          <>
+            <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-1 rounded-full bg-blue-600" />
+                <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                  Listado de preguntas
+                </div>
+              </div>
 
-                  {q.options?.length ? (
-                    <ul style={{ paddingLeft: 18, margin: 0, display: "grid", gap: 4 }}>
-                      {q.options.map((opt, idx) => (
-                        <li key={`${q.id}-${idx}`}>{opt}</li>
-                      ))}
-                    </ul>
-                  ) : null}
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-gray-900">Tipo</span>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value as any)}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="ALL">Todos</option>
+                    <option value="MULTIPLE_CHOICE">Multiple choice</option>
+                    <option value="TRUE_FALSE">True/False</option>
+                    <option value="OPEN">Open</option>
+                  </select>
+                </label>
 
-                  {q.type === "TRUE_FALSE" && typeof q.correctIndex === "number" ? (
-                    <div style={{ marginTop: 8, fontSize: 13, opacity: 0.9 }}>
-                      <b>Respuesta correcta:</b> {q.correctIndex === 0 ? "Verdadero" : "Falso"}
-                    </div>
-                  ) : null}
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    Dificultad
+                  </span>
+                  <select
+                    value={filterDifficulty}
+                    onChange={(e) => setFilterDifficulty(e.target.value as any)}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="ALL">Todas</option>
+                    <option value="easy">easy</option>
+                    <option value="medium">medium</option>
+                    <option value="hard">hard</option>
+                  </select>
+                </label>
 
-                  {q.type === "MULTIPLE_CHOICE" && typeof q.correctIndex === "number" ? (
-                    <div style={{ marginTop: 8, fontSize: 13, opacity: 0.9 }}>
-                      <b>Opción correcta:</b> {q.correctIndex + 1}
-                    </div>
-                  ) : null}
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    Buscar enunciado
+                  </span>
+                  <input
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    placeholder="Ej: músculos, capital, fracciones..."
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </label>
+              </div>
 
-                  {q.modelAnswer ? (
-                    <div style={{ marginTop: 8, fontSize: 13, opacity: 0.9 }}>
-                      <b>Modelo:</b> {q.modelAnswer}
-                    </div>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          )}
-        </>
-      )}
+              <div className="mt-4 text-sm text-gray-600">
+                Mostrando{" "}
+                <span className="font-semibold text-gray-900">
+                  {filteredQuestions.length}
+                </span>{" "}
+                de{" "}
+                <span className="font-semibold text-gray-900">
+                  {questions.length}
+                </span>
+              </div>
+            </section>
+
+            <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
+              {filteredQuestions.length === 0 ? (
+                <div className="px-6 py-8 text-sm text-gray-600">
+                  No hay preguntas con esos filtros.
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {filteredQuestions.map((q, idx) => {
+                    const open = openQuestionId === q.id;
+
+                    return (
+                      <div key={q.id} className="px-6 py-5">
+                        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                          <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <div className="text-sm text-gray-500">#{idx + 1}</div>
+
+                              <div className="mt-1 text-sm font-semibold text-gray-900">
+                                {highlight(q.statement, searchText)}
+                              </div>
+
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <Badge tone="gray">{labelType(q.type)}</Badge>
+                                <Badge tone="gray">{labelDifficulty(q.difficulty)}</Badge>
+                                <span className="ml-1">
+                                  <Mono>{q.id}</Mono>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleQuestion(q.id)}
+                                aria-expanded={open}
+                                className={cn(
+                                  "inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium transition",
+                                  open
+                                    ? "border-blue-200 bg-blue-50 text-blue-700"
+                                    : "border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                                )}
+                              >
+                                <span>{open ? "Menos" : "Más"}</span>
+                                <Chevron open={open} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div
+                            className={cn(
+                              "grid overflow-hidden border-t border-gray-100 transition-[grid-template-rows] duration-300 ease-out",
+                              open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                            )}
+                          >
+                            <div className="min-h-0">
+                              <div
+                                className={cn(
+                                  "px-5 py-4 transition-all duration-200",
+                                  open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
+                                )}
+                              >
+                                {q.options?.length ? (
+                                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                                    <div className="text-sm font-semibold text-gray-900">
+                                      Opciones
+                                    </div>
+                                    <ul className="mt-2 grid gap-2 text-sm text-gray-700">
+                                      {q.options.map((opt, oIdx) => {
+                                        const isCorrect =
+                                          typeof q.correctIndex === "number" &&
+                                          q.correctIndex === oIdx;
+
+                                        return (
+                                          <li
+                                            key={`${q.id}-${oIdx}`}
+                                            className={cn(
+                                              "flex items-start gap-2 rounded-md border px-3 py-2",
+                                              isCorrect
+                                                ? "border-green-200 bg-green-50"
+                                                : "border-gray-200 bg-white"
+                                            )}
+                                          >
+                                            <span className="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-xs text-gray-600">
+                                              {oIdx + 1}
+                                            </span>
+                                            <span className="text-sm text-gray-800">{opt}</span>
+                                            {isCorrect ? (
+                                              <span className="ml-auto">
+                                                <Badge tone="green">Correcta</Badge>
+                                              </span>
+                                            ) : null}
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  </div>
+                                ) : null}
+
+                                {q.type === "TRUE_FALSE" &&
+                                typeof q.correctIndex === "number" ? (
+                                  <div className="mt-4 text-sm text-gray-700">
+                                    <span className="font-semibold text-gray-900">
+                                      Respuesta correcta:
+                                    </span>{" "}
+                                    {q.correctIndex === 0 ? "Verdadero" : "Falso"}
+                                  </div>
+                                ) : null}
+
+                                {q.type === "MULTIPLE_CHOICE" &&
+                                typeof q.correctIndex === "number" ? (
+                                  <div className="mt-4 text-sm text-gray-700">
+                                    <span className="font-semibold text-gray-900">
+                                      Opción correcta:
+                                    </span>{" "}
+                                    {q.correctIndex + 1}
+                                  </div>
+                                ) : null}
+
+                                {q.modelAnswer ? (
+                                  <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                                    <div className="text-sm font-semibold text-gray-900">
+                                      Respuesta modelo
+                                    </div>
+                                    <div className="mt-2 text-sm text-gray-700">
+                                      {q.modelAnswer}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
+        ) : null}
+      </div>
     </main>
   );
 }

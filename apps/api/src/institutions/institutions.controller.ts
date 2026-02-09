@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { IsString } from "class-validator";
 import { InstitutionsService } from "./institutions.service";
 import { AuthGuard } from "../auth/guards/auth.guard";
@@ -11,6 +11,11 @@ class CreateInstitutionDto {
 class SetActiveInstitutionDto {
   @IsString()
   institutionId!: string;
+}
+
+class UpdateInstitutionDto {
+  @IsString()
+  name!: string;
 }
 
 @Controller("institutions")
@@ -31,5 +36,14 @@ export class InstitutionsController {
   @Post("active")
   setActive(@Req() req: any, @Body() dto: SetActiveInstitutionDto) {
     return this.institutionsService.setActiveInstitution(req.userId, dto.institutionId);
+  }
+
+  @Patch(":id")
+  updateName(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body() dto: UpdateInstitutionDto
+  ) {
+    return this.institutionsService.updateName(req.userId, id, dto.name);
   }
 }

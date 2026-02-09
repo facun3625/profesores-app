@@ -4,6 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth";
 
+function FluxLogo() {
+  return (
+    <div className="select-none text-center">
+      <div
+        className="text-4xl font-semibold tracking-tight text-blue-600"
+        style={{
+          fontFamily:
+            "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
+        }}
+      >
+        flux
+      </div>
+      <div className="mt-1 text-xs text-gray-500">
+        Instituciones · Exámenes · Gestión
+      </div>
+    </div>
+  );
+}
+
 export default function Page() {
   const router = useRouter();
 
@@ -13,11 +32,11 @@ export default function Page() {
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setError(null);
 
     if (!name.trim()) return setError("Poné tu nombre.");
     if (!institutionName.trim()) return setError("Poné el nombre de la institución.");
@@ -27,7 +46,7 @@ export default function Page() {
     setLoading(true);
     try {
       await register(email.trim(), password, name.trim(), institutionName.trim());
-      router.push("/"); // ✅ al root (y ya pasa middleware por cookie)
+      router.push("/");
     } catch (e: any) {
       setError(e?.message ?? "Error registrando usuario");
     } finally {
@@ -36,51 +55,106 @@ export default function Page() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 520 }}>
-      <h1>Crear cuenta</h1>
+    <main className="min-h-screen px-4">
+      {/* Fondo con gradient + grid sutil */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
+      <div
+        className="fixed inset-0 -z-10 opacity-[0.08]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.08) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
 
-      {error && (
-        <div style={{ border: "1px solid red", padding: 10, marginBottom: 12 }}>
-          {error}
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <div className="mb-6">
+            <FluxLogo />
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Creá tu usuario y tu institución inicial
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-800">Nombre</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Tu nombre"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-800">Institución</label>
+                <input
+                  value={institutionName}
+                  onChange={(e) => setInstitutionName(e.target.value)}
+                  placeholder="Nombre de la institución"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+                <p className="text-xs text-gray-500">
+                  Podés cambiarla o sumar más instituciones después.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-800">Email</label>
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  placeholder="email@ejemplo.com"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-800">Contraseña</label>
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+              >
+                {loading ? "Creando..." : "Registrarme"}
+              </button>
+
+              <div className="text-center text-sm text-gray-600">
+                ¿Ya tenés cuenta?{" "}
+                <a href="/login" className="font-medium text-blue-600 hover:underline">
+                  Iniciar sesión
+                </a>
+              </div>
+            </form>
+          </div>
+
+          <div className="mt-6 text-center text-xs text-gray-500">
+            © {new Date().getFullYear()} Flux
+          </div>
         </div>
-      )}
-
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          Nombre
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          Institución
-          <input
-            value={institutionName}
-            onChange={(e) => setInstitutionName(e.target.value)}
-          />
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          Email
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          Password
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-          />
-        </label>
-
-        <button type="submit" disabled={loading}>
-          {loading ? "Creando..." : "Registrarme"}
-        </button>
-
-        <div style={{ fontSize: 13, opacity: 0.8 }}>
-          ¿Ya tenés cuenta? <a href="/login">Iniciar sesión</a>
-        </div>
-      </form>
+      </div>
     </main>
   );
 }
