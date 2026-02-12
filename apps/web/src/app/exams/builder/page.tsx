@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
 import { toast } from "sonner";
+import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
 
 /* =====================
    Types
@@ -139,6 +140,7 @@ export default function Page() {
   const [result, setResult] = useState<GenerateOrReuseResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
 
   /* =====================
      Load subjects / topics
@@ -425,7 +427,7 @@ export default function Page() {
     }
   }
 
-  async function downloadPdf() {
+  async function downloadPdf(options?: PdfOptions) {
     setError("");
     if (!result) return;
 
@@ -433,16 +435,29 @@ export default function Page() {
       const safeName =
         (result.exam.title || "exam").replace(/[^a-z0-9\-_ ]/gi, "").trim() || "exam";
 
-      const blob = await apiBlob(result.exportPdfUrl);
+      // Construir query params si hay opciones
+      let url = result.exportPdfUrl;
+      if (options) {
+        const params = new URLSearchParams({
+          boldStatement: String(options.boldStatement),
+          fontFamily: options.fontFamily,
+          questionSize: String(options.questionSize),
+          answerSize: String(options.answerSize),
+          lineSpacing: String(options.lineSpacing),
+        });
+        url = `${url}?${params.toString()}`;
+      }
 
-      const url = window.URL.createObjectURL(blob);
+      const blob = await apiBlob(url);
+
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = `${safeName}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
 
       toast.success("PDF descargado");
     } catch (e: any) {
@@ -932,10 +947,17 @@ export default function Page() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={downloadPdf}
+                onClick={() => downloadPdf()}
                 className="w-full rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white hover:bg-green-700 transition"
               >
-                Descargar PDF
+                Descargar PDF estándar
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCustomizeModal(true)}
+                className="w-full rounded-lg border border-green-600 bg-white px-6 py-3 text-sm font-medium text-green-700 hover:bg-green-50 transition"
+              >
+                Personalizar y descargar
               </button>
               <button
                 onClick={resetWizard}
@@ -946,6 +968,13 @@ export default function Page() {
             </div>
           </div>
         )}
+
+        {/* PDF Customize Modal */}
+        <PdfCustomizeModal
+          isOpen={showCustomizeModal}
+          onClose={() => setShowCustomizeModal(false)}
+          onDownload={(options) => downloadPdf(options)}
+        />
       </div>
     </main>
   );

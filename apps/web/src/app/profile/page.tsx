@@ -20,7 +20,7 @@ type MeResponse = {
 
 type FieldKey = "name" | "lastName" | "city" | "province" | "country";
 
-function FluxMark() {
+function ExamiaMark() {
   return (
     <div className="select-none">
       <div
@@ -30,7 +30,7 @@ function FluxMark() {
             "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
         }}
       >
-        flux
+        examia
       </div>
       <div className="mt-0.5 text-xs text-gray-500">Perfil</div>
     </div>
@@ -334,7 +334,7 @@ export default function ProfilePage() {
                   Edición por campo (sin romper nada).
                 </div>
               </div>
-              <FluxMark />
+              <ExamiaMark />
             </div>
 
             <div className="mt-5 grid gap-3">
@@ -444,7 +444,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-6 text-center text-xs text-gray-500">
-          © {new Date().getFullYear()} Flux
+          © {new Date().getFullYear()} Examia
         </div>
       </div>
     </main>

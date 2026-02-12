@@ -45,7 +45,7 @@ function safeLSGet(key: string) {
 function safeLSSet(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
-  } catch {}
+  } catch { }
 }
 
 function isPublicPath(pathname: string) {
@@ -60,13 +60,15 @@ function Brand() {
   return (
     <Link
       href="/"
-      className="whitespace-nowrap text-xl font-semibold leading-none tracking-tight text-blue-600"
+      className="whitespace-nowrap text-lg font-bold tracking-tight text-blue-600"
       style={{
         fontFamily:
           "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
+        lineHeight: "2rem",
+        marginTop: "-2px",
       }}
     >
-      flux
+      Examia
     </Link>
   );
 }
@@ -262,50 +264,50 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [ready, publicPage]);
 
   useEffect(() => {
-  if (!ready) return;
+    if (!ready) return;
 
-  function onChanged() {
-    if (publicPage) return;
-    refreshActiveInstitution();
-  }
-
-  function onStorage(ev: StorageEvent) {
-    if (ev.key === "activeInstitutionId" || ev.key === "activeInstitutionName") {
-      onChanged();
+    function onChanged() {
+      if (publicPage) return;
+      refreshActiveInstitution();
     }
-    if (ev.key === "me") {
-      onChanged();
-    }
-  }
 
-  function onMeUpdated() {
-    if (publicPage) return;
-
-    // ✅ update instantáneo: leer cache si existe
-    try {
-      const raw = safeLSGet("me");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed) {
-  queueMicrotask(() => setMe(parsed));
-}
+    function onStorage(ev: StorageEvent) {
+      if (ev.key === "activeInstitutionId" || ev.key === "activeInstitutionName") {
+        onChanged();
       }
-    } catch {}
+      if (ev.key === "me") {
+        onChanged();
+      }
+    }
 
-    // ✅ y refresco real contra backend (por si cache quedó viejo)
-    onChanged();
-  }
+    function onMeUpdated() {
+      if (publicPage) return;
 
-  window.addEventListener("active-institution-changed", onChanged as any);
-  window.addEventListener("me:updated", onMeUpdated as any);
-  window.addEventListener("storage", onStorage);
+      // ✅ update instantáneo: leer cache si existe
+      try {
+        const raw = safeLSGet("me");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed) {
+            queueMicrotask(() => setMe(parsed));
+          }
+        }
+      } catch { }
 
-  return () => {
-    window.removeEventListener("active-institution-changed", onChanged as any);
-    window.removeEventListener("me:updated", onMeUpdated as any);
-    window.removeEventListener("storage", onStorage);
-  };
-}, [ready, publicPage]);
+      // ✅ y refresco real contra backend (por si cache quedó viejo)
+      onChanged();
+    }
+
+    window.addEventListener("active-institution-changed", onChanged as any);
+    window.addEventListener("me:updated", onMeUpdated as any);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("active-institution-changed", onChanged as any);
+      window.removeEventListener("me:updated", onMeUpdated as any);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [ready, publicPage]);
 
   function onLogout() {
     logout();

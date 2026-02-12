@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, apiBlob } from "@/lib/api";
 import { toast } from "sonner";
+import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
 
 /* =====================
    Types
@@ -215,6 +216,7 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
 
   const [createdExamId, setCreatedExamId] = useState<string | null>(null);
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -396,20 +398,33 @@ export default function Page() {
     }
   }
 
-  async function downloadPdf() {
+  async function downloadPdf(options?: PdfOptions) {
     setError("");
     if (!createdExamId) return;
 
     try {
-      const blob = await apiBlob(`/exams/${createdExamId}/export/pdf`);
-      const url = window.URL.createObjectURL(blob);
+      // Construir query params si hay opciones
+      let url = `/exams/${createdExamId}/export/pdf`;
+      if (options) {
+        const params = new URLSearchParams({
+          boldStatement: String(options.boldStatement),
+          fontFamily: options.fontFamily,
+          questionSize: String(options.questionSize),
+          answerSize: String(options.answerSize),
+          lineSpacing: String(options.lineSpacing),
+        });
+        url = `${url}?${params.toString()}`;
+      }
+
+      const blob = await apiBlob(url);
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = `${safeName(title)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
       toast.success("PDF descargado");
     } catch (e: any) {
       setError(e?.message ?? "Error descargando PDF");
@@ -478,10 +493,17 @@ export default function Page() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={downloadPdf}
+                  onClick={() => downloadPdf()}
                   className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
                 >
-                  Descargar PDF
+                  PDF estándar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomizeModal(true)}
+                  className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+                >
+                  Personalizar
                 </button>
                 <button
                   type="button"
@@ -700,6 +722,13 @@ export default function Page() {
           </section>
         </div>
       </div>
+
+      {/* PDF Customize Modal */}
+      <PdfCustomizeModal
+        isOpen={showCustomizeModal}
+        onClose={() => setShowCustomizeModal(false)}
+        onDownload={(options) => downloadPdf(options)}
+      />
     </main>
   );
 }

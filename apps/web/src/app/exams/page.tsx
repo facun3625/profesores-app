@@ -145,7 +145,7 @@ function Pill({
   );
 }
 
-function FluxMark() {
+function ExamiaMark() {
   return (
     <div className="select-none text-right">
       <div
@@ -155,7 +155,7 @@ function FluxMark() {
             "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
         }}
       >
-        flux
+        examia
       </div>
       <div className="mt-0.5 text-xs text-gray-500">Exámenes</div>
     </div>
@@ -664,7 +664,7 @@ export default function Page() {
                 Afiná la búsqueda sin volverte loco.
               </div>
             </div>
-            <FluxMark />
+            <ExamiaMark />
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-3">

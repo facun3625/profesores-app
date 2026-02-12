@@ -6,14 +6,42 @@ type ExamWithItems = Exam & {
   items: Array<ExamQuestion & { question: Question }>;
 };
 
+type PdfOptions = {
+  boldStatement?: boolean;
+  fontFamily?: string;
+  questionSize?: number;
+  answerSize?: number;
+  lineSpacing?: number;
+};
+
 @Injectable()
 export class ExamPdfService {
   buildExamPdfStream(params: {
     institutionName: string;
     exam: ExamWithItems;
+    options?: PdfOptions;
   }): any {
 
-    const { institutionName, exam } = params;
+    const { institutionName, exam, options } = params;
+
+    // Default options
+    const pdfOptions: Required<PdfOptions> = {
+      boldStatement: options?.boldStatement ?? false,
+      fontFamily: options?.fontFamily ?? "Helvetica",
+      questionSize: options?.questionSize ?? 12,
+      answerSize: options?.answerSize ?? 11,
+      lineSpacing: options?.lineSpacing ?? 1.0,
+    };
+
+    // Map font family to PDFKit standard fonts
+    const fontMap: Record<string, { normal: string; bold: string }> = {
+      'Calibri': { normal: 'Helvetica', bold: 'Helvetica-Bold' },
+      'Arial': { normal: 'Helvetica', bold: 'Helvetica-Bold' },
+      'Times New Roman': { normal: 'Times-Roman', bold: 'Times-Bold' },
+      'Helvetica': { normal: 'Helvetica', bold: 'Helvetica-Bold' },
+    };
+
+    const selectedFont = fontMap[pdfOptions.fontFamily] || fontMap['Helvetica'];
 
     const doc = new PDFDocument({
       size: 'A4',
@@ -43,15 +71,26 @@ export class ExamPdfService {
       const q = item.question;
       const n = idx + 1;
 
-      doc.fontSize(12).text(`${n}) ${q.statement}`, {
+      // Apply question formatting
+      if (pdfOptions.boldStatement) {
+        doc.font(selectedFont.bold);
+      } else {
+        doc.font(selectedFont.normal);
+      }
+
+      doc.fontSize(pdfOptions.questionSize).text(`${n}) ${q.statement}`, {
         align: 'left',
+        lineGap: (pdfOptions.lineSpacing - 1.0) * pdfOptions.questionSize,
       });
+
+      // Reset to normal font for options
+      doc.font(selectedFont.normal);
 
       if (q.type === QuestionType.MULTIPLE_CHOICE) {
         const opts = Array.isArray(q.options) ? (q.options as any[]) : [];
-        this.renderOptions(doc, opts);
+        this.renderOptions(doc, opts, pdfOptions);
       } else if (q.type === QuestionType.TRUE_FALSE) {
-        this.renderOptions(doc, ['Verdadero', 'Falso']);
+        this.renderOptions(doc, ['Verdadero', 'Falso'], pdfOptions);
       } else if (q.type === QuestionType.OPEN) {
         doc.moveDown(0.5);
         // líneas para responder
@@ -89,7 +128,7 @@ export class ExamPdfService {
     return doc;
   }
 
-  private renderOptions(doc: PDFKit.PDFDocument, options: any[]) {
+  private renderOptions(doc: PDFKit.PDFDocument, options: any[], pdfOptions: Required<PdfOptions>) {
     const letters = 'abcdefghijklmnopqrstuvwxyz';
     doc.moveDown(0.4);
 
@@ -97,8 +136,9 @@ export class ExamPdfService {
       const label = letters[i] ? `${letters[i]})` : `(${i + 1})`;
       const text = typeof opt === 'string' ? opt : JSON.stringify(opt);
 
-      doc.fontSize(11).text(`${label} ${text}`, {
+      doc.fontSize(pdfOptions.answerSize).text(`${label} ${text}`, {
         indent: 18,
+        lineGap: (pdfOptions.lineSpacing - 1.0) * pdfOptions.answerSize,
       });
     });
   }

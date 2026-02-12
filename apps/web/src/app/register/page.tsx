@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth";
 
-function FluxLogo() {
+function ExamiaLogo() {
   return (
     <div className="select-none text-center">
       <div
@@ -14,7 +14,7 @@ function FluxLogo() {
             "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
         }}
       >
-        flux
+        examia
       </div>
       <div className="mt-1 text-xs text-gray-500">
         Instituciones · Exámenes · Gestión
@@ -70,7 +70,7 @@ export default function Page() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-full max-w-md">
           <div className="mb-6">
-            <FluxLogo />
+            <ExamiaLogo />
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
@@ -151,7 +151,7 @@ export default function Page() {
           </div>
 
           <div className="mt-6 text-center text-xs text-gray-500">
-            © {new Date().getFullYear()} Flux
+            © {new Date().getFullYear()} Examia
           </div>
         </div>
       </div>

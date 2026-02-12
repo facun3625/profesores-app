@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Profesores App",
+  title: "Examia",
   description: "Sistema de gestión y generación de exámenes",
 };
 

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -23,7 +24,7 @@ export class ExamsController {
   constructor(
     private readonly examsService: ExamsService,
     private readonly examPdfService: ExamPdfService,
-  ) {}
+  ) { }
 
   // =========================
   // MANUAL EXAM CREATION
@@ -83,6 +84,11 @@ export class ExamsController {
     @Req() req: any,
     @Param("id") id: string,
     @Res({ passthrough: false }) res: Response,
+    @Query("boldStatement") boldStatement?: string,
+    @Query("fontFamily") fontFamily?: string,
+    @Query("questionSize") questionSize?: string,
+    @Query("answerSize") answerSize?: string,
+    @Query("lineSpacing") lineSpacing?: string,
   ) {
     const { exam, institutionName } =
       await this.examsService.getExamForExport(req.userId, id);
@@ -98,9 +104,19 @@ export class ExamsController {
       `attachment; filename="${safeName}.pdf"`,
     );
 
+    // Parse options
+    const pdfOptions = {
+      boldStatement: boldStatement === "true",
+      fontFamily: fontFamily || "Calibri",
+      questionSize: questionSize ? parseInt(questionSize, 10) : 12,
+      answerSize: answerSize ? parseInt(answerSize, 10) : 11,
+      lineSpacing: lineSpacing ? parseFloat(lineSpacing) : 1.0,
+    };
+
     const doc = this.examPdfService.buildExamPdfStream({
       institutionName,
       exam: exam as any,
+      options: pdfOptions,
     });
 
     doc.pipe(res);
