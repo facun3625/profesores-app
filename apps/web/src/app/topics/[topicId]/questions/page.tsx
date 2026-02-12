@@ -156,6 +156,47 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+
+function SelectPretty({
+  value,
+  onChange,
+  disabled,
+  className,
+  children,
+}: {
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("relative", disabled && "opacity-60", className)}>
+      <select
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="h-9 w-full appearance-none rounded-md border border-gray-300 bg-white px-3 pr-11 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+      >
+        {children}
+      </select>
+
+      <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="text-gray-500"
+          aria-hidden="true"
+        >
+          <path d="M5.5 7.5a1 1 0 0 1 1.6-.8L10 9.1l2.9-2.4a1 1 0 1 1 1.2 1.6l-3.5 2.9a1 1 0 0 1-1.2 0l-3.5-2.9a1 1 0 0 1-.4-.8z" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 export default function TopicQuestionsPage() {
   const params = useParams();
   const search = useSearchParams();
@@ -671,7 +712,7 @@ export default function TopicQuestionsPage() {
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold text-gray-900">Tipo</span>
-                <select
+                <SelectPretty
                   value={type}
                   onChange={(e) => {
                     const next = e.target.value as QType;
@@ -683,27 +724,25 @@ export default function TopicQuestionsPage() {
                     if (next === "TRUE_FALSE") setOptionsText("");
                     if (next === "OPEN") setOptionsText("");
                   }}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="MULTIPLE_CHOICE">Multiple choice</option>
                   <option value="TRUE_FALSE">True/False</option>
                   <option value="OPEN">Open</option>
-                </select>
+                </SelectPretty>
               </label>
 
               <label className="grid gap-2">
                 <span className="text-sm font-semibold text-gray-900">
                   Dificultad
                 </span>
-                <select
+                <SelectPretty
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="easy">easy</option>
                   <option value="medium">medium</option>
                   <option value="hard">hard</option>
-                </select>
+                </SelectPretty>
               </label>
             </div>
 
@@ -729,18 +768,44 @@ export default function TopicQuestionsPage() {
                   />
                 </label>
 
-                <label className="mt-4 grid gap-2">
-                  <span className="text-sm font-semibold text-gray-900">
-                    Índice correcto (0 a {Math.max(0, (options?.length ?? 0) - 1)})
-                  </span>
-                  <input
-                    type="number"
-                    value={correctIndex}
-                    onChange={(e) => setCorrectIndex(Number(e.target.value))}
-                    min={0}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </label>
+                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-semibold text-gray-900">
+                    Respuesta correcta
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {options && options.length > 0 ? (
+                      options.map((opt, idx) => (
+                        <label
+                          key={idx}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 transition hover:bg-gray-50",
+                            correctIndex === idx
+                              ? "border-blue-200 bg-blue-50"
+                              : "border-gray-200 bg-white"
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="correctIndex"
+                            checked={correctIndex === idx}
+                            onChange={() => setCorrectIndex(idx)}
+                            className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            <span className="font-semibold text-gray-900 mr-1">
+                              {String.fromCharCode(65 + idx)})
+                            </span>
+                            {opt}
+                          </span>
+                        </label>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">
+                        Escribí las opciones arriba para poder seleccionar la correcta acá.
+                      </div>
+                    )}
+                  </div>
+                </div>
               </>
             ) : null}
 
@@ -821,32 +886,30 @@ export default function TopicQuestionsPage() {
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <label className="grid gap-2">
                   <span className="text-sm font-semibold text-gray-900">Tipo</span>
-                  <select
+                  <SelectPretty
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value as any)}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   >
                     <option value="ALL">Todos</option>
                     <option value="MULTIPLE_CHOICE">Multiple choice</option>
                     <option value="TRUE_FALSE">True/False</option>
                     <option value="OPEN">Open</option>
-                  </select>
+                  </SelectPretty>
                 </label>
 
                 <label className="grid gap-2">
                   <span className="text-sm font-semibold text-gray-900">
                     Dificultad
                   </span>
-                  <select
+                  <SelectPretty
                     value={filterDifficulty}
                     onChange={(e) => setFilterDifficulty(e.target.value as any)}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   >
                     <option value="ALL">Todas</option>
                     <option value="easy">easy</option>
                     <option value="medium">medium</option>
                     <option value="hard">hard</option>
-                  </select>
+                  </SelectPretty>
                 </label>
 
                 <label className="grid gap-2">
@@ -1035,84 +1098,9 @@ export default function TopicQuestionsPage() {
           </>
         ) : null}
       </div>
-    </main>
+    </main >
   );
 }
 
 
 
-
-      </div >
-  <ul className="mt-2 grid gap-2 text-sm text-gray-700">
-    {q.options.map((opt, oIdx) => {
-      const isCorrect =
-        typeof q.correctIndex === "number" &&
-        q.correctIndex === oIdx;
-
-      return (
-        <li
-          key={`${q.id}-${oIdx}`}
-          className={cn(
-            "flex items-start gap-2 rounded-md border px-3 py-2",
-            isCorrect
-              ? "border-green-200 bg-green-50"
-              : "border-gray-200 bg-white"
-          )}
-        >
-          <span className="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-xs text-gray-600">
-            {oIdx + 1}
-          </span>
-          <span className="text-sm text-gray-800">
-            {opt}
-          </span>
-          {isCorrect ? (
-            <span className="ml-auto">
-              <Badge tone="green">Correcta</Badge>
-            </span>
-          ) : null}
-        </li>
-      );
-    })}
-  </ul>
-    </div >
-  ) : null
-}
-
-{
-  q.type === "TRUE_FALSE" &&
-    typeof q.correctIndex === "number" ? (
-    <div className="mt-4 text-sm text-gray-700">
-      <span className="font-semibold text-gray-900">
-        Respuesta correcta:
-      </span>{" "}
-      {q.correctIndex === 0 ? "Verdadero" : "Falso"}
-    </div>
-  ) : null
-}
-
-{
-  q.type === "MULTIPLE_CHOICE" &&
-    typeof q.correctIndex === "number" ? (
-    <div className="mt-4 text-sm text-gray-700">
-      <span className="font-semibold text-gray-900">
-        Opción correcta:
-    </div>
-  ) : null
-}
-    </div >
-  </div >
-            </div >
-          </div >
-                    </div >
-      );
-                })}
-    </div >
-  )
-}
-          </section >
-        </>
-      ) : null}
-    </div >
-  </main >
-);
-}
