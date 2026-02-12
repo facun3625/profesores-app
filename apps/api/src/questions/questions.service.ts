@@ -5,12 +5,13 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
 import { QuestionDifficulty, QuestionType, Prisma } from '@prisma/client';
 import { ListQuestionsDto } from './dto/list-questions.dto';
 
 @Injectable()
 export class QuestionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private async getActiveInstitutionId(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
@@ -117,11 +118,11 @@ export class QuestionsService {
       ...(query.type ? { type: query.type } : {}),
       ...(query.q
         ? {
-            statement: {
-              contains: query.q,
-              mode: 'insensitive',
-            },
-          }
+          statement: {
+            contains: query.q,
+            mode: 'insensitive',
+          },
+        }
         : {}),
     };
 
@@ -224,5 +225,61 @@ export class QuestionsService {
       topicIds: resolvedTopicIds,
       counts,
     };
+  }
+
+  async update(id: string, userId: string, dto: UpdateQuestionDto) {
+    const institutionId = await this.getActiveInstitutionId(userId);
+
+    const question = await this.prisma.question.findUnique({
+      where: { id },
+    });
+
+    if (!question) {
+      throw new BadRequestException('Question not found');
+    }
+
+    if (question.institutionId !== institutionId) {
+      throw new ForbiddenException('You do not have permission to edit this question');
+    }
+
+    // Validaciones basicas si cambia el tipo
+    const type = dto.type ?? (question.type as QuestionType);
+    let options = dto.options ?? (question.options as any);
+    let correctIndex =
+      dto.correctIndex !== undefined ? dto.correctIndex : question.correctIndex;
+
+    // Si cambia el tipo, revalidar
+    if (type === QuestionType.MULTIPLE_CHOICE) {
+      if (!options || !Array.isArray(options) || options.length < 2) {
+        throw new BadRequestException('MULTIPLE_CHOICE requires at least 2 options');
+      }
+      if (
+        correctIndex === null ||
+        correctIndex < 0 ||
+        correctIndex >= options.length
+      ) {
+        throw new BadRequestException('Invalid correctIndex for MULTIPLE_CHOICE');
+      }
+    } else if (type === QuestionType.TRUE_FALSE) {
+      if (correctIndex !== 0 && correctIndex !== 1) {
+        throw new BadRequestException('TRUE_FALSE correctIndex must be 0 or 1');
+      }
+      options = ['Verdadero', 'Falso'];
+    } else if (type === QuestionType.OPEN) {
+      options = null;
+      correctIndex = null;
+    }
+
+    return this.prisma.question.update({
+      where: { id },
+      data: {
+        statement: dto.statement,
+        type: type,
+        difficulty: dto.difficulty,
+        options: options ?? Prisma.JsonNull,
+        correctIndex: correctIndex,
+        modelAnswer: dto.modelAnswer,
+      },
+    });
   }
 }

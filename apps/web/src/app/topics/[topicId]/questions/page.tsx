@@ -53,10 +53,10 @@ function Badge({
     tone === "blue"
       ? "border-blue-200 bg-blue-50 text-blue-700"
       : tone === "green"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : tone === "gray"
-      ? "border-gray-200 bg-gray-50 text-gray-700"
-      : "border-gray-200 bg-white text-gray-700";
+        ? "border-green-200 bg-green-50 text-green-700"
+        : tone === "gray"
+          ? "border-gray-200 bg-gray-50 text-gray-700"
+          : "border-gray-200 bg-white text-gray-700";
 
   return (
     <span
@@ -188,6 +188,7 @@ export default function TopicQuestionsPage() {
   const [modelAnswer, setModelAnswer] = useState("");
 
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollTimers = useRef<Record<string, number[]>>({});
@@ -275,6 +276,29 @@ export default function TopicQuestionsPage() {
     };
   }, []);
 
+  function loadForEdit(question: Question) {
+    // Seteamos todos los campos
+    setStatement(question.statement);
+    setType(question.type);
+    setDifficulty(question.difficulty);
+    setModelAnswer(question.modelAnswer ?? "");
+
+    if (question.type === "MULTIPLE_CHOICE") {
+      setOptionsText(question.options?.join("\n") ?? "");
+      setCorrectIndex(question.correctIndex ?? 0);
+    } else if (question.type === "TRUE_FALSE") {
+      setCorrectIndex(question.correctIndex ?? 0);
+    } else {
+      // OPEN
+      setOptionsText("");
+      setCorrectIndex(0);
+    }
+
+    setEditingQuestionId(question.id);
+    setView("create");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function validateCreate(): string | null {
     if (!subjectId) return "Falta subjectId (entrar desde Temas).";
     if (!topicId) return "Falta topicId.";
@@ -325,14 +349,24 @@ export default function TopicQuestionsPage() {
         payload.correctIndex = correctIndex;
       }
 
-      await api("/questions", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      if (editingQuestionId) {
+        // UPDATE
+        await api(`/questions/${editingQuestionId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // CREATE
+        await api("/questions", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
 
       setStatement("");
       setModelAnswer("");
       setCorrectIndex(0);
+      setEditingQuestionId(null); // Limpiar
 
       if (type === "MULTIPLE_CHOICE")
         setOptionsText("Opción A\nOpción B\nOpción C\nOpción D");
@@ -340,7 +374,7 @@ export default function TopicQuestionsPage() {
       await load();
       setView("summary");
     } catch (e: any) {
-      setError(e?.message || "Error creando pregunta");
+      setError(e?.message || "Error guardando pregunta");
     } finally {
       setLoading(false);
     }
@@ -526,7 +560,7 @@ export default function TopicQuestionsPage() {
                     : "bg-white text-gray-700 hover:bg-gray-50"
                 )}
               >
-                Añadir pregunta
+                {editingQuestionId ? "Editar pregunta" : "Añadir pregunta"}
               </button>
 
               <div className="w-px bg-gray-200" />
@@ -630,7 +664,7 @@ export default function TopicQuestionsPage() {
             <div className="flex items-center gap-2">
               <div className="h-5 w-1 rounded-full bg-blue-600" />
               <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-                Añadir pregunta
+                {editingQuestionId ? "Editar pregunta" : "Añadir pregunta"}
               </div>
             </div>
 
@@ -755,7 +789,7 @@ export default function TopicQuestionsPage() {
                 disabled={!canCreate || loading}
                 className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
               >
-                {loading ? "Creando..." : "Crear"}
+                {loading ? "Guardando..." : editingQuestionId ? "Guardar cambios" : "Crear"}
               </button>
 
               <button
@@ -763,6 +797,7 @@ export default function TopicQuestionsPage() {
                 disabled={loading}
                 onClick={() => {
                   setError("");
+                  setEditingQuestionId(null);
                   setView("summary");
                 }}
                 className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
@@ -871,11 +906,21 @@ export default function TopicQuestionsPage() {
                                 <Badge tone="gray">
                                   {labelDifficulty(q.difficulty)}
                                 </Badge>
-                                <span className="ml-1"></span>
                               </div>
                             </div>
 
                             <div className="flex shrink-0 items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  loadForEdit(q);
+                                }}
+                                className="inline-flex h-10 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                              >
+                                Editar
+                              </button>
+
                               <button
                                 type="button"
                                 onClick={() => toggleQuestion(q.id)}
@@ -948,7 +993,7 @@ export default function TopicQuestionsPage() {
                                 ) : null}
 
                                 {q.type === "TRUE_FALSE" &&
-                                typeof q.correctIndex === "number" ? (
+                                  typeof q.correctIndex === "number" ? (
                                   <div className="mt-4 text-sm text-gray-700">
                                     <span className="font-semibold text-gray-900">
                                       Respuesta correcta:
@@ -958,7 +1003,7 @@ export default function TopicQuestionsPage() {
                                 ) : null}
 
                                 {q.type === "MULTIPLE_CHOICE" &&
-                                typeof q.correctIndex === "number" ? (
+                                  typeof q.correctIndex === "number" ? (
                                   <div className="mt-4 text-sm text-gray-700">
                                     <span className="font-semibold text-gray-900">
                                       Opción correcta:
@@ -992,4 +1037,82 @@ export default function TopicQuestionsPage() {
       </div>
     </main>
   );
+}
+
+
+
+
+      </div >
+  <ul className="mt-2 grid gap-2 text-sm text-gray-700">
+    {q.options.map((opt, oIdx) => {
+      const isCorrect =
+        typeof q.correctIndex === "number" &&
+        q.correctIndex === oIdx;
+
+      return (
+        <li
+          key={`${q.id}-${oIdx}`}
+          className={cn(
+            "flex items-start gap-2 rounded-md border px-3 py-2",
+            isCorrect
+              ? "border-green-200 bg-green-50"
+              : "border-gray-200 bg-white"
+          )}
+        >
+          <span className="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-xs text-gray-600">
+            {oIdx + 1}
+          </span>
+          <span className="text-sm text-gray-800">
+            {opt}
+          </span>
+          {isCorrect ? (
+            <span className="ml-auto">
+              <Badge tone="green">Correcta</Badge>
+            </span>
+          ) : null}
+        </li>
+      );
+    })}
+  </ul>
+    </div >
+  ) : null
+}
+
+{
+  q.type === "TRUE_FALSE" &&
+    typeof q.correctIndex === "number" ? (
+    <div className="mt-4 text-sm text-gray-700">
+      <span className="font-semibold text-gray-900">
+        Respuesta correcta:
+      </span>{" "}
+      {q.correctIndex === 0 ? "Verdadero" : "Falso"}
+    </div>
+  ) : null
+}
+
+{
+  q.type === "MULTIPLE_CHOICE" &&
+    typeof q.correctIndex === "number" ? (
+    <div className="mt-4 text-sm text-gray-700">
+      <span className="font-semibold text-gray-900">
+        Opción correcta:
+    </div>
+  ) : null
+}
+    </div >
+  </div >
+            </div >
+          </div >
+                    </div >
+      );
+                })}
+    </div >
+  )
+}
+          </section >
+        </>
+      ) : null}
+    </div >
+  </main >
+);
 }
