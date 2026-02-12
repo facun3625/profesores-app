@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
+import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
 
 type Subject = { id: string; name: string };
 type Topic = { id: string; name: string; subjectId: string };
@@ -371,6 +372,9 @@ export default function Page() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const [selectedExamForDownload, setSelectedExamForDownload] = useState<Exam | null>(null);
+
   useEffect(() => {
     setPage(1);
     setOpenExamId(null);
@@ -468,18 +472,31 @@ export default function Page() {
     loadExams();
   }, []);
 
-  async function downloadPdf(examId: string, title?: string | null) {
+  async function downloadPdf(examId: string, title?: string | null, options?: PdfOptions) {
     setError("");
     try {
-      const blob = await apiBlob(`/exams/${examId}/export/pdf`);
-      const url = window.URL.createObjectURL(blob);
+      // Construir query params si hay opciones
+      let url = `/exams/${examId}/export/pdf`;
+      if (options) {
+        const params = new URLSearchParams({
+          boldStatement: String(options.boldStatement),
+          fontFamily: options.fontFamily,
+          questionSize: String(options.questionSize),
+          answerSize: String(options.answerSize),
+          lineSpacing: String(options.lineSpacing),
+        });
+        url = `${url}?${params.toString()}`;
+      }
+
+      const blob = await apiBlob(url);
+      const urlBlob = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = urlBlob;
       a.download = `${safeName(String(title ?? "exam"))}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(urlBlob);
     } catch (e: any) {
       setError(e?.message ?? "Error descargando PDF");
     }
@@ -752,12 +769,12 @@ export default function Page() {
           ) : (
             paged.map((e) => {
               const r = resolveSubjectTopicIds(e);
-              const subjectLabel = r.subjectId
-                ? subjectNameById.get(r.subjectId) ?? r.subjectId
-                : "(no disponible)";
-              const topicLabel = r.topicId
-                ? topicNameById.get(r.topicId) ?? r.topicId
-                : "(no disponible)";
+              const subjectName = r.subjectId
+                ? subjectNameById.get(r.subjectId)
+                : null;
+              const topicName = r.topicId
+                ? topicNameById.get(r.topicId)
+                : null;
               const isOpen = openExamId === e.id;
 
               return (
@@ -774,8 +791,8 @@ export default function Page() {
                         <h2 className="truncate text-base font-semibold text-gray-900">
                           {e.title ?? "Sin título"}
                         </h2>
-                        <Pill tone="gray">{subjectLabel}</Pill>
-                        <Pill tone="gray">{topicLabel}</Pill>
+                        {subjectName && <Pill tone="gray">{subjectName}</Pill>}
+                        {topicName && <Pill tone="gray">{topicName}</Pill>}
                         {e.createdAt ? (
                           <Pill tone="gray">{formatDate(e.createdAt)}</Pill>
                         ) : null}
@@ -786,10 +803,6 @@ export default function Page() {
                           {e.description}
                         </p>
                       ) : null}
-
-                      <div className="mt-2 font-mono text-[11px] text-gray-500">
-                        {e.id}
-                      </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -806,9 +819,21 @@ export default function Page() {
 
                       <button
                         onClick={() => downloadPdf(e.id, e.title)}
-                        className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
+                        className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        title="Descargar PDF con formato estándar"
                       >
-                        Descargar PDF
+                        PDF Estándar
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedExamForDownload(e);
+                          setShowCustomizeModal(true);
+                        }}
+                        className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        title="Personalizar formato del PDF"
+                      >
+                        Personalizar
                       </button>
 
                       <a
@@ -897,6 +922,18 @@ export default function Page() {
           totalItems={filtered.length}
         />
       </div>
+      <PdfCustomizeModal
+        isOpen={showCustomizeModal}
+        onClose={() => {
+          setShowCustomizeModal(false);
+          setSelectedExamForDownload(null);
+        }}
+        onDownload={(options) => {
+          if (selectedExamForDownload) {
+            downloadPdf(selectedExamForDownload.id, selectedExamForDownload.title, options);
+          }
+        }}
+      />
     </main>
   );
 }

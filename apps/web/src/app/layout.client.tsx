@@ -68,7 +68,7 @@ function Brand() {
         marginTop: "-2px",
       }}
     >
-      Examia
+      examia
     </Link>
   );
 }
