@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
-
-type Item = { id: string; name?: string; title?: string };
+import { useMemo } from "react";
+import { useDashboardData } from "@/lib/hooks";
+import { StatCardSkeleton } from "@/components/Skeleton";
 
 function safeLSGet(key: string) {
   try {
@@ -80,46 +79,10 @@ function ActionCard({
 }
 
 export default function Home() {
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  const [institutions, setInstitutions] = useState<Item[]>([]);
-  const [subjects, setSubjects] = useState<Item[]>([]);
-  const [exams, setExams] = useState<Item[]>([]);
+  const { data, isLoading, error } = useDashboardData();
 
   const activeInstitutionName = useMemo(() => {
     return (safeLSGet("activeInstitutionName") || "").trim();
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      setLoading(true);
-      setErr(null);
-
-      try {
-        const [inst, sub, ex] = await Promise.all([
-          api<Item[]>("/institutions"),
-          api<Item[]>("/subjects"),
-          api<Item[]>("/exams"),
-        ]);
-
-        if (cancelled) return;
-        setInstitutions(Array.isArray(inst) ? inst : []);
-        setSubjects(Array.isArray(sub) ? sub : []);
-        setExams(Array.isArray(ex) ? ex : []);
-      } catch (e: any) {
-        if (cancelled) return;
-        setErr(e?.message ?? "No se pudo cargar el dashboard");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   return (
@@ -134,7 +97,6 @@ export default function Home() {
         }}
       />
 
-      {/* mismo ancho que el resto de páginas */}
       <div className="mx-auto w-full max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -142,40 +104,48 @@ export default function Home() {
               Dashboard
             </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Panel de control (con datos, no con promesas).
+              Panel de control con datos en tiempo real.
             </p>
           </div>
-
-          {/* sacamos el "Cambiar institución" del Home (queda solo arriba en el header) */}
         </div>
 
-        {err && (
+        {error && (
           <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {err}
+            {error instanceof Error ? error.message : "No se pudo cargar el dashboard"}
           </div>
         )}
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            title="Instituciones"
-            value={loading ? "—" : institutions.length}
-            href="/institutions"
-            subtitle="Sedes y acceso"
-          />
-          <StatCard
-            title="Materias"
-            value={loading ? "—" : subjects.length}
-            href="/subjects"
-            subtitle="Materias + temas"
-            context={activeInstitutionName ? `en ${activeInstitutionName}` : undefined}
-          />
-          <StatCard
-            title="Exámenes"
-            value={loading ? "—" : exams.length}
-            href="/exams"
-            subtitle="Listos y generados"
-            context={activeInstitutionName ? `en ${activeInstitutionName}` : undefined}
-          />
+          {isLoading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="Instituciones"
+                value={data?.institutions.length ?? 0}
+                href="/institutions"
+                subtitle="Sedes y acceso"
+              />
+              <StatCard
+                title="Materias"
+                value={data?.subjects.length ?? 0}
+                href="/subjects"
+                subtitle="Materias + temas"
+                context={activeInstitutionName ? `en ${activeInstitutionName}` : undefined}
+              />
+              <StatCard
+                title="Exámenes"
+                value={data?.exams.length ?? 0}
+                href="/exams"
+                subtitle="Listos y generados"
+                context={activeInstitutionName ? `en ${activeInstitutionName}` : undefined}
+              />
+            </>
+          )}
         </section>
 
         <section className="mt-8">

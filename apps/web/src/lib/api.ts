@@ -1,21 +1,34 @@
+import type { ApiError } from "@profesores-app/types";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "http://localhost:3000";
 
-type ApiError = {
-  message?: string | string[];
-  error?: string;
-  statusCode?: number;
-};
+/**
+ * Custom error class for API errors
+ */
+export class ApiRequestError extends Error {
+  statusCode: number;
+  errors?: string[];
 
-async function parseError(res: Response): Promise<string> {
+  constructor(message: string, statusCode: number, errors?: string[]) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.statusCode = statusCode;
+    this.errors = errors;
+  }
+}
+
+async function parseError(res: Response): Promise<ApiRequestError> {
   try {
     const data = (await res.json()) as ApiError;
-    if (Array.isArray(data.message)) return data.message.join(", ");
-    return (data.message as string) || data.error || `HTTP ${res.status}`;
+    const messages = Array.isArray(data.message) ? data.message : [data.message];
+    const mainMessage = messages[0] || data.error || `HTTP ${res.status}`;
+
+    return new ApiRequestError(mainMessage, res.status, messages);
   } catch {
-    return `HTTP ${res.status}`;
+    return new ApiRequestError(`HTTP ${res.status}`, res.status);
   }
 }
 
@@ -40,7 +53,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     cache: "no-store",
   });
 
-  if (!res.ok) throw new Error(await parseError(res));
+  if (!res.ok) throw await parseError(res);
   return (await res.json()) as T;
 }
 
@@ -57,6 +70,6 @@ export async function apiBlob(
     cache: "no-store",
   });
 
-  if (!res.ok) throw new Error(await parseError(res));
+  if (!res.ok) throw await parseError(res);
   return await res.blob();
 }

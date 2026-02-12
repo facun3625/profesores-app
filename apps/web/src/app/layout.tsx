@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "./layout.client";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ReactQueryProvider } from "@/components/ReactQueryProvider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ClientLayout>{children}</ClientLayout>
+        <ErrorBoundary>
+          <ReactQueryProvider>
+            <ClientLayout>{children}</ClientLayout>
+            <Toaster position="top-right" richColors />
+          </ReactQueryProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

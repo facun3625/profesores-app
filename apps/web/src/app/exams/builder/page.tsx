@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
-import { apiBlob } from "@/lib/api";
+import { api, apiBlob } from "@/lib/api";
+import { toast } from "sonner";
 
 /* =====================
    Types
@@ -44,8 +44,52 @@ type StockBucket = {
 
 function labelType(t: QType) {
   if (t === "MULTIPLE_CHOICE") return "Multiple choice";
-  if (t === "TRUE_FALSE") return "True / False";
-  return "Open";
+  if (t === "TRUE_FALSE") return "Verdadero / Falso";
+  return "De desarrollo";
+}
+
+function cn(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+function SelectPretty({
+  value,
+  onChange,
+  disabled,
+  className,
+  children,
+}: {
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("relative", disabled && "opacity-60", className)}>
+      <select
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="h-10 w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 pr-11 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+      >
+        {children}
+      </select>
+
+      <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="text-gray-500"
+          aria-hidden="true"
+        >
+          <path d="M5.5 7.5a1 1 0 0 1 1.6-.8L10 9.1l2.9-2.4a1 1 0 1 1 1.2 1.6l-3.5 2.9a1 1 0 0 1-1.2 0l-3.5-2.9a1 1 0 0 1-.4-.8z" />
+        </svg>
+      </div>
+    </div>
+  );
 }
 
 function extractQuestions(res: any): Question[] {
@@ -60,10 +104,10 @@ function extractQuestions(res: any): Question[] {
 ===================== */
 
 export default function Page() {
-  // DEV ONLY: user real que existe en tu DB (el que usaste para exportar por curl)
-  const userId = "cml46dnou00020xqqo3fhehqr";
-
   const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
+  // Wizard step
+  const [step, setStep] = useState(1);
 
   /* ---------- base state ---------- */
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -72,7 +116,8 @@ export default function Page() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [topicIds, setTopicIds] = useState<string[]>([]);
 
-  const [title, setTitle] = useState("Examen de prueba");
+  const [title, setTitle] = useState("Examen automático");
+  const [description, setDescription] = useState("");
 
   const [mc, setMc] = useState(0);
   const [tf, setTf] = useState(0);
@@ -93,6 +138,7 @@ export default function Page() {
   );
   const [result, setResult] = useState<GenerateOrReuseResponse | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   /* =====================
      Load subjects / topics
@@ -101,7 +147,7 @@ export default function Page() {
   useEffect(() => {
     api<Subject[]>("/subjects")
       .then(setSubjects)
-      .catch((e) => setError(e.message));
+      .catch((e) => toast.error(e.message));
   }, []);
 
   useEffect(() => {
@@ -118,7 +164,7 @@ export default function Page() {
         setTopicIds([]);
         setStock(null);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => toast.error(e.message));
   }, [subjectId]);
 
   /* =====================
@@ -126,16 +172,12 @@ export default function Page() {
   ===================== */
 
   function toggleTopic(id: string) {
-    setPreviewQuestions(null);
-    setResult(null);
     setTopicIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
 
   function toggleDifficulty(d: Difficulty) {
-    setPreviewQuestions(null);
-    setResult(null);
     setDifficulties((prev) =>
       prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
     );
@@ -207,14 +249,89 @@ export default function Page() {
   }, [stock]);
 
   /* =====================
-     Validation
+     Validation (Variante A2: Inteligente)
   ===================== */
 
-  function validate(): string | null {
-    if (!subjectId) return "Elegí una materia.";
-    if (topicIds.length === 0) return "Seleccioná al menos un tema.";
-    if (totalQuestions <= 0) return "Elegí al menos una pregunta.";
-    return null;
+  function validateDifficulties(): { valid: boolean; message?: string; warnings?: string[] } {
+    if (!stockByType || difficulties.length === 0) return { valid: true };
+
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+    const warnings: string[] = [];
+
+    // Verificar cada tipo de pregunta
+    if (mc > 0) {
+      const mcStock = stockByType.find(s => s.type === "MULTIPLE_CHOICE");
+      if (mcStock) {
+        const available = difficulties.reduce((sum, d) => sum + mcStock.byDiff[d], 0);
+        if (available < mc) {
+          issues.push(`Multiple choice: necesitás ${mc}, solo hay ${available} en las dificultades seleccionadas`);
+
+          // Sugerir dificultades con stock
+          const missing = (["easy", "medium", "hard"] as Difficulty[])
+            .filter(d => !difficulties.includes(d) && mcStock.byDiff[d] > 0)
+            .map(d => `${d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"} (${mcStock.byDiff[d]} disponibles)`);
+
+          if (missing.length > 0) {
+            suggestions.push(`Agregá estas dificultades para Multiple choice: ${missing.join(", ")}`);
+          }
+        } else if (available === mc) {
+          warnings.push(`Multiple choice: usarás todas las ${mc} preguntas disponibles`);
+        }
+      }
+    }
+
+    if (tf > 0) {
+      const tfStock = stockByType.find(s => s.type === "TRUE_FALSE");
+      if (tfStock) {
+        const available = difficulties.reduce((sum, d) => sum + tfStock.byDiff[d], 0);
+        if (available < tf) {
+          issues.push(`Verdadero/Falso: necesitás ${tf}, solo hay ${available} en las dificultades seleccionadas`);
+
+          const missing = (["easy", "medium", "hard"] as Difficulty[])
+            .filter(d => !difficulties.includes(d) && tfStock.byDiff[d] > 0)
+            .map(d => `${d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"} (${tfStock.byDiff[d]} disponibles)`);
+
+          if (missing.length > 0) {
+            suggestions.push(`Agregá estas dificultades para Verdadero/Falso: ${missing.join(", ")}`);
+          }
+        } else if (available === tf) {
+          warnings.push(`Verdadero/Falso: usarás todas las ${tf} preguntas disponibles`);
+        }
+      }
+    }
+
+    if (op > 0) {
+      const opStock = stockByType.find(s => s.type === "OPEN");
+      if (opStock) {
+        const available = difficulties.reduce((sum, d) => sum + opStock.byDiff[d], 0);
+        if (available < op) {
+          issues.push(`De desarrollo: necesitás ${op}, solo hay ${available} en las dificultades seleccionadas`);
+
+          const missing = (["easy", "medium", "hard"] as Difficulty[])
+            .filter(d => !difficulties.includes(d) && opStock.byDiff[d] > 0)
+            .map(d => `${d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"} (${opStock.byDiff[d]} disponibles)`);
+
+          if (missing.length > 0) {
+            suggestions.push(`Agregá estas dificultades para De desarrollo: ${missing.join(", ")}`);
+          }
+        } else if (available === op) {
+          warnings.push(`De desarrollo: usarás todas las ${op} preguntas disponibles`);
+        }
+      }
+    }
+
+    if (issues.length > 0) {
+      let message = "⚠️ Problema detectado:\n\n" + issues.join("\n");
+
+      if (suggestions.length > 0) {
+        message += "\n\n💡 Solución:\n" + suggestions.join("\n");
+      }
+
+      return { valid: false, message };
+    }
+
+    return { valid: true, warnings };
   }
 
   const typeCounts = {
@@ -232,11 +349,17 @@ export default function Page() {
     setPreviewQuestions(null);
     setResult(null);
 
-    const err = validate();
-    if (err) return setError(err);
+    // Validar dificultades
+    const validation = validateDifficulties();
+    if (!validation.valid) {
+      setError(validation.message || "Stock insuficiente");
+      toast.error("No hay suficientes preguntas");
+      return;
+    }
 
     const payload = {
-      title,
+      title: title.trim(),
+      description: description.trim() || undefined,
       topicIds,
       totalQuestions,
       typeCounts,
@@ -244,14 +367,20 @@ export default function Page() {
       shuffle: true,
     };
 
+    setLoading(true);
     try {
       const res = await api<PreviewQuestionsResponse>("/exams/preview-questions", {
         method: "POST",
         body: JSON.stringify(payload),
       });
       setPreviewQuestions(res.questions ?? []);
+      toast.success(`Preview generado: ${res.questions.length} preguntas`);
+      setStep(6); // Ir a paso de preview
     } catch (e: any) {
       setError(e.message);
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -259,11 +388,17 @@ export default function Page() {
     setError("");
     setResult(null);
 
-    const err = validate();
-    if (err) return setError(err);
+    // Validar dificultades
+    const validation = validateDifficulties();
+    if (!validation.valid) {
+      setError(validation.message || "Stock insuficiente");
+      toast.error("No hay suficientes preguntas");
+      return;
+    }
 
     const payload = {
-      title,
+      title: title.trim(),
+      description: description.trim() || undefined,
       topicIds,
       totalQuestions,
       typeCounts,
@@ -271,142 +406,547 @@ export default function Page() {
       shuffle: true,
     };
 
+    setLoading(true);
     try {
       const res = await api<GenerateOrReuseResponse>("/exams/generate-or-reuse", {
         method: "POST",
         body: JSON.stringify(payload),
       });
       setResult(res);
+      toast.success(
+        res.mode === "created" ? "Examen creado" : "Examen reutilizado"
+      );
+      setStep(7); // Ir a paso de resultado
     } catch (e: any) {
       setError(e.message);
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
     }
   }
 
-  const pdfHref = result ? `${API_BASE}${result.exportPdfUrl}` : null;
-
   async function downloadPdf() {
-  setError("");
-  if (!result) return;
+    setError("");
+    if (!result) return;
 
-  try {
-    const safeName =
-      (result.exam.title || "exam").replace(/[^a-z0-9\-_ ]/gi, "").trim() || "exam";
+    try {
+      const safeName =
+        (result.exam.title || "exam").replace(/[^a-z0-9\-_ ]/gi, "").trim() || "exam";
 
-    const blob = await apiBlob(result.exportPdfUrl);
+      const blob = await apiBlob(result.exportPdfUrl);
 
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${safeName}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (e: any) {
-    console.error(e);
-    setError(e?.message ?? "Error descargando PDF");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${safeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("PDF descargado");
+    } catch (e: any) {
+      console.error(e);
+      const msg = e?.message ?? "Error descargando PDF";
+      setError(msg);
+      toast.error(msg);
+    }
   }
-}
+
+  function resetWizard() {
+    setStep(1);
+    setSubjectId("");
+    setTopicIds([]);
+    setTitle("Examen automático");
+    setDescription("");
+    setMc(0);
+    setTf(0);
+    setOp(0);
+    setDifficulties(["easy", "medium", "hard"]);
+    setPreviewQuestions(null);
+    setResult(null);
+    setError("");
+  }
 
   /* =====================
      UI
   ===================== */
 
   return (
-    <main style={{ padding: 24, maxWidth: 900 }}>
-      <h1>Profesores App — Front MVP</h1>
+    <main className="min-h-[calc(100vh-64px)] px-6 py-8">
+      {/* Background */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
+      <div
+        className="fixed inset-0 -z-10 opacity-[0.06]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
+          backgroundSize: "72px 72px",
+        }}
+      />
 
-      {error && (
-        <div style={{ border: "1px solid red", padding: 10 }}>{error}</div>
-      )}
+      <div className="mx-auto w-full max-w-3xl">
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+              Generador de Exámenes
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Creá exámenes automáticamente desde tu banco de preguntas.
+            </p>
+          </div>
 
-      <label>
-        Título
-        <input value={title} onChange={(e) => setTitle(e.target.value)} />
-      </label>
+          {step > 1 && step < 7 && (
+            <button
+              onClick={resetWizard}
+              className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Reiniciar
+            </button>
+          )}
+        </div>
 
-      <label>
-        Materia
-        <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-          <option value="">— seleccionar —</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <h3>Temas</h3>
-      {topics.map((t) => (
-        <label key={t.id}>
-          <input
-            type="checkbox"
-            checked={topicIds.includes(t.id)}
-            onChange={() => toggleTopic(t.id)}
-          />
-          {t.name}
-        </label>
-      ))}
-
-      {stockByType && (
-        <div style={{ border: "1px solid", padding: 12, marginTop: 12 }}>
-          <b>Preguntas disponibles</b>
-          {stockByType.map((r) => (
-            <div key={r.type}>
-              {labelType(r.type)}: {r.total} (easy {r.byDiff.easy} · medium{" "}
-              {r.byDiff.medium} · hard {r.byDiff.hard})
+        {/* Progress Steps */}
+        <div className="mb-8 flex items-center justify-between">
+          {[
+            { num: 1, label: "Materia" },
+            { num: 2, label: "Temas" },
+            { num: 3, label: "Cantidades" },
+            { num: 4, label: "Dificultades" },
+            { num: 5, label: "Generar" },
+          ].map((s, idx) => (
+            <div key={s.num} className="flex flex-1 items-center">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition ${step >= s.num
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-500"
+                    }`}
+                >
+                  {s.num}
+                </div>
+                <span className="mt-2 text-xs text-gray-600">{s.label}</span>
+              </div>
+              {idx < 4 && (
+                <div
+                  className={`mx-2 h-1 flex-1 rounded transition ${step > s.num ? "bg-blue-600" : "bg-gray-200"
+                    }`}
+                />
+              )}
             </div>
           ))}
         </div>
-      )}
 
-      <h3>Cantidad de preguntas</h3>
-      <input type="number" value={mc} onChange={(e) => setMc(+e.target.value)} />
-      <input type="number" value={tf} onChange={(e) => setTf(+e.target.value)} />
-      <input type="number" value={op} onChange={(e) => setOp(+e.target.value)} />
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-line">
+            {error}
+          </div>
+        )}
 
-      <h3>Dificultades</h3>
-      {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
-        <label key={d}>
-          <input
-            type="checkbox"
-            checked={difficulties.includes(d)}
-            onChange={() => toggleDifficulty(d)}
-          />
-          {d}
-        </label>
-      ))}
+        {/* Step 1: Subject */}
+        {step === 1 && (
+          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 1: Configuración inicial</h2>
+            <p className="text-sm text-gray-600 mb-6">Ingresá los datos básicos del examen y elegí la materia.</p>
 
-      <div style={{ marginTop: 20 }}>
-        <button onClick={previewRequest}>Preview</button>
-        <button onClick={generateOrReuse}>Generate</button>
+            <div className="space-y-4 mb-6">
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Título del examen</span>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="Ej: Examen de Matemática - Unidad 1"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Descripción (opcional)</span>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="Ej: Examen de repaso para el primer trimestre"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Materia</span>
+                <div className="mt-2">
+                  <SelectPretty
+                    value={subjectId}
+                    onChange={(e) => setSubjectId(e.target.value)}
+                  >
+                    <option value="">— Seleccionar materia —</option>
+                    {subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </SelectPretty>
+                </div>
+              </label>
+            </div>
+
+            <button
+              onClick={() => setStep(2)}
+              disabled={!subjectId || !title.trim()}
+              className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Continuar
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Topics */}
+        {step === 2 && (
+          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 2: Seleccioná los temas</h2>
+            <p className="text-sm text-gray-600 mb-6">Elegí uno o más temas que querés incluir en el examen.</p>
+
+            <div className="space-y-2 mb-6">
+              {topics.map((t) => (
+                <label
+                  key={t.id}
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={topicIds.includes(t.id)}
+                    onChange={() => toggleTopic(t.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <span className="text-sm text-gray-900">{t.name}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Atrás
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                disabled={topicIds.length === 0}
+                className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Question Counts */}
+        {step === 3 && (
+          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 3: Cantidad de preguntas</h2>
+            <p className="text-sm text-gray-600 mb-6">Indicá cuántas preguntas de cada tipo querés incluir.</p>
+
+            <div className="space-y-4 mb-6">
+              {/* Multiple Choice */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Multiple choice</label>
+                  <span className="text-xs font-medium text-blue-600">
+                    {stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0} disponibles
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max={stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0}
+                  value={mc}
+                  onChange={(e) => {
+                    const max = stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0;
+                    const val = Math.min(Math.max(0, +e.target.value), max);
+                    setMc(val);
+                  }}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* True/False */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Verdadero / Falso</label>
+                  <span className="text-xs font-medium text-blue-600">
+                    {stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0} disponibles
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max={stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0}
+                  value={tf}
+                  onChange={(e) => {
+                    const max = stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0;
+                    const val = Math.min(Math.max(0, +e.target.value), max);
+                    setTf(val);
+                  }}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Open */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">De desarrollo</label>
+                  <span className="text-xs font-medium text-blue-600">
+                    {stockByType?.find(s => s.type === "OPEN")?.total || 0} disponibles
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max={stockByType?.find(s => s.type === "OPEN")?.total || 0}
+                  value={op}
+                  onChange={(e) => {
+                    const max = stockByType?.find(s => s.type === "OPEN")?.total || 0;
+                    const val = Math.min(Math.max(0, +e.target.value), max);
+                    setOp(val);
+                  }}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <p className="text-sm font-medium text-blue-900">
+                Total: <span className="text-lg">{totalQuestions}</span> preguntas seleccionadas
+              </p>
+              {totalQuestions > 0 && (
+                <div className="mt-2 text-xs text-blue-700 space-y-1">
+                  {mc > 0 && <div>• {mc} Multiple choice</div>}
+                  {tf > 0 && <div>• {tf} Verdadero/Falso</div>}
+                  {op > 0 && <div>• {op} De desarrollo</div>}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(2)}
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Atrás
+              </button>
+              <button
+                onClick={() => setStep(4)}
+                disabled={totalQuestions === 0}
+                className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Difficulties */}
+        {step === 4 && (
+          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 4: Dificultades</h2>
+            <p className="text-sm text-gray-600 mb-6">Seleccioná qué niveles de dificultad querés incluir.</p>
+
+            <div className="space-y-3 mb-6">
+              {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
+                <label
+                  key={d}
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={difficulties.includes(d)}
+                    onChange={() => toggleDifficulty(d)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <span className="text-sm text-gray-900 capitalize">
+                    {d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+
+            {/* Validación en tiempo real */}
+            {difficulties.length > 0 && (() => {
+              const validation = validateDifficulties();
+
+              // Mostrar ERROR si no es válido
+              if (!validation.valid && validation.message) {
+                return (
+                  <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+                    <div className="text-sm text-red-700 whitespace-pre-line">
+                      {validation.message}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Mostrar WARNINGS si es válido pero hay advertencias
+              if (validation.warnings && validation.warnings.length > 0) {
+                return (
+                  <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                    <div className="text-sm font-medium text-yellow-900 mb-2">⚠️ Advertencias:</div>
+                    <div className="space-y-1 text-xs text-yellow-800">
+                      {validation.warnings.map((w, idx) => (
+                        <div key={idx}>• {w}</div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            })()}
+
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(3)}
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Atrás
+              </button>
+              <button
+                onClick={() => setStep(5)}
+                disabled={difficulties.length === 0}
+                className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Generate */}
+        {step === 5 && (
+          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 5: Generar examen</h2>
+            <p className="text-sm text-gray-600 mb-6">Revisá la configuración y generá tu examen.</p>
+
+            <div className="mb-6 space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Materia:</span>
+                <span className="font-medium text-gray-900">
+                  {subjects.find(s => s.id === subjectId)?.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Temas:</span>
+                <span className="font-medium text-gray-900">{topicIds.length} seleccionados</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Total preguntas:</span>
+                <span className="font-medium text-gray-900">{totalQuestions}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Dificultades:</span>
+                <span className="font-medium text-gray-900">{difficulties.length} niveles</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={previewRequest}
+                disabled={loading}
+                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {loading ? "Cargando..." : "Ver Preview"}
+              </button>
+              <button
+                onClick={generateOrReuse}
+                disabled={loading}
+                className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {loading ? "Generando..." : "Generar Examen"}
+              </button>
+              <button
+                onClick={() => setStep(4)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Atrás
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Preview */}
+        {step === 6 && previewQuestions && (
+          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              Preview ({previewQuestions.length} preguntas)
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">Estas son las preguntas que se incluirán en el examen.</p>
+
+            <div className="mb-6 max-h-96 overflow-y-auto">
+              <ol className="space-y-3">
+                {previewQuestions.map((q, idx) => (
+                  <li key={q.id} className="flex gap-3 rounded-lg border border-gray-200 p-3">
+                    <span className="font-semibold text-gray-500">{idx + 1}.</span>
+                    <div>
+                      <p className="text-sm text-gray-900">{q.statement}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {labelType(q.type)} · {q.difficulty === "easy" ? "Fácil" : q.difficulty === "medium" ? "Medio" : "Difícil"}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={generateOrReuse}
+                disabled={loading}
+                className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {loading ? "Generando..." : "Generar Examen"}
+              </button>
+              <button
+                onClick={() => setStep(5)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Atrás
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 7: Result */}
+        {step === 7 && result && (
+          <div className="rounded-2xl border border-green-200 bg-green-50/50 backdrop-blur p-8 shadow-sm">
+            <h2 className="text-lg font-semibold text-green-900 mb-2">
+              Examen {result.mode === "created" ? "creado" : "reutilizado"}
+            </h2>
+            <p className="text-sm text-green-800 mb-6">{result.exam.title}</p>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={downloadPdf}
+                className="w-full rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white hover:bg-green-700 transition"
+              >
+                Descargar PDF
+              </button>
+              <button
+                onClick={resetWizard}
+                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Crear otro examen
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-      {previewQuestions && (
-        <>
-          <h3>Preview ({previewQuestions.length})</h3>
-          <ol>
-            {previewQuestions.map((q) => (
-              <li key={q.id}>
-                <b>{q.statement}</b> — {labelType(q.type)} ({q.difficulty})
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-
-      {result && (
-  <div>
-    <h3>Examen generado</h3>
-    <button type="button" onClick={downloadPdf}>
-      Descargar PDF
-    </button>
-  </div>
-)}
-
-
-      
     </main>
   );
 }
