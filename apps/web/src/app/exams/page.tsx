@@ -833,7 +833,7 @@ export default function Page() {
                         className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                         title="Personalizar formato del PDF"
                       >
-                        Personalizar
+                        Personalizar PDF
                       </button>
 
                       <a
