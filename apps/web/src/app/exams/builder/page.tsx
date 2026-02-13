@@ -44,9 +44,9 @@ type StockBucket = {
 ===================== */
 
 function labelType(t: QType) {
-  if (t === "MULTIPLE_CHOICE") return "Multiple choice";
+  if (t === "MULTIPLE_CHOICE") return "Opción múltiple";
   if (t === "TRUE_FALSE") return "Verdadero / Falso";
-  return "De desarrollo";
+  return "A desarrollar";
 }
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -667,7 +667,7 @@ export default function Page() {
               {/* Multiple Choice */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">Multiple choice</label>
+                  <label className="text-sm font-medium text-gray-700">Opción múltiple</label>
                   <span className="text-xs font-medium text-blue-600">
                     {stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0} disponibles
                   </span>
@@ -713,7 +713,7 @@ export default function Page() {
               {/* Open */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">De desarrollo</label>
+                  <label className="text-sm font-medium text-gray-700">A desarrollar</label>
                   <span className="text-xs font-medium text-blue-600">
                     {stockByType?.find(s => s.type === "OPEN")?.total || 0} disponibles
                   </span>
@@ -740,9 +740,9 @@ export default function Page() {
               </p>
               {totalQuestions > 0 && (
                 <div className="mt-2 text-xs text-blue-700 space-y-1">
-                  {mc > 0 && <div>• {mc} Multiple choice</div>}
+                  {mc > 0 && <div>• {mc} Opción múltiple</div>}
                   {tf > 0 && <div>• {tf} Verdadero/Falso</div>}
-                  {op > 0 && <div>• {op} De desarrollo</div>}
+                  {op > 0 && <div>• {op} A desarrollar</div>}
                 </div>
               )}
             </div>

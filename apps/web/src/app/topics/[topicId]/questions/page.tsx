@@ -95,15 +95,15 @@ function highlight(text: string, q: string) {
 }
 
 function labelType(t: QType) {
-  if (t === "MULTIPLE_CHOICE") return "Multiple choice";
-  if (t === "TRUE_FALSE") return "True/False";
-  return "Open";
+  if (t === "MULTIPLE_CHOICE") return "Opción múltiple";
+  if (t === "TRUE_FALSE") return "Verdadero / Falso";
+  return "A desarrollar";
 }
 
 function labelDifficulty(d: Difficulty) {
-  if (d === "easy") return "easy";
-  if (d === "medium") return "medium";
-  return "hard";
+  if (d === "easy") return "Fácil";
+  if (d === "medium") return "Medio";
+  return "Difícil";
 }
 
 function PillButton({
@@ -725,9 +725,9 @@ export default function TopicQuestionsPage() {
                     if (next === "OPEN") setOptionsText("");
                   }}
                 >
-                  <option value="MULTIPLE_CHOICE">Multiple choice</option>
-                  <option value="TRUE_FALSE">True/False</option>
-                  <option value="OPEN">Open</option>
+                  <option value="MULTIPLE_CHOICE">Opción múltiple</option>
+                  <option value="TRUE_FALSE">Verdadero / Falso</option>
+                  <option value="OPEN">A desarrollar</option>
                 </SelectPretty>
               </label>
 
@@ -739,9 +739,9 @@ export default function TopicQuestionsPage() {
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as Difficulty)}
                 >
-                  <option value="easy">easy</option>
-                  <option value="medium">medium</option>
-                  <option value="hard">hard</option>
+                  <option value="easy">Fácil</option>
+                  <option value="medium">Medio</option>
+                  <option value="hard">Difícil</option>
                 </SelectPretty>
               </label>
             </div>
@@ -891,9 +891,9 @@ export default function TopicQuestionsPage() {
                     onChange={(e) => setFilterType(e.target.value as any)}
                   >
                     <option value="ALL">Todos</option>
-                    <option value="MULTIPLE_CHOICE">Multiple choice</option>
-                    <option value="TRUE_FALSE">True/False</option>
-                    <option value="OPEN">Open</option>
+                    <option value="MULTIPLE_CHOICE">Opción múltiple</option>
+                    <option value="TRUE_FALSE">Verdadero / Falso</option>
+                    <option value="OPEN">A desarrollar</option>
                   </SelectPretty>
                 </label>
 
@@ -906,9 +906,9 @@ export default function TopicQuestionsPage() {
                     onChange={(e) => setFilterDifficulty(e.target.value as any)}
                   >
                     <option value="ALL">Todas</option>
-                    <option value="easy">easy</option>
-                    <option value="medium">medium</option>
-                    <option value="hard">hard</option>
+                    <option value="easy">Fácil</option>
+                    <option value="medium">Medio</option>
+                    <option value="hard">Difícil</option>
                   </SelectPretty>
                 </label>
 
