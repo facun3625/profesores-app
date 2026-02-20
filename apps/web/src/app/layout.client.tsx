@@ -21,6 +21,7 @@ type MeResponse = {
   institutions?: Array<{ id: string; name: string; role: string }> | null;
 };
 
+// --- Helpers ---
 function getCookie(name: string) {
   if (typeof document === "undefined") return null;
   const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
@@ -59,49 +60,144 @@ function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function Brand() {
-  return (
-    <Link
-      href="/"
-      className="whitespace-nowrap text-lg font-bold tracking-tight text-blue-600"
-      style={{
-        fontFamily:
-          "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
-        lineHeight: "2rem",
-        marginTop: "-2px",
-      }}
-    >
-      examia
-    </Link>
-  );
-}
+// --- Icons ---
+const Icons = {
+  Home: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
+  Institutions: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  ),
+  Subjects: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  ),
+  Exams: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
+    </svg>
+  ),
+  Team: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  History: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  Generate: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 14" />
+    </svg>
+  ),
+  ChevronDown: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  ),
+  Sparkles: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 3l1.912 5.813L21 10.75l-5.813 1.912L12 21l-1.912-5.813L3 13.25l5.813-1.912L12 3z" />
+    </svg>
+  ),
+  Hammer: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  )
+};
 
+// --- Components ---
 function NavLink({
   href,
   label,
   active,
+  icon: Icon,
   onClick,
-  emphasis,
+  subItems,
 }: {
-  href: string;
+  href?: string;
   label: string;
   active: boolean;
+  icon: React.ComponentType;
   onClick?: () => void;
-  emphasis?: boolean;
+  subItems?: Array<{ href: string; label: string; icon: React.ComponentType }>;
 }) {
+  const [open, setOpen] = useState(false);
+
+  if (subItems) {
+    return (
+      <div className="space-y-1">
+        <button
+          onClick={() => setOpen(!open)}
+          className={cn(
+            "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+            "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <Icon />
+            <span>{label}</span>
+          </div>
+          <div className={cn("transition-transform", open && "rotate-180")}>
+            <Icons.ChevronDown />
+          </div>
+        </button>
+        {open && (
+          <div className="ml-4 space-y-1 border-l border-gray-100 pl-4">
+            {subItems.map((sub) => (
+              <Link
+                key={sub.href}
+                href={sub.href}
+                onClick={onClick}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  "text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                )}
+              >
+                <sub.icon />
+                <span>{sub.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Link
-      href={href}
+      href={href!}
       onClick={onClick}
       className={cn(
-        "rounded-md px-3 py-2 text-sm transition",
-        emphasis
-          ? "text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
-        active && (emphasis ? "bg-blue-50 font-medium" : "bg-gray-100 font-medium")
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        active
+          ? "bg-blue-50 text-blue-700"
+          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
       )}
     >
-      {label}
+      <Icon />
+      <span>{label}</span>
     </Link>
   );
 }
@@ -156,6 +252,7 @@ async function resolveInstitutionNameById(id: string) {
   return (found?.name?.trim?.() as string) || "";
 }
 
+// --- Main Layout ---
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -164,16 +261,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const [ready, setReady] = useState(false);
   const [me, setMe] = useState<MeResponse | null>(null);
-
   const [activeInstitutionName, setActiveInstitutionName] = useState("Sin institución");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const menuRef = useOutsideClose<HTMLDivElement>(menuOpen, () => setMenuOpen(false));
-  const mobileRef = useOutsideClose<HTMLDivElement>(mobileOpen, () =>
-    setMobileOpen(false)
-  );
+  const userMenuRef = useOutsideClose<HTMLDivElement>(userMenuOpen, () => setUserMenuOpen(false));
 
   const userLabel = useMemo(() => {
     const name = me?.user?.name?.trim();
@@ -184,34 +276,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const isAdmin = me?.user?.activeRole === "admin" || me?.user?.activeRole == null;
   const institutionCount = me?.institutions?.length ?? 1;
 
-  const allNavItems = useMemo(
-    () => [
-      { href: "/institutions", label: "Mis instituciones", group: "core" as const, adminOnly: false },
-      { href: "/subjects", label: "Mis materias", group: "core" as const, adminOnly: false },
-      { href: "/exams", label: "Mis exámenes", group: "core" as const, adminOnly: false },
-      { href: "/users", label: "Profesores", group: "core" as const, adminOnly: true },
-      { href: "/exams/builder", label: "Examen automático", group: "gen" as const, adminOnly: false },
-      { href: "/exams/manual", label: "Examen manual", group: "gen" as const, adminOnly: false },
-      { href: "/activity-log", label: "Actividad", group: "gen" as const, adminOnly: true },
-    ],
-    []
-  );
-
-  const navItems = useMemo(
-    () => allNavItems.filter((it) => !it.adminOnly || isAdmin),
-    [allNavItems, isAdmin]
-  );
-
-  const coreItems = useMemo(() => navItems.filter((x) => x.group === "core"), [navItems]);
-  const genItems = useMemo(() => navItems.filter((x) => x.group === "gen"), [navItems]);
-
   useEffect(() => {
     setReady(true);
   }, []);
 
   useEffect(() => {
-    setMobileOpen(false);
-    setMenuOpen(false);
+    setMobileSidebarOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -224,7 +295,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [ready, publicPage, pathname, router]);
 
-  // Redirigir si profesor intenta entrar a rutas solo admin
   const ADMIN_ROUTES = ["/users", "/activity-log"];
   useEffect(() => {
     if (!ready || publicPage || !me) return;
@@ -236,13 +306,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   async function refreshActiveInstitution() {
     const lsName = (safeLSGet("activeInstitutionName") || "").trim();
     const lsId = (safeLSGet("activeInstitutionId") || "").trim();
-
     if (lsName) setActiveInstitutionName(lsName);
 
     try {
       const meRes: any = await getMe();
       setMe(meRes);
-
       const fromMe = pickActiveFromMe(meRes);
 
       if (fromMe.activeName) {
@@ -276,60 +344,30 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }
 
   useEffect(() => {
-    if (!ready) return;
-    if (publicPage) return;
-
-    let cancelled = false;
-
-    (async () => {
-      await refreshActiveInstitution();
-      if (cancelled) return;
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    if (!ready || publicPage) return;
+    refreshActiveInstitution();
   }, [ready, publicPage]);
 
   useEffect(() => {
     if (!ready) return;
-
-    function onChanged() {
-      if (publicPage) return;
-      refreshActiveInstitution();
-    }
-
+    function onChanged() { if (!publicPage) refreshActiveInstitution(); }
     function onStorage(ev: StorageEvent) {
-      if (ev.key === "activeInstitutionId" || ev.key === "activeInstitutionName") {
-        onChanged();
-      }
-      if (ev.key === "me") {
-        onChanged();
-      }
+      if (ev.key === "activeInstitutionId" || ev.key === "activeInstitutionName" || ev.key === "me") onChanged();
     }
-
     function onMeUpdated() {
       if (publicPage) return;
-
-      // ✅ update instantáneo: leer cache si existe
       try {
         const raw = safeLSGet("me");
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed) {
-            queueMicrotask(() => setMe(parsed));
-          }
+          if (parsed) queueMicrotask(() => setMe(parsed));
         }
       } catch { }
-
-      // ✅ y refresco real contra backend (por si cache quedó viejo)
       onChanged();
     }
-
     window.addEventListener("active-institution-changed", onChanged as any);
     window.addEventListener("me:updated", onMeUpdated as any);
     window.addEventListener("storage", onStorage);
-
     return () => {
       window.removeEventListener("active-institution-changed", onChanged as any);
       window.removeEventListener("me:updated", onMeUpdated as any);
@@ -337,222 +375,141 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     };
   }, [ready, publicPage]);
 
-  function onLogout() {
-    logout();
-    setMenuOpen(false);
-    setMobileOpen(false);
-    router.push("/login");
-  }
-
-  function goProfile() {
-    setMenuOpen(false);
-    setMobileOpen(false);
-    router.push("/profile");
-  }
-
   if (!ready) return null;
 
-  const activeLabel = activeInstitutionName?.trim()
-    ? activeInstitutionName
-    : "Sin institución";
+  const Sidebar = () => (
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 md:relative md:translate-x-0",
+      !mobileSidebarOpen && "-translate-x-full"
+    )}>
+      {/* Sidebar Header */}
+      <div className="flex h-16 items-center border-b border-gray-200 px-6">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-2xl font-bold tracking-tight text-blue-600" style={{ fontFamily: "'Montserrat Alternates', sans-serif" }}>
+            examia
+          </span>
+        </Link>
+      </div>
 
-  const container = "mx-auto w-full max-w-6xl px-6";
+      {/* Nav Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="space-y-1">
+          <NavLink href="/" label="Inicio" active={pathname === "/"} icon={Icons.Home} />
+          <NavLink href="/institutions" label="Instituciones" active={pathname === "/institutions"} icon={Icons.Institutions} />
+          <NavLink href="/subjects" label="Materias" active={pathname === "/subjects" || pathname.startsWith("/subjects/")} icon={Icons.Subjects} />
+          <NavLink href="/exams" label="Exámenes" active={pathname === "/exams"} icon={Icons.Exams} />
+        </div>
+
+        <div className="pt-4 border-t border-gray-100 space-y-1">
+          <NavLink
+            label="Generar"
+            active={pathname.startsWith("/exams/builder") || pathname.startsWith("/exams/manual")}
+            icon={Icons.Generate}
+            subItems={[
+              { href: "/exams/builder", label: "Generador IA", icon: Icons.Sparkles },
+              { href: "/exams/manual", label: "Generador Manual", icon: Icons.Hammer },
+            ]}
+          />
+        </div>
+
+        {isAdmin && (
+          <div className="pt-4 border-t border-gray-100 space-y-1">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">Administración</p>
+            <NavLink href="/users" label="Equipo" active={pathname === "/users"} icon={Icons.Team} />
+            <NavLink href="/activity-log" label="Historial" active={pathname === "/activity-log"} icon={Icons.History} />
+          </div>
+        )}
+      </div>
+
+      {/* Sidebar Footer (User info potentially) */}
+      <div className="p-4 border-t border-gray-200">
+        <div className="rounded-lg bg-blue-50 p-3">
+          <p className="text-[10px] font-bold uppercase text-blue-600">Plan</p>
+          <p className="text-sm font-semibold text-blue-900">Institucional Pro</p>
+        </div>
+      </div>
+    </aside>
+  );
+
+  if (publicPage) return <div className="min-h-screen bg-white">{children}</div>;
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {!publicPage && (
-        <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-          <div className={`${container} flex items-center justify-between gap-4 py-3`}>
-            <div className="flex min-w-0 items-center gap-6">
-              <Brand />
+    <div className="flex h-screen overflow-hidden bg-gray-50/50">
+      <Sidebar />
 
-              {/* Desktop nav */}
-              <nav className="hidden md:flex items-center gap-2">
-                {coreItems.map((it) => (
-                  <NavLink
-                    key={it.href}
-                    href={it.href}
-                    label={it.label}
-                    active={pathname === it.href || pathname.startsWith(it.href + "/")}
-                  />
-                ))}
-
-                {/* separador sutil */}
-                <span className="mx-1 h-4 w-px bg-gray-200" />
-
-                {genItems.map((it) => (
-                  <NavLink
-                    key={it.href}
-                    href={it.href}
-                    label={it.label}
-                    emphasis
-                    active={pathname === it.href || pathname.startsWith(it.href + "/")}
-                  />
-                ))}
-              </nav>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Institución (desktop) */}
-              {institutionCount > 1 && (
-                <div className="hidden sm:flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                  <div className="text-right leading-tight">
-                    <div className="text-[11px] text-gray-500">Institución activa</div>
-                    <div className="max-w-[220px] truncate text-sm font-semibold text-gray-900">
-                      {activeLabel}
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/institutions"
-                    className="inline-flex h-8 items-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
-                  >
-                    Cambiar
-                  </Link>
-                </div>
-              )}
-              {institutionCount <= 1 && (
-                <div className="hidden sm:flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                  <div className="text-right leading-tight">
-                    <div className="text-[11px] text-gray-500">Institución activa</div>
-                    <div className="max-w-[220px] truncate text-sm font-semibold text-gray-900">
-                      {activeLabel}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Hamburguesa (mobile) */}
-              <div ref={mobileRef} className="relative md:hidden">
-                <button
-                  type="button"
-                  onClick={() => setMobileOpen((v) => !v)}
-                  className="inline-flex h-10 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 hover:bg-gray-50"
-                  aria-expanded={mobileOpen}
-                  aria-label="Abrir menú"
-                >
-                  {mobileOpen ? "✕" : "☰"}
-                </button>
-
-                {mobileOpen && (
-                  <div className="absolute right-0 top-[calc(100%+8px)] w-[min(92vw,320px)] rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
-                    <div className="px-2 py-2">
-                      <div className="text-[11px] text-gray-500">Institución activa</div>
-                      <div className="truncate text-sm font-semibold text-gray-900">
-                        {activeLabel}
-                      </div>
-
-                      <Link
-                        href="/institutions"
-                        onClick={() => setMobileOpen(false)}
-                        className="mt-2 inline-flex h-9 w-full items-center justify-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
-                      >
-                        Cambiar institución
-                      </Link>
-                    </div>
-
-                    <div className="my-2 h-px bg-gray-200" />
-
-                    <div className="grid gap-1">
-                      {coreItems.map((it) => (
-                        <NavLink
-                          key={it.href}
-                          href={it.href}
-                          label={it.label}
-                          active={pathname === it.href || pathname.startsWith(it.href + "/")}
-                          onClick={() => setMobileOpen(false)}
-                        />
-                      ))}
-
-                      <div className="my-1 h-px bg-gray-200" />
-
-                      {genItems.map((it) => (
-                        <NavLink
-                          key={it.href}
-                          href={it.href}
-                          label={it.label}
-                          emphasis
-                          active={pathname === it.href || pathname.startsWith(it.href + "/")}
-                          onClick={() => setMobileOpen(false)}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="my-2 h-px bg-gray-200" />
-
-                    <button
-                      type="button"
-                      onClick={goProfile}
-                      className="w-full rounded-md px-3 py-2 text-left text-sm text-gray-900 hover:bg-gray-100"
-                    >
-                      Perfil
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={onLogout}
-                      className="w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* User menu (desktop/tablet) */}
-              <div ref={menuRef} className="relative hidden md:block">
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen((v) => !v)}
-                  className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-50"
-                >
-                  <span className="max-w-[160px] truncate">{userLabel}</span>
-                  <span className="text-gray-500">▾</span>
-                </button>
-
-                {menuOpen && (
-                  <div className="absolute right-0 top-[calc(100%+8px)] min-w-[200px] rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
-                    <button
-                      type="button"
-                      onClick={goProfile}
-                      className="w-full rounded-md px-3 py-2 text-left text-sm text-gray-900 hover:bg-gray-100"
-                    >
-                      Perfil
-                    </button>
-
-                    <div className="my-2 h-px bg-gray-200" />
-
-                    <button
-                      type="button"
-                      onClick={onLogout}
-                      className="w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Topbar */}
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white/70 px-6 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden p-2 text-gray-500 hover:text-gray-900"
+            >
+              ☰
+            </button>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-400">/</span>
+              <span className="text-sm font-medium text-gray-600 truncate max-w-[200px]">{activeInstitutionName}</span>
             </div>
           </div>
 
-          {/* Row compacta extra (solo mobile): user label */}
-          <div className="md:hidden border-t border-gray-200">
-            <div className={`${container} flex items-center justify-between py-2`}>
-              <div className="truncate text-sm font-medium text-gray-900">
-                {userLabel}
-              </div>
+          <div className="flex items-center gap-4">
+            {institutionCount > 1 && (
               <Link
-                href="/profile"
-                className="text-sm font-medium text-blue-600 hover:underline"
+                href="/institutions"
+                className="hidden sm:inline-flex h-9 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
               >
-                Perfil
+                Cambiar Institución
               </Link>
+            )}
+
+            <div ref={userMenuRef} className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-sm ring-2 ring-blue-100 transition-transform active:scale-95"
+              >
+                {userLabel[0].toUpperCase()}
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 bg-white p-1 shadow-xl ring-1 ring-black/5">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-900 truncate">{userLabel}</p>
+                    <p className="text-[10px] text-gray-500 truncate">{me?.user?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => { router.push("/profile"); setUserMenuOpen(false); }}
+                    className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+                  >
+                    Mi Perfil
+                  </button>
+                  <button
+                    onClick={() => { logout(); router.push("/login"); }}
+                    className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
-      )}
 
-      <div className="mx-auto w-full max-w-6xl px-6">{children}</div>
+        {/* Backdrop for mobile sidebar */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm md:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="mx-auto max-w-6xl">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
