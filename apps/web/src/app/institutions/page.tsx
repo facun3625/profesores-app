@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useIsAdmin } from "@/lib/hooks";
 
 type Institution = {
   id: string;
@@ -10,9 +11,9 @@ type Institution = {
 
 type MeAny =
   | {
-      activeInstitutionId?: string | null;
-      user?: { activeInstitutionId?: string | null } | null;
-    }
+    activeInstitutionId?: string | null;
+    user?: { activeInstitutionId?: string | null } | null;
+  }
   | null;
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -30,12 +31,12 @@ function Badge({
     tone === "blue"
       ? "border-blue-200 bg-blue-50 text-blue-700"
       : tone === "green"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : tone === "gray"
-      ? "border-gray-200 bg-gray-50 text-gray-700"
-      : tone === "indigo"
-      ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-      : "border-gray-200 bg-white text-gray-700";
+        ? "border-green-200 bg-green-50 text-green-700"
+        : tone === "gray"
+          ? "border-gray-200 bg-gray-50 text-gray-700"
+          : tone === "indigo"
+            ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+            : "border-gray-200 bg-white text-gray-700";
 
   return (
     <span
@@ -74,6 +75,7 @@ function highlight(text: string, q: string) {
 }
 
 export default function InstitutionsPage() {
+  const isAdmin = useIsAdmin();
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [activeInstitutionId, setActiveInstitutionId] = useState<string | null>(
     null
@@ -253,51 +255,54 @@ export default function InstitutionsPage() {
           </div>
         )}
 
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-gray-900">
-                Nueva institución
+        {/* Formulario nueva institución: solo admins */}
+        {isAdmin && (
+          <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">
+                  Nueva institución
+                </div>
+                <div className="mt-1 text-sm text-gray-600">
+                  Un nombre simple. Después afinamos.
+                </div>
               </div>
-              <div className="mt-1 text-sm text-gray-600">
-                Un nombre simple. Después afinamos.
-              </div>
+
+              <Badge tone="gray">{institutions.length} total</Badge>
             </div>
 
-            <Badge tone="gray">{institutions.length} total</Badge>
-          </div>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && canCreate) createInstitution();
+                }}
+                placeholder="Ej: Instituto San Martín"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              />
 
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canCreate) createInstitution();
-              }}
-              placeholder="Ej: Instituto San Martín"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-            />
-
-            <button
-              type="button"
-              disabled={!canCreate}
-              onClick={createInstitution}
-              className="inline-flex h-10 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
-            >
-              {loading ? "Creando..." : "Crear"}
-            </button>
-          </div>
-        </section>
+              <button
+                type="button"
+                disabled={!canCreate}
+                onClick={createInstitution}
+                className="inline-flex h-10 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {loading ? "Creando..." : "Crear"}
+              </button>
+            </div>
+          </section>
+        )}
 
         <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
           <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-             <div className="flex items-center gap-2">
-  <div className="h-5 w-1 rounded-full bg-blue-600" />
-  <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-    Tus Instituciones
-  </div>
-</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-1 rounded-full bg-blue-600" />
+                <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                  Tus Instituciones
+                </div>
+              </div>
               <div className="mt-1 text-sm text-gray-600">
                 Activá una para trabajar (materias, exámenes, etc.).
               </div>
@@ -377,7 +382,7 @@ export default function InstitutionsPage() {
                         </>
                       ) : (
                         <>
-                          {!isActive && (
+                          {!isActive && isAdmin && (
                             <button
                               type="button"
                               disabled={loading}

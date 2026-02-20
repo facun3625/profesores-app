@@ -3,9 +3,24 @@ import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class InstitutionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
-  async listForUser(userId: string) {
+  async listForUser(userId: string, role?: string) {
+    // Profesores: solo las instituciones de sus UserSubject
+    if (role === "professor") {
+      const subjectAccess = await this.prisma.userSubject.findMany({
+        where: { userId },
+        select: {
+          institution: {
+            select: { id: true, name: true, plan: true, status: true },
+          },
+        },
+        distinct: ["institutionId"],
+      });
+      return subjectAccess.map((sa) => ({ ...sa.institution, role: "professor" }));
+    }
+
+    // Admins: todas sus memberships
     const memberships = await this.prisma.userInstitution.findMany({
       where: { userId },
       select: {
@@ -27,6 +42,7 @@ export class InstitutionsService {
       role: m.role,
     }));
   }
+
 
   async createForAdmin(userId: string, name: string) {
     const institution = await this.prisma.institution.create({

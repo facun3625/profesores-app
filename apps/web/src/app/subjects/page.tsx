@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useIsAdmin } from "@/lib/hooks";
 
 type Subject = {
   id: string;
@@ -23,12 +24,12 @@ function Badge({
     tone === "blue"
       ? "border-blue-200 bg-blue-50 text-blue-700"
       : tone === "green"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : tone === "gray"
-      ? "border-gray-200 bg-gray-50 text-gray-700"
-      : tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border-gray-200 bg-white text-gray-700";
+        ? "border-green-200 bg-green-50 text-green-700"
+        : tone === "gray"
+          ? "border-gray-200 bg-gray-50 text-gray-700"
+          : tone === "emerald"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+            : "border-gray-200 bg-white text-gray-700";
 
   return (
     <span
@@ -67,6 +68,7 @@ function highlight(text: string, q: string) {
 }
 
 export default function SubjectsPage() {
+  const isAdmin = useIsAdmin();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [name, setName] = useState("");
   const [search, setSearch] = useState("");
@@ -193,48 +195,51 @@ export default function SubjectsPage() {
           </div>
         )}
 
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-gray-900">Nueva materia</div>
-              <div className="mt-1 text-sm text-gray-600">
-                Nombre simple y a otra cosa.
+        {/* Formulario nueva materia: solo admins */}
+        {isAdmin && (
+          <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Nueva materia</div>
+                <div className="mt-1 text-sm text-gray-600">
+                  Nombre simple y a otra cosa.
+                </div>
               </div>
+              <Badge tone="gray">Subjects</Badge>
             </div>
-            <Badge tone="gray">Subjects</Badge>
-          </div>
 
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canCreate) createSubject();
-              }}
-              placeholder="Ej: Matemática"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-            />
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && canCreate) createSubject();
+                }}
+                placeholder="Ej: Matemática"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              />
 
-            <button
-              type="button"
-              disabled={!canCreate}
-              onClick={createSubject}
-              className="inline-flex h-10 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
-            >
-              {loading ? "Creando..." : "Crear"}
-            </button>
-          </div>
-        </section>
+              <button
+                type="button"
+                disabled={!canCreate}
+                onClick={createSubject}
+                className="inline-flex h-10 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {loading ? "Creando..." : "Crear"}
+              </button>
+            </div>
+          </section>
+        )}
 
         <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
           <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-  <div className="h-5 w-1 rounded-full bg-blue-600" />
-  <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-    Tus Materias
-  </div>
-</div>
+                <div className="h-5 w-1 rounded-full bg-blue-600" />
+                <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                  Tus Materias
+                </div>
+              </div>
               <div className="mt-1 text-sm text-gray-600">
                 Entrá a “Temas” para completar la estructura.
               </div>
@@ -321,11 +326,11 @@ export default function SubjectsPage() {
                           </button>
 
                           <a
-  href={`/subjects/${s.id}/topics`}
-  className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
->
-  Temas →
-</a>
+                            href={`/subjects/${s.id}/topics`}
+                            className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                          >
+                            Temas →
+                          </a>
                         </>
                       )}
                     </div>

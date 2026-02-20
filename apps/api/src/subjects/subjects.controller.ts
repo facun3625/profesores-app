@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -15,16 +16,19 @@ import { AuthGuard } from "../auth/guards/auth.guard";
 @Controller("subjects")
 @UseGuards(AuthGuard)
 export class SubjectsController {
-  constructor(private readonly subjectsService: SubjectsService) {}
+  constructor(private readonly subjectsService: SubjectsService) { }
 
   @Post()
   async create(@Req() req: any, @Body() dto: CreateSubjectDto) {
+    if (req.role !== "admin") {
+      throw new ForbiddenException("Solo los administradores pueden crear materias");
+    }
     return this.subjectsService.create(req.activeInstitutionId, dto);
   }
 
   @Get()
   async findAll(@Req() req: any) {
-    return this.subjectsService.findAll(req.activeInstitutionId);
+    return this.subjectsService.findAll(req.activeInstitutionId, req.userId, req.role);
   }
 
   @Patch(":id")
@@ -33,6 +37,9 @@ export class SubjectsController {
     @Param("id") id: string,
     @Body() dto: { name: string }
   ) {
+    if (req.role !== "admin") {
+      throw new ForbiddenException("Solo los administradores pueden editar materias");
+    }
     return this.subjectsService.updateName(req.activeInstitutionId, id, dto.name);
   }
 }

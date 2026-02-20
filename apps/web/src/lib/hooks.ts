@@ -1,10 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
+import { getMe } from "./auth";
 
 // Types (temporalmente aquí hasta que arreglemos el paquete de tipos)
 type Institution = { id: string; name: string };
 type Subject = { id: string; name: string };
 type Exam = { id: string; title: string };
+
+/**
+ * Hook para obtener el usuario actual y su rol
+ */
+export function useMe() {
+    return useQuery({
+        queryKey: ["me"],
+        queryFn: () => getMe() as Promise<any>,
+        staleTime: 30_000,
+    });
+}
+
+/**
+ * Hook que devuelve true si el usuario activo es admin (o si aún no cargó, para no bloquear UI)
+ */
+export function useIsAdmin() {
+    const { data } = useMe();
+    // Si todavía no cargó el rol, asumimos admin para no bloquear la UI momentáneamente
+    if (!data) return true;
+    const role = data?.user?.activeRole;
+    return role === "admin" || role == null;
+}
+
+
 
 /**
  * Hook para obtener instituciones

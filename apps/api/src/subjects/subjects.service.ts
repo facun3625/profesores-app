@@ -6,7 +6,7 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 @Injectable()
 export class SubjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(activeInstitutionId: string | null, dto: CreateSubjectDto) {
     if (!activeInstitutionId) {
@@ -31,11 +31,21 @@ export class SubjectsService {
     }
   }
 
-  async findAll(activeInstitutionId: string | null) {
+  async findAll(activeInstitutionId: string | null, userId?: string, role?: string) {
     if (!activeInstitutionId) {
       throw new ForbiddenException('No active institution selected');
     }
 
+    // Profesores: solo sus materias asignadas en esta institución
+    if (role === "professor" && userId) {
+      const access = await this.prisma.userSubject.findMany({
+        where: { userId, institutionId: activeInstitutionId },
+        select: { subject: { select: { id: true, name: true } } },
+      });
+      return access.map((a) => a.subject);
+    }
+
+    // Admins: todas las materias de la institución
     return this.prisma.subject.findMany({
       where: {
         institutionId: activeInstitutionId,
@@ -45,21 +55,22 @@ export class SubjectsService {
       },
     });
   }
+
   async updateName(activeInstitutionId: string, id: string, name: string) {
-  const trimmed = (name ?? "").trim();
-  if (!trimmed) throw new BadRequestException("Name is required");
+    const trimmed = (name ?? "").trim();
+    if (!trimmed) throw new BadRequestException("Name is required");
 
-  const subject = await this.prisma.subject.findFirst({
-    where: { id, institutionId: activeInstitutionId },
-    select: { id: true },
-  });
+    const subject = await this.prisma.subject.findFirst({
+      where: { id, institutionId: activeInstitutionId },
+      select: { id: true },
+    });
 
-  if (!subject) throw new NotFoundException("Subject not found");
+    if (!subject) throw new NotFoundException("Subject not found");
 
-  return this.prisma.subject.update({
-    where: { id },
-    data: { name: trimmed },
-    select: { id: true, name: true },
-  });
-}
+    return this.prisma.subject.update({
+      where: { id },
+      data: { name: trimmed },
+      select: { id: true, name: true },
+    });
+  }
 }
