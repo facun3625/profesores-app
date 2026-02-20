@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, apiBlob } from "@/lib/api";
 import { toast } from "sonner";
+import ConfirmModal from "@/components/ConfirmModal";
 import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
 
 /* =====================
@@ -214,6 +215,11 @@ export default function Page() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const [confirmSubjectChange, setConfirmSubjectChange] = useState<{
+    isOpen: boolean;
+    pendingId: string;
+  }>({ isOpen: false, pendingId: "" });
 
   const [createdExamId, setCreatedExamId] = useState<string | null>(null);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
@@ -551,15 +557,11 @@ export default function Page() {
                 onChange={(e) => {
                   const newVal = e.target.value;
                   if (selectedIds.length > 0 && newVal !== subjectId) {
-                    const ok = window.confirm(
-                      "Si cambias de materia se deseleccionarán las preguntas actuales. ¿Continuar?"
-                    );
-                    if (!ok) return;
-                    setSelectedIds([]);
-                    setTopicIds([]);
+                    setConfirmSubjectChange({ isOpen: true, pendingId: newVal });
+                  } else {
+                    touch();
+                    setSubjectId(newVal);
                   }
-                  touch();
-                  setSubjectId(newVal);
                 }}
               >
                 <option value="">— Seleccionar —</option>
@@ -737,6 +739,23 @@ export default function Page() {
         isOpen={showCustomizeModal}
         onClose={() => setShowCustomizeModal(false)}
         onDownload={(options) => downloadPdf(options)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmSubjectChange.isOpen}
+        title="¿Cambiar de materia?"
+        message="Si cambias de materia ahora, se perderá la selección actual de preguntas. ¿Deseas continuar?"
+        confirmLabel="Sí, cambiar"
+        cancelLabel="No, mantener"
+        tone="warning"
+        onConfirm={() => {
+          setSelectedIds([]);
+          setTopicIds([]);
+          setSubjectId(confirmSubjectChange.pendingId);
+          setConfirmSubjectChange({ isOpen: false, pendingId: "" });
+          touch();
+        }}
+        onCancel={() => setConfirmSubjectChange({ isOpen: false, pendingId: "" })}
       />
     </main>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 function ExamiaLogo() {
   return (
@@ -17,7 +18,7 @@ function ExamiaLogo() {
         examia
       </div>
       <div className="mt-1 text-xs text-gray-500">
-       Texto
+        Texto
       </div>
     </div>
   );
@@ -31,6 +32,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const queryClient = useQueryClient();
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -38,6 +41,8 @@ export default function LoginPage() {
 
     try {
       await login(email.trim(), password);
+      // ✅ Invalidar todo para que el Dashboard pida datos frescos con el nuevo token/contexto
+      await queryClient.invalidateQueries();
       router.push("/");
     } catch (err: any) {
       setError(err?.message ?? "Login error");

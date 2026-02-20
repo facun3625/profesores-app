@@ -249,6 +249,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         setActiveInstitutionName(fromMe.activeName);
         safeLSSet("activeInstitutionName", fromMe.activeName);
         if (fromMe.activeId) safeLSSet("activeInstitutionId", fromMe.activeId);
+        window.dispatchEvent(new Event("active-institution-changed"));
         return;
       }
 
@@ -264,6 +265,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       setActiveInstitutionName(finalName);
       safeLSSet("activeInstitutionName", finalName);
       safeLSSet("activeInstitutionId", idToUse);
+      window.dispatchEvent(new Event("active-institution-changed"));
     } catch {
       if (!lsName) setActiveInstitutionName("Sin institución");
     }

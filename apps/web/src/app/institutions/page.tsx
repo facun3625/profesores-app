@@ -3,10 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useIsAdmin } from "@/lib/hooks";
+import { toast } from "sonner";
+import Link from "next/link";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type Institution = {
   id: string;
   name: string;
+  status: "active" | "inactive";
 };
 
 type MeAny =
@@ -90,6 +94,11 @@ export default function InstitutionsPage() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>("");
+
+  const [confirmDeactivate, setConfirmDeactivate] = useState<{
+    isOpen: boolean;
+    inst: Institution | null;
+  }>({ isOpen: false, inst: null });
 
   async function load() {
     setError("");
@@ -206,6 +215,36 @@ export default function InstitutionsPage() {
     }
   }
 
+  function deactivateInstitution(inst: Institution) {
+    if (inst.id === activeInstitutionId) {
+      toast.error("No podés desactivar la institución que estás usando");
+      return;
+    }
+    setConfirmDeactivate({ isOpen: true, inst });
+  }
+
+  async function onConfirmDeactivate() {
+    const inst = confirmDeactivate.inst;
+    if (!inst) return;
+
+    setLoading(true);
+    setError("");
+    setConfirmDeactivate({ isOpen: false, inst: null });
+
+    try {
+      await api(`/institutions/${inst.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "inactive" }),
+      });
+      toast.success("Institución desactivada");
+      await load();
+    } catch (e: any) {
+      setError(e?.message || "Error al desactivar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const canCreate = name.trim().length > 0 && !loading;
 
   const filtered = useMemo(() => {
@@ -245,6 +284,20 @@ export default function InstitutionsPage() {
               <Badge tone="green">Activa configurada</Badge>
             ) : (
               <Badge tone="neutral">Sin activa</Badge>
+            )}
+
+            {isAdmin && (
+              <Link
+                href="/institutions/inactive"
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                Zona de Seguridad
+              </Link>
             )}
           </div>
         </div>
@@ -411,6 +464,22 @@ export default function InstitutionsPage() {
                               {loading ? "Activando..." : "Activar"}
                             </button>
                           )}
+
+                          {!isActive && isAdmin && (
+                            <button
+                              type="button"
+                              disabled={loading}
+                              onClick={() => deactivateInstitution(inst)}
+                              className="group inline-flex h-9 items-center rounded-md border border-red-100 bg-white px-3 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-200 disabled:opacity-60 transition"
+                              title="Desactivar institución"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                <line x1="9" y1="9" x2="15" y2="15" />
+                                <line x1="15" y1="9" x2="9" y2="15" />
+                              </svg>
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -420,11 +489,22 @@ export default function InstitutionsPage() {
             </div>
           ) : (
             <div className="px-6 py-8 text-sm text-gray-600">
-              No hay resultados. Probá con otro nombre o pegá un ID.
+              No hay resultados o están todas inactivas.
             </div>
           )}
         </section>
-      </div>
-    </main>
+
+        <ConfirmModal
+          isOpen={confirmDeactivate.isOpen}
+          title="¿Desactivar institución?"
+          message={`Estás por desactivar "${confirmDeactivate.inst?.name}". Los profesores vinculados perderán acceso y la institución se moverá a la Zona de Seguridad.`}
+          confirmLabel="Sí, desactivar"
+          cancelLabel="No, mantener"
+          tone="warning"
+          onConfirm={onConfirmDeactivate}
+          onCancel={() => setConfirmDeactivate({ isOpen: false, inst: null })}
+        />
+      </div >
+    </main >
   );
 }

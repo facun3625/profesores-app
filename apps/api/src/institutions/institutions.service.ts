@@ -96,6 +96,54 @@ export class InstitutionsService {
     });
   }
 
+  async setStatus(userId: string, institutionId: string, status: string) {
+    if (status !== "active" && status !== "inactive") {
+      throw new BadRequestException("Invalid status. Must be 'active' or 'inactive'");
+    }
+
+    const membership = await this.prisma.userInstitution.findUnique({
+      where: {
+        userId_institutionId: {
+          userId,
+          institutionId,
+        },
+      },
+      select: { role: true },
+    });
+
+    if (!membership || membership.role !== "admin") {
+      throw new ForbiddenException("Only admins can change institution status");
+    }
+
+    return this.prisma.institution.update({
+      where: { id: institutionId },
+      data: { status },
+      select: { id: true, name: true, status: true },
+    });
+  }
+
+  async permanentlyDelete(userId: string, institutionId: string) {
+    const membership = await this.prisma.userInstitution.findUnique({
+      where: {
+        userId_institutionId: {
+          userId,
+          institutionId,
+        },
+      },
+      select: { role: true },
+    });
+
+    if (!membership || membership.role !== "admin") {
+      throw new ForbiddenException("Only admins can permanently delete institutions");
+    }
+
+    // El borrado en cascada (schema.prisma) se encargará de las relaciones
+    return this.prisma.institution.delete({
+      where: { id: institutionId },
+      select: { id: true, name: true },
+    });
+  }
+
   async updateName(userId: string, institutionId: string, name: string) {
     const trimmed = (name ?? "").trim();
     if (!trimmed) throw new BadRequestException("Name is required");
