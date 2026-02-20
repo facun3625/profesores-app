@@ -570,18 +570,7 @@ export default function TopicQuestionsPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-      <div
-        className="fixed inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-        }}
-      />
-
-      <div className="mx-auto w-full max-w-6xl">
+    <div className="space-y-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <a
@@ -1270,6 +1259,6 @@ export default function TopicQuestionsPage() {
         onCancel={() => setConfirmDelete({ isOpen: false, question: null })}
         tone="warning"
       />
-    </main >
+    </div >
   );
 }
