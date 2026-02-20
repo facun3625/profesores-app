@@ -13,7 +13,7 @@ type Subject = { id: string; name: string };
 type Topic = { id: string; name: string; subjectId: string };
 
 type Difficulty = "easy" | "medium" | "hard";
-type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN";
+type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN" | "FILL_IN";
 
 type Question = {
   id: string;
@@ -46,6 +46,7 @@ type StockBucket = {
 function labelType(t: QType) {
   if (t === "MULTIPLE_CHOICE") return "Opción múltiple";
   if (t === "TRUE_FALSE") return "Verdadero / Falso";
+  if (t === "FILL_IN") return "Completar";
   return "A desarrollar";
 }
 
@@ -123,8 +124,9 @@ export default function Page() {
   const [mc, setMc] = useState(0);
   const [tf, setTf] = useState(0);
   const [op, setOp] = useState(0);
+  const [fi, setFi] = useState(0);
 
-  const totalQuestions = useMemo(() => mc + tf + op, [mc, tf, op]);
+  const totalQuestions = useMemo(() => mc + tf + op + fi, [mc, tf, op, fi]);
 
   const [difficulties, setDifficulties] = useState<Difficulty[]>([
     "easy",
@@ -206,7 +208,7 @@ export default function Page() {
         const all = responses.flatMap(extractQuestions);
         const filtered = all.filter((q) => difficulties.includes(q.difficulty));
 
-        const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN"];
+        const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN", "FILL_IN"];
         const diffs: Difficulty[] = ["easy", "medium", "hard"];
 
         const buckets: StockBucket[] = [];
@@ -231,7 +233,7 @@ export default function Page() {
   const stockByType = useMemo(() => {
     if (!stock) return null;
 
-    const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN"];
+    const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN", "FILL_IN"];
     const diffs: Difficulty[] = ["easy", "medium", "hard"];
 
     return types.map((t) => {
@@ -315,10 +317,30 @@ export default function Page() {
             .map(d => `${d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"} (${opStock.byDiff[d]} disponibles)`);
 
           if (missing.length > 0) {
-            suggestions.push(`Agregá estas dificultades para De desarrollo: ${missing.join(", ")}`);
+            suggestions.push(`Agre gá estas dificultades para De desarrollo: ${missing.join(", ")}`);
           }
         } else if (available === op) {
           warnings.push(`De desarrollo: usarás todas las ${op} preguntas disponibles`);
+        }
+      }
+    }
+
+    if (fi > 0) {
+      const fiStock = stockByType.find(s => s.type === "FILL_IN");
+      if (fiStock) {
+        const available = difficulties.reduce((sum, d) => sum + fiStock.byDiff[d], 0);
+        if (available < fi) {
+          issues.push(`Completar: necesitás ${fi}, solo hay ${available} en las dificultades seleccionadas`);
+
+          const missing = (["easy", "medium", "hard"] as Difficulty[])
+            .filter(d => !difficulties.includes(d) && fiStock.byDiff[d] > 0)
+            .map(d => `${d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"} (${fiStock.byDiff[d]} disponibles)`);
+
+          if (missing.length > 0) {
+            suggestions.push(`Agre gá estas dificultades para Completar: ${missing.join(", ")}`);
+          }
+        } else if (available === fi) {
+          warnings.push(`Completar: usarás todas las ${fi} preguntas disponibles`);
         }
       }
     }
@@ -340,6 +362,7 @@ export default function Page() {
     MULTIPLE_CHOICE: mc,
     TRUE_FALSE: tf,
     OPEN: op,
+    FILL_IN: fi,
   };
 
   /* =====================
@@ -477,6 +500,7 @@ export default function Page() {
     setMc(0);
     setTf(0);
     setOp(0);
+    setFi(0);
     setDifficulties(["easy", "medium", "hard"]);
     setPreviewQuestions(null);
     setResult(null);
@@ -732,6 +756,29 @@ export default function Page() {
                   placeholder="0"
                 />
               </div>
+
+              {/* Fill In */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Completar</label>
+                  <span className="text-xs font-medium text-blue-600">
+                    {stockByType?.find(s => s.type === "FILL_IN")?.total || 0} disponibles
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max={stockByType?.find(s => s.type === "FILL_IN")?.total || 0}
+                  value={fi}
+                  onChange={(e) => {
+                    const max = stockByType?.find(s => s.type === "FILL_IN")?.total || 0;
+                    const val = Math.min(Math.max(0, +e.target.value), max);
+                    setFi(val);
+                  }}
+                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="0"
+                />
+              </div>
             </div>
 
             <div className="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4">
@@ -743,6 +790,7 @@ export default function Page() {
                   {mc > 0 && <div>• {mc} Opción múltiple</div>}
                   {tf > 0 && <div>• {tf} Verdadero/Falso</div>}
                   {op > 0 && <div>• {op} A desarrollar</div>}
+                  {fi > 0 && <div>• {fi} Completar</div>}
                 </div>
               )}
             </div>

@@ -15,6 +15,7 @@ export enum QuestionType {
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
   OPEN = 'OPEN',
+  FILL_IN = 'FILL_IN',
 }
 
 export enum QuestionDifficulty {
@@ -35,6 +36,11 @@ export class TypeCountsDto {
   @IsInt()
   @Min(0)
   OPEN: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  FILL_IN?: number;
 }
 
 export class GenerateExamDto {

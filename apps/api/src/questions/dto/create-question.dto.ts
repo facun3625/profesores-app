@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -13,6 +14,7 @@ export enum QuestionType {
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
   OPEN = 'OPEN',
+  FILL_IN = 'FILL_IN',
 }
 
 export enum QuestionDifficulty {
@@ -54,4 +56,14 @@ export class CreateQuestionDto {
   @IsOptional()
   @IsString()
   modelAnswer?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  openLines?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  requiresJustification?: boolean;
 }

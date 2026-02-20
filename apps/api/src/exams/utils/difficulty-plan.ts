@@ -42,6 +42,7 @@ export function buildInitialPlan(params: {
     MULTIPLE_CHOICE: number;
     TRUE_FALSE: number;
     OPEN: number;
+    FILL_IN: number;
   };
   difficulties: QuestionDifficulty[];
   splitEven: (total: number, parts: number) => number[];
@@ -64,12 +65,18 @@ export function buildInitialPlan(params: {
       [QuestionDifficulty.medium]: 0,
       [QuestionDifficulty.hard]: 0,
     },
+    [QuestionType.FILL_IN]: {
+      [QuestionDifficulty.easy]: 0,
+      [QuestionDifficulty.medium]: 0,
+      [QuestionDifficulty.hard]: 0,
+    },
   };
 
   const entries: Array<{ type: QuestionType; count: number }> = [
     { type: QuestionType.MULTIPLE_CHOICE, count: typeCounts.MULTIPLE_CHOICE },
     { type: QuestionType.TRUE_FALSE, count: typeCounts.TRUE_FALSE },
     { type: QuestionType.OPEN, count: typeCounts.OPEN },
+    { type: QuestionType.FILL_IN, count: typeCounts.FILL_IN },
   ];
 
   for (const e of entries) {

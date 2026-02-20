@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 
 type Difficulty = "easy" | "medium" | "hard";
-type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN";
+type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN" | "FILL_IN";
 
 type Question = {
   id: string;
@@ -15,6 +15,8 @@ type Question = {
   options?: string[] | null;
   correctIndex?: number | null;
   modelAnswer?: string | null;
+  openLines?: number | null;
+  requiresJustification?: boolean;
 };
 
 type ListResponse = {
@@ -97,6 +99,7 @@ function highlight(text: string, q: string) {
 function labelType(t: QType) {
   if (t === "MULTIPLE_CHOICE") return "Opción múltiple";
   if (t === "TRUE_FALSE") return "Verdadero / Falso";
+  if (t === "FILL_IN") return "Completar";
   return "A desarrollar";
 }
 
@@ -227,6 +230,8 @@ export default function TopicQuestionsPage() {
   );
   const [correctIndex, setCorrectIndex] = useState<number>(0);
   const [modelAnswer, setModelAnswer] = useState("");
+  const [openLines, setOpenLines] = useState<number>(4);
+  const [requiresJustification, setRequiresJustification] = useState<boolean>(false);
 
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
@@ -237,6 +242,7 @@ export default function TopicQuestionsPage() {
   const options = useMemo(() => {
     if (type === "TRUE_FALSE") return ["Verdadero", "Falso"];
     if (type === "OPEN") return null;
+    if (type === "FILL_IN") return null;
 
     const arr = optionsText
       .split("\n")
@@ -323,14 +329,17 @@ export default function TopicQuestionsPage() {
     setType(question.type);
     setDifficulty(question.difficulty);
     setModelAnswer(question.modelAnswer ?? "");
+    setOpenLines(question.openLines ?? 4);
+    setRequiresJustification(question.requiresJustification ?? false);
 
     if (question.type === "MULTIPLE_CHOICE") {
       setOptionsText(question.options?.join("\n") ?? "");
       setCorrectIndex(question.correctIndex ?? 0);
     } else if (question.type === "TRUE_FALSE") {
       setCorrectIndex(question.correctIndex ?? 0);
+      setOptionsText("");
     } else {
-      // OPEN
+      // OPEN / FILL_IN
       setOptionsText("");
       setCorrectIndex(0);
     }
@@ -388,6 +397,11 @@ export default function TopicQuestionsPage() {
 
       if (type === "TRUE_FALSE") {
         payload.correctIndex = correctIndex;
+        payload.requiresJustification = requiresJustification;
+      }
+
+      if (type === "OPEN") {
+        payload.openLines = openLines;
       }
 
       if (editingQuestionId) {
@@ -407,6 +421,8 @@ export default function TopicQuestionsPage() {
       setStatement("");
       setModelAnswer("");
       setCorrectIndex(0);
+      setOpenLines(4);
+      setRequiresJustification(false);
       setEditingQuestionId(null); // Limpiar
 
       if (type === "MULTIPLE_CHOICE")
@@ -426,6 +442,7 @@ export default function TopicQuestionsPage() {
       MULTIPLE_CHOICE: 0,
       TRUE_FALSE: 0,
       OPEN: 0,
+      FILL_IN: 0,
     };
     const byDifficulty: Record<Difficulty, number> = {
       easy: 0,
@@ -658,16 +675,20 @@ export default function TopicQuestionsPage() {
                 <div className="text-sm font-semibold text-gray-900">Por tipo</div>
                 <div className="mt-3 grid gap-2 text-sm text-gray-700">
                   <div className="flex items-center justify-between">
-                    <span>Multiple choice</span>
+                    <span>Opción múltiple</span>
                     <Badge tone="gray">{stats.byType.MULTIPLE_CHOICE}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>True/False</span>
+                    <span>Verdadero / Falso</span>
                     <Badge tone="gray">{stats.byType.TRUE_FALSE}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Open</span>
+                    <span>A desarrollar</span>
                     <Badge tone="gray">{stats.byType.OPEN}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Completar</span>
+                    <Badge tone="gray">{stats.byType.FILL_IN}</Badge>
                   </div>
                 </div>
               </div>
@@ -723,11 +744,13 @@ export default function TopicQuestionsPage() {
                       setOptionsText("Opción A\nOpción B\nOpción C\nOpción D");
                     if (next === "TRUE_FALSE") setOptionsText("");
                     if (next === "OPEN") setOptionsText("");
+                    if (next === "FILL_IN") { setOptionsText(""); setRequiresJustification(false); }
                   }}
                 >
                   <option value="MULTIPLE_CHOICE">Opción múltiple</option>
                   <option value="TRUE_FALSE">Verdadero / Falso</option>
                   <option value="OPEN">A desarrollar</option>
+                  <option value="FILL_IN">Completar</option>
                 </SelectPretty>
               </label>
 
@@ -833,6 +856,71 @@ export default function TopicQuestionsPage() {
                     Falso
                   </label>
                 </div>
+
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={requiresJustification}
+                      onChange={(e) => setRequiresJustification(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">
+                      Requiere justificación escrita
+                    </span>
+                  </label>
+
+                  {requiresJustification ? (
+                    <div className="mt-3">
+                      <label className="grid gap-2">
+                        <span className="text-sm text-gray-700">
+                          Renglones para la justificación
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={openLines}
+                            onChange={(e) =>
+                              setOpenLines(Math.max(1, Math.min(50, Number(e.target.value))))
+                            }
+                            className="w-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                          />
+                          <span className="text-sm text-gray-500">renglones (default: 4)</span>
+                        </div>
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {type === "OPEN" ? (
+              <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-sm font-semibold text-gray-900">
+                  Espacio para la respuesta
+                </div>
+                <div className="mt-3">
+                  <label className="grid gap-2">
+                    <span className="text-sm text-gray-700">
+                      Cantidad de renglones en el examen impreso
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={openLines}
+                        onChange={(e) =>
+                          setOpenLines(Math.max(1, Math.min(50, Number(e.target.value))))
+                        }
+                        className="w-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <span className="text-sm text-gray-500">renglones (default: 4)</span>
+                    </div>
+                  </label>
+                </div>
               </div>
             ) : null}
 
@@ -894,6 +982,7 @@ export default function TopicQuestionsPage() {
                     <option value="MULTIPLE_CHOICE">Opción múltiple</option>
                     <option value="TRUE_FALSE">Verdadero / Falso</option>
                     <option value="OPEN">A desarrollar</option>
+                    <option value="FILL_IN">Completar</option>
                   </SelectPretty>
                 </label>
 
@@ -1062,6 +1151,11 @@ export default function TopicQuestionsPage() {
                                       Respuesta correcta:
                                     </span>{" "}
                                     {q.correctIndex === 0 ? "Verdadero" : "Falso"}
+                                    {q.requiresJustification ? (
+                                      <span className="ml-2 inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs text-orange-700">
+                                        Requiere justificación
+                                      </span>
+                                    ) : null}
                                   </div>
                                 ) : null}
 
@@ -1072,6 +1166,15 @@ export default function TopicQuestionsPage() {
                                       Opción correcta:
                                     </span>{" "}
                                     {q.correctIndex + 1}
+                                  </div>
+                                ) : null}
+
+                                {q.type === "OPEN" && q.openLines ? (
+                                  <div className="mt-4 text-sm text-gray-700">
+                                    <span className="font-semibold text-gray-900">
+                                      Renglones para respuesta:
+                                    </span>{" "}
+                                    {q.openLines}
                                   </div>
                                 ) : null}
 

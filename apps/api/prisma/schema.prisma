@@ -95,22 +95,24 @@ model Topic {
 }
 
 model Question {
-  id            String             @id @default(cuid())
-  institutionId String
-  subjectId     String
-  topicId       String
-  type          QuestionType       @default(MULTIPLE_CHOICE)
-  statement     String
-  options       Json?
-  correctIndex  Int?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  difficulty    QuestionDifficulty @default(medium)
-  modelAnswer   String?
-  examItems     ExamQuestion[]
-  institution   Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  subject       Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  topic         Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  id                     String             @id @default(cuid())
+  institutionId          String
+  subjectId              String
+  topicId                String
+  type                   QuestionType       @default(MULTIPLE_CHOICE)
+  statement              String
+  options                Json?
+  correctIndex           Int?
+  openLines              Int?
+  requiresJustification  Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  difficulty             QuestionDifficulty @default(medium)
+  modelAnswer            String?
+  examItems              ExamQuestion[]
+  institution            Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  subject                Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic                  Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
   @@index([institutionId])
   @@index([subjectId])
@@ -198,6 +200,7 @@ enum QuestionType {
   MULTIPLE_CHOICE
   TRUE_FALSE
   OPEN
+  FILL_IN
 }
 
 enum QuestionDifficulty {

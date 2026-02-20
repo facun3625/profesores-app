@@ -1,5 +1,6 @@
 import {
     IsArray,
+    IsBoolean,
     IsEnum,
     IsInt,
     IsNumber,
@@ -34,4 +35,14 @@ export class UpdateQuestionDto {
     @IsOptional()
     @IsString()
     modelAnswer?: string;
+
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Max(50)
+    openLines?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    requiresJustification?: boolean;
 }

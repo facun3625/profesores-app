@@ -20,7 +20,7 @@ type StockPlan = Record<QuestionType, Record<QuestionDifficulty, number>>;
 
 @Injectable()
 export class ExamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private requireInstitutionId(institutionId: string | null | undefined) {
     if (!institutionId) {
@@ -210,6 +210,11 @@ export class ExamsService {
         [QuestionDifficulty.medium]: 0,
         [QuestionDifficulty.hard]: 0,
       },
+      [QuestionType.FILL_IN]: {
+        [QuestionDifficulty.easy]: 0,
+        [QuestionDifficulty.medium]: 0,
+        [QuestionDifficulty.hard]: 0,
+      },
     };
   }
 
@@ -236,6 +241,7 @@ export class ExamsService {
         MULTIPLE_CHOICE: dto.typeCounts?.MULTIPLE_CHOICE ?? 0,
         TRUE_FALSE: dto.typeCounts?.TRUE_FALSE ?? 0,
         OPEN: dto.typeCounts?.OPEN ?? 0,
+        FILL_IN: dto.typeCounts?.FILL_IN ?? 0,
       },
       difficulties: dto.difficulties as QuestionDifficulty[],
       splitEven: this.splitEven.bind(this),
@@ -265,7 +271,8 @@ export class ExamsService {
     const sumTypes =
       (dto.typeCounts.MULTIPLE_CHOICE ?? 0) +
       (dto.typeCounts.TRUE_FALSE ?? 0) +
-      (dto.typeCounts.OPEN ?? 0);
+      (dto.typeCounts.OPEN ?? 0) +
+      (dto.typeCounts.FILL_IN ?? 0);
 
     if (sumTypes !== dto.totalQuestions) {
       throw new BadRequestException("typeCounts sum must equal totalQuestions");
@@ -315,7 +322,7 @@ export class ExamsService {
       if (ids.length < d.count) {
         throw new BadRequestException(
           `Not enough questions for type=${d.type} difficulty=${d.difficulty}. ` +
-            `Needed ${d.count}, available ${ids.length}.`,
+          `Needed ${d.count}, available ${ids.length}.`,
         );
       }
 
@@ -564,7 +571,7 @@ export class ExamsService {
     };
   }
 
-  
+
 
   async previewQuestions(institutionIdRaw: string, dto: GenerateExamDto) {
     const institutionId = this.requireInstitutionId(institutionIdRaw);

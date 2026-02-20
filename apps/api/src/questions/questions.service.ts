@@ -82,6 +82,11 @@ export class QuestionsService {
         correctIndex = null;
         break;
 
+      case QuestionType.FILL_IN:
+        options = null;
+        correctIndex = null;
+        break;
+
       default:
         throw new BadRequestException('Invalid question type');
     }
@@ -97,6 +102,8 @@ export class QuestionsService {
         options,
         correctIndex,
         modelAnswer: dto.modelAnswer,
+        openLines: dto.openLines ?? null,
+        requiresJustification: dto.requiresJustification ?? false,
       },
     });
   }
@@ -203,6 +210,7 @@ export class QuestionsService {
       QuestionType.MULTIPLE_CHOICE,
       QuestionType.TRUE_FALSE,
       QuestionType.OPEN,
+      QuestionType.FILL_IN,
     ];
     const diffs: QuestionDifficulty[] = [
       QuestionDifficulty.easy,
@@ -265,7 +273,7 @@ export class QuestionsService {
         throw new BadRequestException('TRUE_FALSE correctIndex must be 0 or 1');
       }
       options = ['Verdadero', 'Falso'];
-    } else if (type === QuestionType.OPEN) {
+    } else if (type === QuestionType.OPEN || type === QuestionType.FILL_IN) {
       options = null;
       correctIndex = null;
     }
@@ -279,6 +287,10 @@ export class QuestionsService {
         options: options ?? Prisma.JsonNull,
         correctIndex: correctIndex,
         modelAnswer: dto.modelAnswer,
+        openLines: dto.openLines !== undefined ? dto.openLines : question.openLines,
+        requiresJustification: dto.requiresJustification !== undefined
+          ? dto.requiresJustification
+          : question.requiresJustification,
       },
     });
   }
