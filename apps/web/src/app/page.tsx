@@ -169,12 +169,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="space-y-10 py-2">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Bienvenido de nuevo 👋</h1>
-        <p className="mt-2 text-lg text-gray-500">Aquí tienes un resumen de lo que está pasando en tus instituciones.</p>
-      </header>
-
+    <div className="space-y-8">
       {error && (
         <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
           {error instanceof Error ? error.message : "No se pudo cargar el dashboard"}
