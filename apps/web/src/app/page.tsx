@@ -13,6 +13,10 @@ function safeLSGet(key: string) {
   }
 }
 
+function cn(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
 // --- Dashboard Icons ---
 const DashIcons = {
   Institutions: () => (
