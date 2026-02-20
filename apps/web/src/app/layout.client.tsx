@@ -402,7 +402,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
         <div className="pt-4 border-t border-gray-100 space-y-1">
           <NavLink
-            label="Generar"
+            label="Generar Exámenes"
             active={pathname.startsWith("/exams/builder") || pathname.startsWith("/exams/manual")}
             icon={Icons.Generate}
             subItems={[
