@@ -404,7 +404,7 @@ export default function UsersPage() {
                 {/* Create form */}
                 {showCreate && (
                     <section className="mt-6 rounded-2xl border border-blue-200 bg-white/90 p-6 shadow-sm">
-                        <div className="mb-4 text-sm font-semibold text-gray-900">Nuevoprofesor</div>
+                        <div className="mb-4 text-sm font-semibold text-gray-900">Nuevo profesor</div>
                         <ProfessorForm
                             institutions={institutions}
                             onSave={handleCreate}
@@ -432,10 +432,18 @@ export default function UsersPage() {
                     </div>
 
                     {initialLoading ? (
-                        <div className="px-6 py-8 text-sm text-gray-500">Cargando…</div>
+                        <div className="px-6 py-12 text-center text-sm text-gray-400">Cargando…</div>
+                    ) : filtered.length === 0 && !search ? (
+                        <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">👩‍🏫</div>
+                            <div className="text-sm font-medium text-gray-700">Todavía no hay profesores</div>
+                            <p className="text-xs text-gray-400 max-w-xs">
+                                Creá el primero con el botón <strong className="text-gray-600">+ Nuevo profesor</strong> y asignale instituciones y materias.
+                            </p>
+                        </div>
                     ) : filtered.length === 0 ? (
-                        <div className="px-6 py-8 text-sm text-gray-500">
-                            No hay profesores todavía. Creá uno con el botón de arriba.
+                        <div className="px-6 py-10 text-center text-sm text-gray-400">
+                            Sin resultados para <strong className="text-gray-600">{search}</strong>.
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">

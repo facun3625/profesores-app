@@ -12,10 +12,13 @@ type MeResponse = {
     email: string;
     name?: string | null;
     activeInstitutionId?: string | null;
+    activeRole?: string | null;
+    mustChangePassword?: boolean;
   };
   activeInstitution?: { id: string; name: string } | null;
   activeInstitutionId?: string | null;
   institution?: { id: string; name: string } | null;
+  institutions?: Array<{ id: string; name: string; role: string }> | null;
 };
 
 function getCookie(name: string) {
@@ -178,17 +181,25 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return name || email || "Cuenta";
   }, [me?.user?.name, me?.user?.email]);
 
-  const navItems = useMemo(
+  const isAdmin = me?.user?.activeRole === "admin" || me?.user?.activeRole == null;
+  const institutionCount = me?.institutions?.length ?? 1;
+
+  const allNavItems = useMemo(
     () => [
-      { href: "/institutions", label: "Mis instituciones", group: "core" as const },
-      { href: "/subjects", label: "Mis materias", group: "core" as const },
-      { href: "/exams", label: "Mis exámenes", group: "core" as const },
-      { href: "/users", label: "Profesores", group: "core" as const },
-      { href: "/exams/builder", label: "Examen automático", group: "gen" as const },
-      { href: "/exams/manual", label: "Examen manual", group: "gen" as const },
-      { href: "/activity-log", label: "Actividad", group: "gen" as const },
+      { href: "/institutions", label: "Mis instituciones", group: "core" as const, adminOnly: false },
+      { href: "/subjects", label: "Mis materias", group: "core" as const, adminOnly: false },
+      { href: "/exams", label: "Mis exámenes", group: "core" as const, adminOnly: false },
+      { href: "/users", label: "Profesores", group: "core" as const, adminOnly: true },
+      { href: "/exams/builder", label: "Examen automático", group: "gen" as const, adminOnly: false },
+      { href: "/exams/manual", label: "Examen manual", group: "gen" as const, adminOnly: false },
+      { href: "/activity-log", label: "Actividad", group: "gen" as const, adminOnly: true },
     ],
     []
+  );
+
+  const navItems = useMemo(
+    () => allNavItems.filter((it) => !it.adminOnly || isAdmin),
+    [allNavItems, isAdmin]
   );
 
   const coreItems = useMemo(() => navItems.filter((x) => x.group === "core"), [navItems]);
@@ -212,6 +223,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       router.replace(`/login?next=${encodeURIComponent(next)}`);
     }
   }, [ready, publicPage, pathname, router]);
+
+  // Redirigir si profesor intenta entrar a rutas solo admin
+  const ADMIN_ROUTES = ["/users", "/activity-log"];
+  useEffect(() => {
+    if (!ready || publicPage || !me) return;
+    if (!isAdmin && ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
+      router.replace("/");
+    }
+  }, [ready, publicPage, me, isAdmin, pathname, router]);
 
   async function refreshActiveInstitution() {
     const lsName = (safeLSGet("activeInstitutionName") || "").trim();
@@ -368,21 +388,33 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
             <div className="flex items-center gap-3">
               {/* Institución (desktop) */}
-              <div className="hidden sm:flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                <div className="text-right leading-tight">
-                  <div className="text-[11px] text-gray-500">Institución activa</div>
-                  <div className="max-w-[220px] truncate text-sm font-semibold text-gray-900">
-                    {activeLabel}
+              {institutionCount > 1 && (
+                <div className="hidden sm:flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+                  <div className="text-right leading-tight">
+                    <div className="text-[11px] text-gray-500">Institución activa</div>
+                    <div className="max-w-[220px] truncate text-sm font-semibold text-gray-900">
+                      {activeLabel}
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/institutions"
+                    className="inline-flex h-8 items-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
+                  >
+                    Cambiar
+                  </Link>
+                </div>
+              )}
+              {institutionCount <= 1 && (
+                <div className="hidden sm:flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
+                  <div className="text-right leading-tight">
+                    <div className="text-[11px] text-gray-500">Institución activa</div>
+                    <div className="max-w-[220px] truncate text-sm font-semibold text-gray-900">
+                      {activeLabel}
+                    </div>
                   </div>
                 </div>
-
-                <Link
-                  href="/institutions"
-                  className="inline-flex h-8 items-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
-                >
-                  Cambiar
-                </Link>
-              </div>
+              )}
 
               {/* Hamburguesa (mobile) */}
               <div ref={mobileRef} className="relative md:hidden">

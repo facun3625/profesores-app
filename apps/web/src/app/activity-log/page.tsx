@@ -194,10 +194,14 @@ export default function ActivityLogPage() {
                     </div>
 
                     {loading ? (
-                        <div className="px-6 py-8 text-sm text-gray-500">Cargando…</div>
+                        <div className="px-6 py-12 text-center text-sm text-gray-400">Cargando…</div>
                     ) : filtered.length === 0 ? (
-                        <div className="px-6 py-8 text-sm text-gray-500">
-                            Sin actividad registrada para los filtros seleccionados.
+                        <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-purple-50 text-3xl">📋</div>
+                            <div className="text-sm font-medium text-gray-700">Sin actividad registrada</div>
+                            <p className="text-xs text-gray-400 max-w-xs">
+                                Los cambios que hagas vos o tus profesores en preguntas aparecerán acá.
+                            </p>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">

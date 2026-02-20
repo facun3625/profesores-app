@@ -21,7 +21,7 @@ type LoginInput = {
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
@@ -143,6 +143,11 @@ export class AuthService {
       orderBy: { createdAt: "asc" },
     });
 
+    // Determinar el rol en la institución activa
+    const activeId = user.activeInstitutionId;
+    const activeMembership = memberships.find((m) => m.institutionId === activeId);
+    const activeRole = activeMembership?.role ?? memberships[0]?.role ?? null;
+
     return {
       user: {
         id: user.id,
@@ -154,6 +159,8 @@ export class AuthService {
         country: user.country,
         status: user.status,
         activeInstitutionId: user.activeInstitutionId,
+        activeRole,                     // "admin" | "professor" | null
+        mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -166,6 +173,7 @@ export class AuthService {
       })),
     };
   }
+
 
   async updateMe(
     userId: string,
