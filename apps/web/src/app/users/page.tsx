@@ -369,173 +369,169 @@ export default function UsersPage() {
     }, [professors, search]);
 
     return (
-        <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-            <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-semibold tracking-tight text-blue-900">
+                        Equipo
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-600">
+                        Gestioná el acceso de tus profesores a instituciones y materias.
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Badge tone="blue">{professors.length} total</Badge>
+                    {!showCreate && (
+                        <button
+                            type="button"
+                            onClick={() => { setShowCreate(true); setEditingId(null); }}
+                            className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                            + Nuevo profesor
+                        </button>
+                    )}
+                </div>
+            </div>
 
-            <div className="mx-auto w-full max-w-6xl">
-                {/* Header */}
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-blue-900">
-                            Profesores
-                        </h1>
-                        <p className="mt-1 text-sm text-gray-600">
-                            Gestioná el acceso de tus profesores a instituciones y materias.
-                        </p>
-                    </div>
+            {error && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                </div>
+            )}
+
+            {/* Create form */}
+            {showCreate && (
+                <section className="mt-6 rounded-2xl border border-blue-200 bg-white/90 p-6 shadow-sm">
+                    <div className="mb-4 text-sm font-semibold text-gray-900">Nuevo profesor</div>
+                    <ProfessorForm
+                        institutions={institutions}
+                        onSave={handleCreate}
+                        onCancel={() => setShowCreate(false)}
+                        loading={loading}
+                    />
+                </section>
+            )}
+
+            {/* List */}
+            <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
-                        <Badge tone="blue">{professors.length} total</Badge>
-                        {!showCreate && (
-                            <button
-                                type="button"
-                                onClick={() => { setShowCreate(true); setEditingId(null); }}
-                                className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
-                            >
-                                + Nuevo profesor
-                            </button>
-                        )}
+                        <div className="h-5 w-1 rounded-full bg-blue-600" />
+                        <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                            Tu Equipo
+                        </div>
                     </div>
+                    <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Buscar por nombre o email…"
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[280px]"
+                    />
                 </div>
 
-                {error && (
-                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {error}
+                {initialLoading ? (
+                    <div className="px-6 py-12 text-center text-sm text-gray-400">Cargando…</div>
+                ) : filtered.length === 0 && !search ? (
+                    <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">👩‍🏫</div>
+                        <div className="text-sm font-medium text-gray-700">Todavía no hay profesores</div>
+                        <p className="text-xs text-gray-400 max-w-xs">
+                            Creá el primero con el botón <strong className="text-gray-600">+ Nuevo profesor</strong> y asignale instituciones y materias.
+                        </p>
                     </div>
-                )}
-
-                {/* Create form */}
-                {showCreate && (
-                    <section className="mt-6 rounded-2xl border border-blue-200 bg-white/90 p-6 shadow-sm">
-                        <div className="mb-4 text-sm font-semibold text-gray-900">Nuevo profesor</div>
-                        <ProfessorForm
-                            institutions={institutions}
-                            onSave={handleCreate}
-                            onCancel={() => setShowCreate(false)}
-                            loading={loading}
-                        />
-                    </section>
-                )}
-
-                {/* List */}
-                <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
-                    <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="h-5 w-1 rounded-full bg-blue-600" />
-                            <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-                                Tus Profesores
-                            </div>
-                        </div>
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Buscar por nombre o email…"
-                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[280px]"
-                        />
+                ) : filtered.length === 0 ? (
+                    <div className="px-6 py-10 text-center text-sm text-gray-400">
+                        Sin resultados para <strong className="text-gray-600">{search}</strong>.
                     </div>
+                ) : (
+                    <div className="divide-y divide-gray-100">
+                        {filtered.map((p) => {
+                            const isEditing = editingId === p.id;
+                            const fullName = [p.name, p.lastName].filter(Boolean).join(" ") || p.email;
 
-                    {initialLoading ? (
-                        <div className="px-6 py-12 text-center text-sm text-gray-400">Cargando…</div>
-                    ) : filtered.length === 0 && !search ? (
-                        <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">👩‍🏫</div>
-                            <div className="text-sm font-medium text-gray-700">Todavía no hay profesores</div>
-                            <p className="text-xs text-gray-400 max-w-xs">
-                                Creá el primero con el botón <strong className="text-gray-600">+ Nuevo profesor</strong> y asignale instituciones y materias.
-                            </p>
-                        </div>
-                    ) : filtered.length === 0 ? (
-                        <div className="px-6 py-10 text-center text-sm text-gray-400">
-                            Sin resultados para <strong className="text-gray-600">{search}</strong>.
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-gray-100">
-                            {filtered.map((p) => {
-                                const isEditing = editingId === p.id;
-                                const fullName = [p.name, p.lastName].filter(Boolean).join(" ") || p.email;
-
-                                return (
-                                    <div key={p.id} className="px-6 py-4">
-                                        {isEditing ? (
-                                            <div>
-                                                <div className="mb-3 text-sm font-semibold text-gray-900">
-                                                    Editando: {fullName}
-                                                </div>
-                                                <ProfessorForm
-                                                    institutions={institutions}
-                                                    initial={{
-                                                        name: p.name ?? "",
-                                                        lastName: p.lastName ?? "",
-                                                        email: p.email,
-                                                        access: p.access.map((a) => ({
-                                                            institutionId: a.institution.id,
-                                                            subjectIds: a.subjects.map((s) => s.id),
-                                                        })),
-                                                    }}
-                                                    onSave={(data) => handleUpdate(p.id, data)}
-                                                    onCancel={() => setEditingId(null)}
-                                                    loading={loading}
-                                                />
+                            return (
+                                <div key={p.id} className="px-6 py-4">
+                                    {isEditing ? (
+                                        <div>
+                                            <div className="mb-3 text-sm font-semibold text-gray-900">
+                                                Editando: {fullName}
                                             </div>
-                                        ) : (
-                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                                <div className="min-w-0">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="text-sm font-semibold text-gray-900">
-                                                            {fullName}
-                                                        </span>
-                                                        <Badge tone={p.status === "active" ? "green" : "red"}>
-                                                            {p.status === "active" ? "Activo" : "Suspendido"}
-                                                        </Badge>
-                                                        {p.mustChangePassword && (
-                                                            <Badge tone="yellow">Debe cambiar contraseña</Badge>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="mt-0.5 text-xs text-gray-500">{p.email}</div>
-
-                                                    <div className="mt-2 flex flex-wrap gap-2">
-                                                        {p.access.map((a) => (
-                                                            <div key={a.institution.id} className="text-xs text-gray-600">
-                                                                <span className="font-medium text-gray-800">
-                                                                    {a.institution.name}:
-                                                                </span>{" "}
-                                                                {a.subjects.map((s) => s.name).join(", ") || "—"}
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                            <ProfessorForm
+                                                institutions={institutions}
+                                                initial={{
+                                                    name: p.name ?? "",
+                                                    lastName: p.lastName ?? "",
+                                                    email: p.email,
+                                                    access: p.access.map((a) => ({
+                                                        institutionId: a.institution.id,
+                                                        subjectIds: a.subjects.map((s) => s.id),
+                                                    })),
+                                                }}
+                                                onSave={(data) => handleUpdate(p.id, data)}
+                                                onCancel={() => setEditingId(null)}
+                                                loading={loading}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="text-sm font-semibold text-gray-900">
+                                                        {fullName}
+                                                    </span>
+                                                    <Badge tone={p.status === "active" ? "green" : "red"}>
+                                                        {p.status === "active" ? "Activo" : "Suspendido"}
+                                                    </Badge>
+                                                    {p.mustChangePassword && (
+                                                        <Badge tone="yellow">Debe cambiar contraseña</Badge>
+                                                    )}
                                                 </div>
 
-                                                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => { setEditingId(p.id); setShowCreate(false); }}
-                                                        className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                                    >
-                                                        Editar
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleStatus(p)}
-                                                        disabled={loading}
-                                                        className={cn(
-                                                            "inline-flex h-9 items-center rounded-md px-3 text-sm font-medium disabled:opacity-60",
-                                                            p.status === "active"
-                                                                ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                                                                : "border border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
-                                                        )}
-                                                    >
-                                                        {p.status === "active" ? "Suspender" : "Activar"}
-                                                    </button>
+                                                <div className="mt-0.5 text-xs text-gray-500">{p.email}</div>
+
+                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                    {p.access.map((a) => (
+                                                        <div key={a.institution.id} className="text-xs text-gray-600">
+                                                            <span className="font-medium text-gray-800">
+                                                                {a.institution.name}:
+                                                            </span>{" "}
+                                                            {a.subjects.map((s) => s.name).join(", ") || "—"}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </section>
-            </div>
-        </main>
+
+                                            <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setEditingId(p.id); setShowCreate(false); }}
+                                                    className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleStatus(p)}
+                                                    disabled={loading}
+                                                    className={cn(
+                                                        "inline-flex h-9 items-center rounded-md px-3 text-sm font-medium disabled:opacity-60",
+                                                        p.status === "active"
+                                                            ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                                                            : "border border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                                    )}
+                                                >
+                                                    {p.status === "active" ? "Suspender" : "Activar"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </section>
+        </div>
     );
 }

@@ -187,214 +187,202 @@ export default function SubjectsPage() {
   }, [subjects, search]);
 
   return (
-    <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-      <div
-        className="fixed inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-        }}
-      />
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-emerald-900">
+            Materias
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Acá se arma el mapa. Después vienen los exámenes a repartir justicia.
+          </p>
+        </div>
 
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Badge tone="emerald">{subjects.length} total</Badge>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Formulario nueva materia: solo admins */}
+      {isAdmin && (
+        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-gray-900">Nueva materia</div>
+              <div className="mt-1 text-sm text-gray-600">
+                Nombre simple y a otra cosa.
+              </div>
+            </div>
+            <Badge tone="gray">Subjects</Badge>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canCreate) createSubject();
+              }}
+              placeholder="Ej: Matemática"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+
+            <button
+              type="button"
+              disabled={!canCreate}
+              onClick={createSubject}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+            >
+              {loading ? "Creando..." : "Crear"}
+            </button>
+          </div>
+        </section>
+      )}
+
+      <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-emerald-900">
-              Materias
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Acá se arma el mapa. Después vienen los exámenes a repartir justicia.
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-1 rounded-full bg-blue-600" />
+              <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                Tus Materias
+              </div>
+            </div>
+            <div className="mt-1 text-sm text-gray-600">
+              Entrá a “Temas” para completar la estructura.
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge tone="emerald">{subjects.length} total</Badge>
+            <div className="relative w-full sm:w-[320px]">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nombre o ID…"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <Badge tone="gray">{filtered.length}</Badge>
           </div>
         </div>
 
-        {error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-            {error}
-          </div>
-        )}
+        {initialLoading ? (
+          <div className="px-6 py-8 text-sm text-gray-600">Cargando…</div>
+        ) : filtered.length ? (
+          <div className="divide-y divide-gray-100">
+            {filtered.map((s) => {
+              const isEditing = editingId === s.id;
 
-        {/* Formulario nueva materia: solo admins */}
-        {isAdmin && (
-          <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">Nueva materia</div>
-                <div className="mt-1 text-sm text-gray-600">
-                  Nombre simple y a otra cosa.
-                </div>
-              </div>
-              <Badge tone="gray">Subjects</Badge>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && canCreate) createSubject();
-                }}
-                placeholder="Ej: Matemática"
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-              />
-
-              <button
-                type="button"
-                disabled={!canCreate}
-                onClick={createSubject}
-                className="inline-flex h-10 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {loading ? "Creando..." : "Crear"}
-              </button>
-            </div>
-          </section>
-        )}
-
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-1 rounded-full bg-blue-600" />
-                <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-                  Tus Materias
-                </div>
-              </div>
-              <div className="mt-1 text-sm text-gray-600">
-                Entrá a “Temas” para completar la estructura.
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="relative w-full sm:w-[320px]">
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por nombre o ID…"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                />
-              </div>
-              <Badge tone="gray">{filtered.length}</Badge>
-            </div>
-          </div>
-
-          {initialLoading ? (
-            <div className="px-6 py-8 text-sm text-gray-600">Cargando…</div>
-          ) : filtered.length ? (
-            <div className="divide-y divide-gray-100">
-              {filtered.map((s) => {
-                const isEditing = editingId === s.id;
-
-                return (
-                  <div
-                    key={s.id}
-                    className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {!isEditing ? (
-                          <div className="truncate text-sm font-semibold text-gray-900">
-                            {highlight(s.name, search)}
-                          </div>
-                        ) : (
-                          <input
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEdit();
-                              if (e.key === "Escape") cancelEdit();
-                            }}
-                            className="w-full max-w-[360px] rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                          />
-                        )}
-                      </div>
-
-                      <div className="mt-1">
-                        <Mono>{highlight(s.id, search)}</Mono>
-                      </div>
+              return (
+                <div
+                  key={s.id}
+                  className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!isEditing ? (
+                        <div className="truncate text-sm font-semibold text-gray-900">
+                          {highlight(s.name, search)}
+                        </div>
+                      ) : (
+                        <input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEdit();
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          className="w-full max-w-[360px] rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      )}
                     </div>
 
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      {isEditing ? (
-                        <>
-                          <button
-                            type="button"
-                            disabled={loading || !editingName.trim()}
-                            onClick={saveEdit}
-                            className="inline-flex h-9 items-center rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-                          >
-                            Guardar
-                          </button>
+                    <div className="mt-1">
+                      <Mono>{highlight(s.id, search)}</Mono>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={loading || !editingName.trim()}
+                          onClick={saveEdit}
+                          className="inline-flex h-9 items-center rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={cancelEdit}
+                          className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {isAdmin && (
                           <button
                             type="button"
                             disabled={loading}
-                            onClick={cancelEdit}
+                            onClick={() => startEdit(s)}
                             className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                           >
-                            Cancelar
+                            Editar
                           </button>
-                        </>
-                      ) : (
-                        <>
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              disabled={loading}
-                              onClick={() => startEdit(s)}
-                              className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                            >
-                              Editar
-                            </button>
-                          )}
+                        )}
 
-                          <a
-                            href={`/subjects/${s.id}/topics`}
-                            className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                        <a
+                          href={`/subjects/${s.id}/topics`}
+                          className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          Temas →
+                        </a>
+
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() => setConfirmDelete({ isOpen: true, subject: s })}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60"
                           >
-                            Temas →
-                          </a>
-
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              disabled={loading}
-                              onClick={() => setConfirmDelete({ isOpen: true, subject: s })}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
                             >
-                              <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="px-6 py-8 text-sm text-gray-600">
-              No hay resultados. Probá con otro nombre o pegá un ID.
-            </div>
-          )}
-        </section>
-      </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-6 py-8 text-sm text-gray-600">
+            No hay resultados. Probá con otro nombre o pegá un ID.
+          </div>
+        )}
+      </section>
 
       <ConfirmModal
         isOpen={confirmDelete.isOpen}
@@ -406,6 +394,6 @@ export default function SubjectsPage() {
         tone="danger"
         requireConfirmationText={confirmDelete.subject?.name}
       />
-    </main>
+    </div>
   );
 }

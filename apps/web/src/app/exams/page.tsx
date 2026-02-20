@@ -645,332 +645,321 @@ export default function Page() {
   }, [openExamQuestions, dOpenQ]);
 
   return (
-    <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-      <div
-        className="fixed inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-        }}
-      />
-
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-                Exámenes guardados
-              </h1>
-              <Pill tone="gray">
-                {filtered.length} / {exams.length}
-              </Pill>
-            </div>
-            <p className="mt-1 text-sm text-gray-600">
-              Buscá, filtrá por materia/tema y descargá el PDF cuando quieras.
-            </p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+              Exámenes guardados
+            </h1>
+            <Pill tone="gray">
+              {filtered.length} / {exams.length}
+            </Pill>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <a
-              href="/exams/manual"
-              className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
-            >
-              + Nuevo examen manual
-            </a>
-
-            <a
-              href="/exams/builder"
-              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Crear examen automático
-            </a>
-
-            <button
-              onClick={loadExams}
-              disabled={loading}
-              className={cn(
-                "inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50",
-                loading && "opacity-60"
-              )}
-            >
-              {loading ? "Actualizando…" : "Refrescar"}
-            </button>
-          </div>
+          <p className="mt-1 text-sm text-gray-600">
+            Buscá, filtrá por materia/tema y descargá el PDF cuando quieras.
+          </p>
         </div>
 
-        {error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
-            {error}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/exams/manual"
+            className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+          >
+            + Nuevo examen manual
+          </a>
 
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-gray-900">Filtros</div>
-              <div className="mt-1 text-sm text-gray-600">
-                Afiná la búsqueda sin volverte loco.
-              </div>
-            </div>
-            <ExamiaMark />
-          </div>
+          <a
+            href="/exams/builder"
+            className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Crear examen automático
+          </a>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">
-                Buscar (título/desc/id)
-              </span>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Ej: fracciones, cml..., prueba..."
-                className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">Materia</span>
-              <SelectPretty
-                value={subjectId}
-                onChange={(e) => setSubjectId(e.target.value)}
-              >
-                <option value="">— todas —</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </SelectPretty>
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">Tema</span>
-              <SelectPretty
-                value={topicId}
-                onChange={(e) => setTopicId(e.target.value)}
-                disabled={!subjectId}
-              >
-                <option value="">— todos —</option>
-                {topics.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </SelectPretty>
-            </label>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <label className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Orden</span>
-              <div className="min-w-[220px]">
-                <SelectPretty
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as any)}
-                >
-                  <option value="newest">Más nuevo</option>
-                  <option value="oldest">Más viejo</option>
-                  <option value="az">A-Z</option>
-                </SelectPretty>
-              </div>
-            </label>
-
-            {(q.trim() || subjectId || topicId) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setQ("");
-                  setSubjectId("");
-                  setTopicId("");
-                  setSort("newest");
-                }}
-                className="text-sm font-medium text-gray-700 hover:underline"
-              >
-                Limpiar filtros
-              </button>
+          <button
+            onClick={loadExams}
+            disabled={loading}
+            className={cn(
+              "inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50",
+              loading && "opacity-60"
             )}
-          </div>
-        </section>
+          >
+            {loading ? "Actualizando…" : "Refrescar"}
+          </button>
+        </div>
+      </div>
 
-        <section className="mt-6 grid gap-3">
-          {filtered.length === 0 ? (
-            <div className="rounded-2xl border border-gray-200 bg-white/90 p-6 text-sm text-gray-600 shadow-sm">
-              No hay resultados con los filtros actuales.
+      {error && (
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
+          {error}
+        </div>
+      )}
+
+      <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">Filtros</div>
+            <div className="mt-1 text-sm text-gray-600">
+              Afiná la búsqueda sin volverte loco.
             </div>
-          ) : (
-            paged.map((e) => {
-              const r = resolveSubjectTopicIds(e);
-              const subjectName = r.subjectId
-                ? subjectNameById.get(r.subjectId)
-                : null;
-              const topicName = r.topicId
-                ? topicNameById.get(r.topicId)
-                : null;
-              const isOpen = openExamId === e.id;
+          </div>
+          <ExamiaMark />
+        </div>
 
-              return (
-                <div
-                  key={e.id}
-                  ref={(el) => {
-                    examRefs.current[e.id] = el;
-                  }}
-                  className="rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="truncate text-base font-semibold text-gray-900">
-                          {e.title ?? "Sin título"}
-                        </h2>
-                        {subjectName && <Pill tone="gray">{subjectName}</Pill>}
-                        {topicName && <Pill tone="gray">{topicName}</Pill>}
-                        {e.createdAt ? (
-                          <Pill tone="gray">{formatDate(e.createdAt)}</Pill>
-                        ) : null}
-                        {e.createdBy && (
-                          <Pill tone="blue">
-                            Por: {e.createdBy.name} {e.createdBy.lastName}
-                          </Pill>
-                        )}
-                      </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <label className="grid gap-2">
+            <span className="text-xs font-medium text-gray-500">
+              Buscar (título/desc/id)
+            </span>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Ej: fracciones, cml..., prueba..."
+              className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </label>
 
-                      {e.description?.trim() ? (
-                        <p className="mt-2 text-sm text-gray-600">
-                          {e.description}
-                        </p>
-                      ) : null}
-                    </div>
+          <label className="grid gap-2">
+            <span className="text-xs font-medium text-gray-500">Materia</span>
+            <SelectPretty
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+            >
+              <option value="">— todas —</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </SelectPretty>
+          </label>
 
+          <label className="grid gap-2">
+            <span className="text-xs font-medium text-gray-500">Tema</span>
+            <SelectPretty
+              value={topicId}
+              onChange={(e) => setTopicId(e.target.value)}
+              disabled={!subjectId}
+            >
+              <option value="">— todos —</option>
+              {topics.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </SelectPretty>
+          </label>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <label className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500">Orden</span>
+            <div className="min-w-[220px]">
+              <SelectPretty
+                value={sort}
+                onChange={(e) => setSort(e.target.value as any)}
+              >
+                <option value="newest">Más nuevo</option>
+                <option value="oldest">Más viejo</option>
+                <option value="az">A-Z</option>
+              </SelectPretty>
+            </div>
+          </label>
+
+          {(q.trim() || subjectId || topicId) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+                setSubjectId("");
+                setTopicId("");
+                setSort("newest");
+              }}
+              className="text-sm font-medium text-gray-700 hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-3">
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white/90 p-6 text-sm text-gray-600 shadow-sm">
+            No hay resultados con los filtros actuales.
+          </div>
+        ) : (
+          paged.map((e) => {
+            const r = resolveSubjectTopicIds(e);
+            const subjectName = r.subjectId
+              ? subjectNameById.get(r.subjectId)
+              : null;
+            const topicName = r.topicId
+              ? topicNameById.get(r.topicId)
+              : null;
+            const isOpen = openExamId === e.id;
+
+            return (
+              <div
+                key={e.id}
+                ref={(el) => {
+                  examRefs.current[e.id] = el;
+                }}
+                className="rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => openExam(e)}
-                        disabled={openLoading && !isOpen}
-                        className={cn(
-                          "inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50",
-                          openLoading && !isOpen && "opacity-60"
-                        )}
-                      >
-                        {isOpen ? "Cerrar" : openLoading ? "Cargando…" : "Ver"}
-                      </button>
-
-                      <button
-                        onClick={() => downloadPdf(e.id, e.title)}
-                        className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                        title="Descargar PDF con formato estándar"
-                      >
-                        PDF Estándar
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setSelectedExamForDownload(e);
-                          setShowCustomizeModal(true);
-                        }}
-                        className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                        title="Personalizar formato del PDF"
-                      >
-                        Personalizar PDF
-                      </button>
-
-                      <a
-                        href={`/exams/manual?from=${e.id}&mode=duplicate`}
-                        className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
-                      >
-                        Duplicar
-                      </a>
-
-                      <button
-                        onClick={() => deleteExam(e)}
-                        disabled={loading}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-100 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60 transition-colors"
-                        title="Archivar examen"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <h2 className="truncate text-base font-semibold text-gray-900">
+                        {e.title ?? "Sin título"}
+                      </h2>
+                      {subjectName && <Pill tone="gray">{subjectName}</Pill>}
+                      {topicName && <Pill tone="gray">{topicName}</Pill>}
+                      {e.createdAt ? (
+                        <Pill tone="gray">{formatDate(e.createdAt)}</Pill>
+                      ) : null}
+                      {e.createdBy && (
+                        <Pill tone="blue">
+                          Por: {e.createdBy.name} {e.createdBy.lastName}
+                        </Pill>
+                      )}
                     </div>
+
+                    {e.description?.trim() ? (
+                      <p className="mt-2 text-sm text-gray-600">
+                        {e.description}
+                      </p>
+                    ) : null}
                   </div>
 
-                  {isOpen && (
-                    <div className="mt-4 rounded-xl border border-gray-200 bg-white/70 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="text-sm font-semibold text-gray-900">
-                          Preguntas{" "}
-                          <span className="text-gray-500">
-                            ({openExamQuestions.length})
-                          </span>
-                        </div>
-
-                        <input
-                          value={openQ}
-                          onChange={(ev) => setOpenQ(ev.target.value)}
-                          placeholder="Buscar dentro del examen..."
-                          className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[360px]"
-                        />
-                      </div>
-
-                      {openExamQuestions.length === 0 ? (
-                        <div className="mt-3 text-sm text-gray-600">
-                          No hay preguntas cargadas para este examen (o el backend
-                          no las está incluyendo).
-                        </div>
-                      ) : (
-                        <ol className="mt-4 grid gap-2">
-                          {openFilteredQuestions.map((qq) => (
-                            <li
-                              key={qq.id}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-2"
-                            >
-                              <div className="text-sm font-medium text-gray-900">
-                                {qq.statement ?? "(sin enunciado)"}
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                                <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
-                                  {labelType(qq.type)}
-                                </span>
-                                <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
-                                  {qq.difficulty ?? "—"}
-                                </span>
-                                <span className="font-mono text-[11px] text-gray-500">
-                                  {qq.id}
-                                </span>
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => openExam(e)}
+                      disabled={openLoading && !isOpen}
+                      className={cn(
+                        "inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50",
+                        openLoading && !isOpen && "opacity-60"
                       )}
+                    >
+                      {isOpen ? "Cerrar" : openLoading ? "Cargando…" : "Ver"}
+                    </button>
 
-                      <div className="mt-4">
-                        <a
-                          href={`/exams/manual?from=${e.id}&mode=duplicate`}
-                          className="text-sm font-medium text-blue-700 hover:underline"
-                        >
-                          Duplicar este examen
-                        </a>
-                      </div>
-                    </div>
-                  )}
+                    <button
+                      onClick={() => downloadPdf(e.id, e.title)}
+                      className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                      title="Descargar PDF con formato estándar"
+                    >
+                      PDF Estándar
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedExamForDownload(e);
+                        setShowCustomizeModal(true);
+                      }}
+                      className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                      title="Personalizar formato del PDF"
+                    >
+                      Personalizar PDF
+                    </button>
+
+                    <a
+                      href={`/exams/manual?from=${e.id}&mode=duplicate`}
+                      className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+                    >
+                      Duplicar
+                    </a>
+
+                    <button
+                      onClick={() => deleteExam(e)}
+                      disabled={loading}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-100 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60 transition-colors"
+                      title="Archivar examen"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              );
-            })
-          )}
-        </section>
 
-        <Pagination
-          page={clampedPage}
-          totalPages={totalPages}
-          onPage={(p) => setPage(Math.max(1, Math.min(p, totalPages)))}
-          pageSize={pageSize}
-          onPageSize={(n) => {
-            setPageSize(n);
-            setPage(1);
-          }}
-          totalItems={filtered.length}
-        />
-      </div>
+                {isOpen && (
+                  <div className="mt-4 rounded-xl border border-gray-200 bg-white/70 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-sm font-semibold text-gray-900">
+                        Preguntas{" "}
+                        <span className="text-gray-500">
+                          ({openExamQuestions.length})
+                        </span>
+                      </div>
+
+                      <input
+                        value={openQ}
+                        onChange={(ev) => setOpenQ(ev.target.value)}
+                        placeholder="Buscar dentro del examen..."
+                        className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[360px]"
+                      />
+                    </div>
+
+                    {openExamQuestions.length === 0 ? (
+                      <div className="mt-3 text-sm text-gray-600">
+                        No hay preguntas cargadas para este examen (o el backend
+                        no las está incluyendo).
+                      </div>
+                    ) : (
+                      <ol className="mt-4 grid gap-2">
+                        {openFilteredQuestions.map((qq) => (
+                          <li
+                            key={qq.id}
+                            className="rounded-lg border border-gray-200 bg-white px-3 py-2"
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {qq.statement ?? "(sin enunciado)"}
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                {labelType(qq.type)}
+                              </span>
+                              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5">
+                                {qq.difficulty ?? "—"}
+                              </span>
+                              <span className="font-mono text-[11px] text-gray-500">
+                                {qq.id}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+
+                    <div className="mt-4">
+                      <a
+                        href={`/exams/manual?from=${e.id}&mode=duplicate`}
+                        className="text-sm font-medium text-blue-700 hover:underline"
+                      >
+                        Duplicar este examen
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </section>
+
+      <Pagination
+        page={clampedPage}
+        totalPages={totalPages}
+        onPage={(p) => setPage(Math.max(1, Math.min(p, totalPages)))}
+        pageSize={pageSize}
+        onPageSize={(n) => {
+          setPageSize(n);
+          setPage(1);
+        }}
+        totalItems={filtered.length}
+      />
+
       <PdfCustomizeModal
         isOpen={showCustomizeModal}
         onClose={() => {
@@ -993,6 +982,6 @@ export default function Page() {
         onCancel={() => setConfirmDelete({ isOpen: false, exam: null })}
         tone="warning"
       />
-    </main>
+    </div>
   );
 }

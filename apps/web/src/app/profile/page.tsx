@@ -181,7 +181,7 @@ export default function ProfilePage() {
 
         try {
           localStorage.setItem("me", JSON.stringify(r));
-        } catch {}
+        } catch { }
       } catch (e: any) {
         if (cancelled) return;
         setErr(e?.message ?? "No se pudo cargar el perfil");
@@ -253,7 +253,7 @@ export default function ProfilePage() {
         try {
           localStorage.setItem("me", JSON.stringify(next));
           window.dispatchEvent(new Event("me:updated"));
-        } catch {}
+        } catch { }
 
         return next;
       });
@@ -268,185 +268,171 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-        <div className="mx-auto w-full max-w-6xl">
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">
-                  Cargando…
-                </div>
-                <div className="mt-1 text-sm text-gray-600">Traemos tu info.</div>
+      <div className="space-y-6">
+        <div className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold text-gray-900">
+                Cargando…
               </div>
-              <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
+              <div className="mt-1 text-sm text-gray-600">Traemos tu info.</div>
             </div>
+            <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-      <div
-        className="fixed inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-        }}
-      />
-
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white/90 text-sm font-semibold text-gray-800 shadow-sm">
-              {avatarLabel}
-            </div>
-
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-                  Perfil
-                </h1>
-                <span className="rounded-full border border-gray-200 bg-white/80 px-2.5 py-1 text-xs text-gray-600">
-                  Cuenta
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-gray-600">Datos de tu usuario.</p>
-            </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white/90 text-sm font-semibold text-gray-800 shadow-sm">
+            {avatarLabel}
           </div>
-        </div>
 
-        {err ? (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
-            {err}
-          </div>
-        ) : null}
-
-        <div className="mt-6">
-          <section className="rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">Cuenta</div>
-                <div className="mt-1 text-sm text-gray-600">
-                  Edición por campo (sin romper nada).
-                </div>
-              </div>
-              <ExamiaMark />
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              <FieldRowPro
-                label="Nombre"
-                value={user?.name ?? ""}
-                editing={editing === "name"}
-                draft={draft.name}
-                onEdit={() => startEdit("name")}
-                onCancel={cancelEdit}
-                onSave={() => saveField("name")}
-                onDraftChange={(v) => setDraft((p) => ({ ...p, name: v }))}
-                saving={savingField === "name"}
-              />
-              <FieldRowPro
-                label="Apellido"
-                value={user?.lastName ?? ""}
-                editing={editing === "lastName"}
-                draft={draft.lastName}
-                onEdit={() => startEdit("lastName")}
-                onCancel={cancelEdit}
-                onSave={() => saveField("lastName")}
-                onDraftChange={(v) =>
-                  setDraft((p) => ({ ...p, lastName: v }))
-                }
-                saving={savingField === "lastName"}
-              />
-              <FieldRowPro
-                label="Ciudad"
-                value={user?.city ?? ""}
-                editing={editing === "city"}
-                draft={draft.city}
-                onEdit={() => startEdit("city")}
-                onCancel={cancelEdit}
-                onSave={() => saveField("city")}
-                onDraftChange={(v) => setDraft((p) => ({ ...p, city: v }))}
-                saving={savingField === "city"}
-              />
-              <FieldRowPro
-                label="Provincia"
-                value={user?.province ?? ""}
-                editing={editing === "province"}
-                draft={draft.province}
-                onEdit={() => startEdit("province")}
-                onCancel={cancelEdit}
-                onSave={() => saveField("province")}
-                onDraftChange={(v) =>
-                  setDraft((p) => ({ ...p, province: v }))
-                }
-                saving={savingField === "province"}
-              />
-              <FieldRowPro
-                label="País"
-                value={user?.country ?? ""}
-                editing={editing === "country"}
-                draft={draft.country}
-                onEdit={() => startEdit("country")}
-                onCancel={cancelEdit}
-                onSave={() => saveField("country")}
-                onDraftChange={(v) =>
-                  setDraft((p) => ({ ...p, country: v }))
-                }
-                saving={savingField === "country"}
-              />
-
-              <div className="mt-2 grid gap-2 rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="text-xs font-medium text-gray-500">Email</div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {user?.email || "—"}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="text-xs font-medium text-gray-500">User ID</div>
-                  <div className="font-mono text-[12px] text-gray-700">
-                    {user?.id || "—"}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm">
           <div>
-            <div className="text-sm font-semibold text-gray-900">Acciones</div>
-            <div className="mt-1 text-sm text-gray-600">Lo justo y necesario.</div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                Perfil
+              </h1>
+              <span className="rounded-full border border-gray-200 bg-white/80 px-2.5 py-1 text-xs text-gray-600">
+                Cuenta
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-gray-600">Datos de tu usuario.</p>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
-            >
-              Volver al dashboard
-            </button>
-
-            <button
-              type="button"
-              onClick={onLogout}
-              className="inline-flex h-9 items-center rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 text-center text-xs text-gray-500">
-          © {new Date().getFullYear()} Examia
         </div>
       </div>
-    </main>
+
+      {err ? (
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
+          {err}
+        </div>
+      ) : null}
+
+      <div className="mt-6">
+        <section className="rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-gray-900">Cuenta</div>
+              <div className="mt-1 text-sm text-gray-600">
+                Edición por campo (sin romper nada).
+              </div>
+            </div>
+            <ExamiaMark />
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <FieldRowPro
+              label="Nombre"
+              value={user?.name ?? ""}
+              editing={editing === "name"}
+              draft={draft.name}
+              onEdit={() => startEdit("name")}
+              onCancel={cancelEdit}
+              onSave={() => saveField("name")}
+              onDraftChange={(v) => setDraft((p) => ({ ...p, name: v }))}
+              saving={savingField === "name"}
+            />
+            <FieldRowPro
+              label="Apellido"
+              value={user?.lastName ?? ""}
+              editing={editing === "lastName"}
+              draft={draft.lastName}
+              onEdit={() => startEdit("lastName")}
+              onCancel={cancelEdit}
+              onSave={() => saveField("lastName")}
+              onDraftChange={(v) =>
+                setDraft((p) => ({ ...p, lastName: v }))
+              }
+              saving={savingField === "lastName"}
+            />
+            <FieldRowPro
+              label="Ciudad"
+              value={user?.city ?? ""}
+              editing={editing === "city"}
+              draft={draft.city}
+              onEdit={() => startEdit("city")}
+              onCancel={cancelEdit}
+              onSave={() => saveField("city")}
+              onDraftChange={(v) => setDraft((p) => ({ ...p, city: v }))}
+              saving={savingField === "city"}
+            />
+            <FieldRowPro
+              label="Provincia"
+              value={user?.province ?? ""}
+              editing={editing === "province"}
+              draft={draft.province}
+              onEdit={() => startEdit("province")}
+              onCancel={cancelEdit}
+              onSave={() => saveField("province")}
+              onDraftChange={(v) =>
+                setDraft((p) => ({ ...p, province: v }))
+              }
+              saving={savingField === "province"}
+            />
+            <FieldRowPro
+              label="País"
+              value={user?.country ?? ""}
+              editing={editing === "country"}
+              draft={draft.country}
+              onEdit={() => startEdit("country")}
+              onCancel={cancelEdit}
+              onSave={() => saveField("country")}
+              onDraftChange={(v) =>
+                setDraft((p) => ({ ...p, country: v }))
+              }
+              saving={savingField === "country"}
+            />
+
+            <div className="mt-2 grid gap-2 rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                <div className="text-xs font-medium text-gray-500">Email</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {user?.email || "—"}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                <div className="text-xs font-medium text-gray-500">User ID</div>
+                <div className="font-mono text-[12px] text-gray-700">
+                  {user?.id || "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm">
+        <div>
+          <div className="text-sm font-semibold text-gray-900">Acciones</div>
+          <div className="mt-1 text-sm text-gray-600">Lo justo y necesario.</div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+          >
+            Volver al dashboard
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="inline-flex h-9 items-center rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 text-center text-xs text-gray-500">
+        © {new Date().getFullYear()} Examia
+      </div>
+    </div>
   );
 }

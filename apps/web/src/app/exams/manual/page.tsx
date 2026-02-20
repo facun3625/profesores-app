@@ -439,18 +439,7 @@ export default function Page() {
   }
 
   return (
-    <main className="min-h-screen px-6 py-8">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-      <div
-        className="fixed inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-        }}
-      />
-
+    <div className="space-y-8">
       <div className="mx-auto w-full max-w-7xl">
         {/* Header */}
         <div className="mb-6 flex items-start justify-between gap-4">
@@ -757,6 +746,6 @@ export default function Page() {
         }}
         onCancel={() => setConfirmSubjectChange({ isOpen: false, pendingId: "" })}
       />
-    </main>
+    </div>
   );
 }

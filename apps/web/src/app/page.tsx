@@ -236,11 +236,6 @@ export default function Home() {
           />
         </div>
       </section>
-
-      {/* Visual background decoration */}
-      <div className="pointer-events-none fixed bottom-0 right-0 -z-10 translate-x-1/4 translate-y-1/4">
-        <div className="h-[400px] w-[400px] rounded-full bg-blue-50 blur-[100px]" />
-      </div>
     </div>
   );
 }

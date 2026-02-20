@@ -164,7 +164,7 @@ function NavLink({
           </div>
         </button>
         <div className={cn(
-          "grid transition-all duration-300 ease-in-out",
+          "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
           open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         )}>
           <div className="overflow-hidden">
@@ -509,9 +509,25 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4">
-          <div className="mx-auto max-w-6xl">
+        <main className="relative flex-1 overflow-y-auto p-4">
+          {/* Global Background Decorations */}
+          <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
+          <div
+            className="fixed inset-0 -z-10 opacity-[0.06]"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
+              backgroundSize: "72px 72px",
+            }}
+          />
+
+          <div className="relative mx-auto max-w-6xl">
             {children}
+          </div>
+
+          {/* Visual background decoration (blob) */}
+          <div className="pointer-events-none fixed bottom-0 right-0 -z-10 translate-x-1/4 translate-y-1/4">
+            <div className="h-[400px] w-[400px] rounded-full bg-blue-50 blur-[100px]" />
           </div>
         </main>
       </div>

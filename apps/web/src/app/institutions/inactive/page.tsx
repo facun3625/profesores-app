@@ -97,7 +97,7 @@ export default function InactiveInstitutionsPage() {
 
     if (!isAdmin && !initialLoading) {
         return (
-            <main className="flex h-[calc(100vh-64px)] items-center justify-center">
+            <div className="flex h-[400px] items-center justify-center">
                 <div className="text-center">
                     <h1 className="text-xl font-bold text-gray-900">Acceso denegado</h1>
                     <p className="mt-2 text-gray-600">Solo administradores pueden acceder a esta zona.</p>
@@ -105,14 +105,12 @@ export default function InactiveInstitutionsPage() {
                         Volver a instituciones
                     </Link>
                 </div>
-            </main>
+            </div>
         );
     }
 
     return (
-        <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-            <div className="fixed inset-0 -z-10 bg-gradient-to-b from-red-50 to-white" />
-
+        <div className="space-y-8">
             <div className="mx-auto w-full max-w-4xl">
                 <div className="mb-8">
                     <Link href="/institutions" className="mb-4 inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
@@ -225,6 +223,6 @@ export default function InactiveInstitutionsPage() {
                     )}
                 </div>
             </div>
-        </main>
+        </div>
     );
 }

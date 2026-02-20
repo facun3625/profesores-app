@@ -523,532 +523,519 @@ export default function Page() {
   ===================== */
 
   return (
-    <main className="min-h-[calc(100vh-64px)] px-6 py-8">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-      <div
-        className="fixed inset-0 -z-10 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-        }}
-      />
-
-      <div className="mx-auto w-full max-w-3xl">
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-              Generador de Exámenes
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Creá exámenes automáticamente desde tu banco de preguntas.
-            </p>
-          </div>
-
-          {step > 1 && step < 7 && (
-            <button
-              onClick={resetWizard}
-              className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-            >
-              Reiniciar
-            </button>
-          )}
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            Generador de Exámenes
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Creá exámenes automáticamente desde tu banco de preguntas.
+          </p>
         </div>
 
-        {/* Progress Steps */}
-        <div className="mb-8 flex items-center justify-between">
-          {[
-            { num: 1, label: "Materia" },
-            { num: 2, label: "Temas" },
-            { num: 3, label: "Cantidades" },
-            { num: 4, label: "Dificultades" },
-            { num: 5, label: "Generar" },
-          ].map((s, idx) => (
-            <div key={s.num} className="flex flex-1 items-center">
-              <div className="flex flex-col items-center">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition ${step >= s.num
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-500"
-                    }`}
-                >
-                  {s.num}
-                </div>
-                <span className="mt-2 text-xs text-gray-600">{s.label}</span>
-              </div>
-              {idx < 4 && (
-                <div
-                  className={`mx-2 h-1 flex-1 rounded transition ${step > s.num ? "bg-blue-600" : "bg-gray-200"
-                    }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-line">
-            {error}
-          </div>
+        {step > 1 && step < 7 && (
+          <button
+            onClick={resetWizard}
+            className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
+            Reiniciar
+          </button>
         )}
+      </div>
 
-        {/* Step 1: Subject */}
-        {step === 1 && (
-          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 1: Configuración inicial</h2>
-            <p className="text-sm text-gray-600 mb-6">Ingresá los datos básicos del examen y elegí la materia.</p>
-
-            <div className="space-y-4 mb-6">
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Título del examen</span>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Ej: Examen de Matemática - Unidad 1"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Descripción (opcional)</span>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Ej: Examen de repaso para el primer trimestre"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Materia</span>
-                <div className="mt-2">
-                  <SelectPretty
-                    value={subjectId}
-                    onChange={(e) => setSubjectId(e.target.value)}
-                  >
-                    <option value="">— Seleccionar materia —</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </SelectPretty>
-                </div>
-              </label>
+      {/* Progress Steps */}
+      <div className="mb-8 flex items-center justify-between">
+        {[
+          { num: 1, label: "Materia" },
+          { num: 2, label: "Temas" },
+          { num: 3, label: "Cantidades" },
+          { num: 4, label: "Dificultades" },
+          { num: 5, label: "Generar" },
+        ].map((s, idx) => (
+          <div key={s.num} className="flex flex-1 items-center">
+            <div className="flex flex-col items-center">
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition ${step >= s.num
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-500"
+                  }`}
+              >
+                {s.num}
+              </div>
+              <span className="mt-2 text-xs text-gray-600">{s.label}</span>
             </div>
+            {idx < 4 && (
+              <div
+                className={`mx-2 h-1 flex-1 rounded transition ${step > s.num ? "bg-blue-600" : "bg-gray-200"
+                  }`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
 
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-line">
+          {error}
+        </div>
+      )}
+
+      {/* Step 1: Subject */}
+      {step === 1 && (
+        <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 1: Configuración inicial</h2>
+          <p className="text-sm text-gray-600 mb-6">Ingresá los datos básicos del examen y elegí la materia.</p>
+
+          <div className="space-y-4 mb-6">
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Título del examen</span>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Ej: Examen de Matemática - Unidad 1"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Descripción (opcional)</span>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Ej: Examen de repaso para el primer trimestre"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Materia</span>
+              <div className="mt-2">
+                <SelectPretty
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                >
+                  <option value="">— Seleccionar materia —</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </SelectPretty>
+              </div>
+            </label>
+          </div>
+
+          <button
+            onClick={() => setStep(2)}
+            disabled={!subjectId || !title.trim()}
+            className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {/* Step 2: Topics */}
+      {step === 2 && (
+        <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 2: Seleccioná los temas</h2>
+          <p className="text-sm text-gray-600 mb-6">Elegí uno o más temas que querés incluir en el examen.</p>
+
+          <div className="space-y-2 mb-6">
+            {topics.map((t) => (
+              <label
+                key={t.id}
+                className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+              >
+                <input
+                  type="checkbox"
+                  checked={topicIds.includes(t.id)}
+                  onChange={() => toggleTopic(t.id)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                />
+                <span className="text-sm text-gray-900">{t.name}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
             <button
-              onClick={() => setStep(2)}
-              disabled={!subjectId || !title.trim()}
-              className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              onClick={() => setStep(1)}
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Atrás
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              disabled={topicIds.length === 0}
+              className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Continuar
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Step 2: Topics */}
-        {step === 2 && (
-          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 2: Seleccioná los temas</h2>
-            <p className="text-sm text-gray-600 mb-6">Elegí uno o más temas que querés incluir en el examen.</p>
+      {/* Step 3: Question Counts */}
+      {step === 3 && (
+        <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 3: Cantidad de preguntas</h2>
+          <p className="text-sm text-gray-600 mb-6">Indicá cuántas preguntas de cada tipo querés incluir.</p>
 
-            <div className="space-y-2 mb-6">
-              {topics.map((t) => (
-                <label
-                  key={t.id}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
-                >
-                  <input
-                    type="checkbox"
-                    checked={topicIds.includes(t.id)}
-                    onChange={() => toggleTopic(t.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <span className="text-sm text-gray-900">{t.name}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(1)}
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
-                Atrás
-              </button>
-              <button
-                onClick={() => setStep(3)}
-                disabled={topicIds.length === 0}
-                className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Continuar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Question Counts */}
-        {step === 3 && (
-          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 3: Cantidad de preguntas</h2>
-            <p className="text-sm text-gray-600 mb-6">Indicá cuántas preguntas de cada tipo querés incluir.</p>
-
-            <div className="space-y-4 mb-6">
-              {/* Multiple Choice */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">Opción múltiple</label>
-                  <span className="text-xs font-medium text-blue-600">
-                    {stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0} disponibles
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  max={stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0}
-                  value={mc}
-                  onChange={(e) => {
-                    const max = stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0;
-                    const val = Math.min(Math.max(0, +e.target.value), max);
-                    setMc(val);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="0"
-                />
-              </div>
-
-              {/* True/False */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">Verdadero / Falso</label>
-                  <span className="text-xs font-medium text-blue-600">
-                    {stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0} disponibles
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  max={stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0}
-                  value={tf}
-                  onChange={(e) => {
-                    const max = stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0;
-                    const val = Math.min(Math.max(0, +e.target.value), max);
-                    setTf(val);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Open */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">A desarrollar</label>
-                  <span className="text-xs font-medium text-blue-600">
-                    {stockByType?.find(s => s.type === "OPEN")?.total || 0} disponibles
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  max={stockByType?.find(s => s.type === "OPEN")?.total || 0}
-                  value={op}
-                  onChange={(e) => {
-                    const max = stockByType?.find(s => s.type === "OPEN")?.total || 0;
-                    const val = Math.min(Math.max(0, +e.target.value), max);
-                    setOp(val);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Fill In */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">Completar</label>
-                  <span className="text-xs font-medium text-blue-600">
-                    {stockByType?.find(s => s.type === "FILL_IN")?.total || 0} disponibles
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  max={stockByType?.find(s => s.type === "FILL_IN")?.total || 0}
-                  value={fi}
-                  onChange={(e) => {
-                    const max = stockByType?.find(s => s.type === "FILL_IN")?.total || 0;
-                    const val = Math.min(Math.max(0, +e.target.value), max);
-                    setFi(val);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            <div className="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4">
-              <p className="text-sm font-medium text-blue-900">
-                Total: <span className="text-lg">{totalQuestions}</span> preguntas seleccionadas
-              </p>
-              {totalQuestions > 0 && (
-                <div className="mt-2 text-xs text-blue-700 space-y-1">
-                  {mc > 0 && <div>• {mc} Opción múltiple</div>}
-                  {tf > 0 && <div>• {tf} Verdadero/Falso</div>}
-                  {op > 0 && <div>• {op} A desarrollar</div>}
-                  {fi > 0 && <div>• {fi} Completar</div>}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(2)}
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
-                Atrás
-              </button>
-              <button
-                onClick={() => setStep(4)}
-                disabled={totalQuestions === 0}
-                className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Continuar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Difficulties */}
-        {step === 4 && (
-          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 4: Dificultades</h2>
-            <p className="text-sm text-gray-600 mb-6">Seleccioná qué niveles de dificultad querés incluir.</p>
-
-            <div className="space-y-3 mb-6">
-              {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
-                <label
-                  key={d}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
-                >
-                  <input
-                    type="checkbox"
-                    checked={difficulties.includes(d)}
-                    onChange={() => toggleDifficulty(d)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <span className="text-sm text-gray-900 capitalize">
-                    {d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"}
-                  </span>
-                </label>
-              ))}
-            </div>
-
-
-            {/* Validación en tiempo real */}
-            {difficulties.length > 0 && (() => {
-              const validation = validateDifficulties();
-
-              // Mostrar ERROR si no es válido
-              if (!validation.valid && validation.message) {
-                return (
-                  <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-                    <div className="text-sm text-red-700 whitespace-pre-line">
-                      {validation.message}
-                    </div>
-                  </div>
-                );
-              }
-
-              // Mostrar WARNINGS si es válido pero hay advertencias
-              if (validation.warnings && validation.warnings.length > 0) {
-                return (
-                  <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                    <div className="text-sm font-medium text-yellow-900 mb-2">⚠️ Advertencias:</div>
-                    <div className="space-y-1 text-xs text-yellow-800">
-                      {validation.warnings.map((w, idx) => (
-                        <div key={idx}>• {w}</div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-
-              return null;
-            })()}
-
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(3)}
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
-                Atrás
-              </button>
-              <button
-                onClick={() => setStep(5)}
-                disabled={difficulties.length === 0}
-                className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Continuar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 5: Generate */}
-        {step === 5 && (
-          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 5: Generar examen</h2>
-            <p className="text-sm text-gray-600 mb-6">Revisá la configuración y generá tu examen.</p>
-
-            <div className="mb-6 space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Materia:</span>
-                <span className="font-medium text-gray-900">
-                  {subjects.find(s => s.id === subjectId)?.name}
+          <div className="space-y-4 mb-6">
+            {/* Multiple Choice */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Opción múltiple</label>
+                <span className="text-xs font-medium text-blue-600">
+                  {stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0} disponibles
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Temas:</span>
-                <span className="font-medium text-gray-900">{topicIds.length} seleccionados</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total preguntas:</span>
-                <span className="font-medium text-gray-900">{totalQuestions}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Dificultades:</span>
-                <span className="font-medium text-gray-900">{difficulties.length} niveles</span>
-              </div>
+              <input
+                type="number"
+                min="0"
+                max={stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0}
+                value={mc}
+                onChange={(e) => {
+                  const max = stockByType?.find(s => s.type === "MULTIPLE_CHOICE")?.total || 0;
+                  const val = Math.min(Math.max(0, +e.target.value), max);
+                  setMc(val);
+                }}
+                className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="0"
+              />
             </div>
 
-            <div className="space-y-3">
-              <button
-                onClick={previewRequest}
-                disabled={loading}
-                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {loading ? "Cargando..." : "Ver Preview"}
-              </button>
-              <button
-                onClick={generateOrReuse}
-                disabled={loading}
-                className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {loading ? "Generando..." : "Generar Examen"}
-              </button>
-              <button
-                onClick={() => setStep(4)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
-                Atrás
-              </button>
+            {/* True/False */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Verdadero / Falso</label>
+                <span className="text-xs font-medium text-blue-600">
+                  {stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0} disponibles
+                </span>
+              </div>
+              <input
+                type="number"
+                min="0"
+                max={stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0}
+                value={tf}
+                onChange={(e) => {
+                  const max = stockByType?.find(s => s.type === "TRUE_FALSE")?.total || 0;
+                  const val = Math.min(Math.max(0, +e.target.value), max);
+                  setTf(val);
+                }}
+                className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="0"
+              />
+            </div>
+
+            {/* Open */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">A desarrollar</label>
+                <span className="text-xs font-medium text-blue-600">
+                  {stockByType?.find(s => s.type === "OPEN")?.total || 0} disponibles
+                </span>
+              </div>
+              <input
+                type="number"
+                min="0"
+                max={stockByType?.find(s => s.type === "OPEN")?.total || 0}
+                value={op}
+                onChange={(e) => {
+                  const max = stockByType?.find(s => s.type === "OPEN")?.total || 0;
+                  const val = Math.min(Math.max(0, +e.target.value), max);
+                  setOp(val);
+                }}
+                className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="0"
+              />
+            </div>
+
+            {/* Fill In */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Completar</label>
+                <span className="text-xs font-medium text-blue-600">
+                  {stockByType?.find(s => s.type === "FILL_IN")?.total || 0} disponibles
+                </span>
+              </div>
+              <input
+                type="number"
+                min="0"
+                max={stockByType?.find(s => s.type === "FILL_IN")?.total || 0}
+                value={fi}
+                onChange={(e) => {
+                  const max = stockByType?.find(s => s.type === "FILL_IN")?.total || 0;
+                  const val = Math.min(Math.max(0, +e.target.value), max);
+                  setFi(val);
+                }}
+                className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="0"
+              />
             </div>
           </div>
-        )}
 
-        {/* Step 6: Preview */}
-        {step === 6 && previewQuestions && (
-          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Preview ({previewQuestions.length} preguntas)
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">Estas son las preguntas que se incluirán en el examen.</p>
-
-            <div className="mb-6 max-h-96 overflow-y-auto">
-              <ol className="space-y-3">
-                {previewQuestions.map((q, idx) => (
-                  <li key={q.id} className="flex gap-3 rounded-lg border border-gray-200 p-3">
-                    <span className="font-semibold text-gray-500">{idx + 1}.</span>
-                    <div>
-                      <p className="text-sm text-gray-900">{q.statement}</p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {labelType(q.type)} · {q.difficulty === "easy" ? "Fácil" : q.difficulty === "medium" ? "Medio" : "Difícil"}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={generateOrReuse}
-                disabled={loading}
-                className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {loading ? "Generando..." : "Generar Examen"}
-              </button>
-              <button
-                onClick={() => setStep(5)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
-                Atrás
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 7: Result */}
-        {step === 7 && result && (
-          <div className={cn(
-            "rounded-2xl border backdrop-blur p-8 shadow-sm",
-            result.mode === "created" ? "border-green-200 bg-green-50/50" : "border-blue-200 bg-blue-50/50"
-          )}>
-            <h2 className={cn(
-              "text-lg font-semibold mb-2",
-              result.mode === "created" ? "text-green-900" : "text-blue-900"
-            )}>
-              {result.mode === "created" ? "¡Examen generado con éxito!" : "Examen reutilizado"}
-            </h2>
-
-            {result.mode === "reused" ? (
-              <p className="text-sm text-blue-800 mb-6">
-                El sistema agotó las combinaciones únicas posibles con estas preguntas.
-                Se muestra un examen existente creado el <b>{formatDate(result.exam.createdAt)}</b>.
-              </p>
-            ) : (
-              <p className="text-sm text-green-800 mb-6">{result.exam.title}</p>
+          <div className="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4">
+            <p className="text-sm font-medium text-blue-900">
+              Total: <span className="text-lg">{totalQuestions}</span> preguntas seleccionadas
+            </p>
+            {totalQuestions > 0 && (
+              <div className="mt-2 text-xs text-blue-700 space-y-1">
+                {mc > 0 && <div>• {mc} Opción múltiple</div>}
+                {tf > 0 && <div>• {tf} Verdadero/Falso</div>}
+                {op > 0 && <div>• {op} A desarrollar</div>}
+                {fi > 0 && <div>• {fi} Completar</div>}
+              </div>
             )}
+          </div>
 
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => downloadPdf()}
-                className="w-full rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white hover:bg-green-700 transition"
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(2)}
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Atrás
+            </button>
+            <button
+              onClick={() => setStep(4)}
+              disabled={totalQuestions === 0}
+              className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Difficulties */}
+      {step === 4 && (
+        <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 4: Dificultades</h2>
+          <p className="text-sm text-gray-600 mb-6">Seleccioná qué niveles de dificultad querés incluir.</p>
+
+          <div className="space-y-3 mb-6">
+            {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
+              <label
+                key={d}
+                className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
               >
-                Descargar PDF estándar
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCustomizeModal(true)}
-                className="w-full rounded-lg border border-green-600 bg-white px-6 py-3 text-sm font-medium text-green-700 hover:bg-green-50 transition"
-              >
-                Personalizar y descargar
-              </button>
-              <button
-                onClick={resetWizard}
-                className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
-                Crear otro examen
-              </button>
+                <input
+                  type="checkbox"
+                  checked={difficulties.includes(d)}
+                  onChange={() => toggleDifficulty(d)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                />
+                <span className="text-sm text-gray-900 capitalize">
+                  {d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"}
+                </span>
+              </label>
+            ))}
+          </div>
+
+
+          {/* Validación en tiempo real */}
+          {difficulties.length > 0 && (() => {
+            const validation = validateDifficulties();
+
+            // Mostrar ERROR si no es válido
+            if (!validation.valid && validation.message) {
+              return (
+                <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <div className="text-sm text-red-700 whitespace-pre-line">
+                    {validation.message}
+                  </div>
+                </div>
+              );
+            }
+
+            // Mostrar WARNINGS si es válido pero hay advertencias
+            if (validation.warnings && validation.warnings.length > 0) {
+              return (
+                <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                  <div className="text-sm font-medium text-yellow-900 mb-2">⚠️ Advertencias:</div>
+                  <div className="space-y-1 text-xs text-yellow-800">
+                    {validation.warnings.map((w, idx) => (
+                      <div key={idx}>• {w}</div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          })()}
+
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(3)}
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Atrás
+            </button>
+            <button
+              onClick={() => setStep(5)}
+              disabled={difficulties.length === 0}
+              className="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Generate */}
+      {step === 5 && (
+        <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Paso 5: Generar examen</h2>
+          <p className="text-sm text-gray-600 mb-6">Revisá la configuración y generá tu examen.</p>
+
+          <div className="mb-6 space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Materia:</span>
+              <span className="font-medium text-gray-900">
+                {subjects.find(s => s.id === subjectId)?.name}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Temas:</span>
+              <span className="font-medium text-gray-900">{topicIds.length} seleccionados</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Total preguntas:</span>
+              <span className="font-medium text-gray-900">{totalQuestions}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Dificultades:</span>
+              <span className="font-medium text-gray-900">{difficulties.length} niveles</span>
             </div>
           </div>
-        )}
 
-        {/* PDF Customize Modal */}
-        <PdfCustomizeModal
-          isOpen={showCustomizeModal}
-          onClose={() => setShowCustomizeModal(false)}
-          onDownload={(options) => downloadPdf(options)}
-        />
-      </div>
-    </main>
+          <div className="space-y-3">
+            <button
+              onClick={previewRequest}
+              disabled={loading}
+              className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {loading ? "Cargando..." : "Ver Preview"}
+            </button>
+            <button
+              onClick={generateOrReuse}
+              disabled={loading}
+              className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {loading ? "Generando..." : "Generar Examen"}
+            </button>
+            <button
+              onClick={() => setStep(4)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Atrás
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 6: Preview */}
+      {step === 6 && previewQuestions && (
+        <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-8 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            Preview ({previewQuestions.length} preguntas)
+          </h2>
+          <p className="text-sm text-gray-600 mb-6">Estas son las preguntas que se incluirán en el examen.</p>
+
+          <div className="mb-6 max-h-96 overflow-y-auto">
+            <ol className="space-y-3">
+              {previewQuestions.map((q, idx) => (
+                <li key={q.id} className="flex gap-3 rounded-lg border border-gray-200 p-3">
+                  <span className="font-semibold text-gray-500">{idx + 1}.</span>
+                  <div>
+                    <p className="text-sm text-gray-900">{q.statement}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {labelType(q.type)} · {q.difficulty === "easy" ? "Fácil" : q.difficulty === "medium" ? "Medio" : "Difícil"}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={generateOrReuse}
+              disabled={loading}
+              className="w-full rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {loading ? "Generando..." : "Generar Examen"}
+            </button>
+            <button
+              onClick={() => setStep(5)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Atrás
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 7: Result */}
+      {step === 7 && result && (
+        <div className={cn(
+          "rounded-2xl border backdrop-blur p-8 shadow-sm",
+          result.mode === "created" ? "border-green-200 bg-green-50/50" : "border-blue-200 bg-blue-50/50"
+        )}>
+          <h2 className={cn(
+            "text-lg font-semibold mb-2",
+            result.mode === "created" ? "text-green-900" : "text-blue-900"
+          )}>
+            {result.mode === "created" ? "¡Examen generado con éxito!" : "Examen reutilizado"}
+          </h2>
+
+          {result.mode === "reused" ? (
+            <p className="text-sm text-blue-800 mb-6">
+              El sistema agotó las combinaciones únicas posibles con estas preguntas.
+              Se muestra un examen existente creado el <b>{formatDate(result.exam.createdAt)}</b>.
+            </p>
+          ) : (
+            <p className="text-sm text-green-800 mb-6">{result.exam.title}</p>
+          )}
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => downloadPdf()}
+              className="w-full rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white hover:bg-green-700 transition"
+            >
+              Descargar PDF estándar
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCustomizeModal(true)}
+              className="w-full rounded-lg border border-green-600 bg-white px-6 py-3 text-sm font-medium text-green-700 hover:bg-green-50 transition"
+            >
+              Personalizar y descargar
+            </button>
+            <button
+              onClick={resetWizard}
+              className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Crear otro examen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Customize Modal */}
+      <PdfCustomizeModal
+        isOpen={showCustomizeModal}
+        onClose={() => setShowCustomizeModal(false)}
+        onDownload={(options) => downloadPdf(options)}
+      />
+    </div>
   );
 }
