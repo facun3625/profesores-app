@@ -504,7 +504,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4">
           <div className="mx-auto max-w-6xl">
             {children}
           </div>
