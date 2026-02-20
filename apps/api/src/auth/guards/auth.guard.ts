@@ -9,11 +9,9 @@ import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    console.log("AUTH GUARD RUNNING - v2");
-
     const req = context.switchToHttp().getRequest();
 
     const authHeader: string | undefined =
