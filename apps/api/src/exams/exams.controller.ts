@@ -31,7 +31,7 @@ export class ExamsController {
   // =========================
   @Post("manual")
   createManual(@Req() req: any, @Body() dto: CreateExamDto) {
-    return this.examsService.create(req.activeInstitutionId, dto);
+    return this.examsService.create(req.activeInstitutionId, dto, req.userId);
   }
 
   // =========================
@@ -39,12 +39,12 @@ export class ExamsController {
   // =========================
   @Post("generate")
   generate(@Req() req: any, @Body() dto: GenerateExamDto) {
-    return this.examsService.generate(req.activeInstitutionId, dto);
+    return this.examsService.generate(req.activeInstitutionId, dto, req.userId);
   }
 
   @Post("generate-or-reuse")
   generateOrReuse(@Req() req: any, @Body() dto: GenerateExamDto) {
-    return this.examsService.generateOrReuse(req.activeInstitutionId, dto);
+    return this.examsService.generateOrReuse(req.activeInstitutionId, dto, req.userId);
   }
 
   // =========================

@@ -37,6 +37,7 @@ type Exam = {
 
   items?: ExamItem[] | null;
   questions?: Question[] | null;
+  createdBy?: { id: string; name: string; lastName: string } | null;
 };
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -76,6 +77,7 @@ function safeName(name: string) {
 }
 
 function resolveSubjectTopicIds(exam: Exam) {
+  // 1. Root properties
   if (exam.subjectId || exam.topicId) {
     return {
       subjectId: exam.subjectId ?? undefined,
@@ -83,19 +85,21 @@ function resolveSubjectTopicIds(exam: Exam) {
     };
   }
 
-  const qFromItems = exam.items?.find((it) => it?.question)?.question;
-  if (qFromItems?.subjectId || qFromItems?.topicId) {
+  // 2. Extra signature if present (for automatic exams)
+  const sig = (exam as any).signature;
+  if (sig?.subjectId || sig?.topicId) {
     return {
-      subjectId: qFromItems.subjectId ?? undefined,
-      topicId: qFromItems.topicId ?? undefined,
+      subjectId: sig.subjectId ?? undefined,
+      topicId: sig.topicId ?? undefined,
     };
   }
 
-  const qFromQuestions = exam.questions?.[0];
-  if (qFromQuestions?.subjectId || qFromQuestions?.topicId) {
+  // 3. Fallback to first question found
+  const qs = resolveQuestions(exam);
+  if (qs.length > 0) {
     return {
-      subjectId: qFromQuestions.subjectId ?? undefined,
-      topicId: qFromQuestions.topicId ?? undefined,
+      subjectId: qs[0].subjectId ?? undefined,
+      topicId: qs[0].topicId ?? undefined,
     };
   }
 
@@ -796,6 +800,11 @@ export default function Page() {
                         {e.createdAt ? (
                           <Pill tone="gray">{formatDate(e.createdAt)}</Pill>
                         ) : null}
+                        {e.createdBy && (
+                          <Pill tone="blue">
+                            Por: {e.createdBy.name} {e.createdBy.lastName}
+                          </Pill>
+                        )}
                       </div>
 
                       {e.description?.trim() ? (

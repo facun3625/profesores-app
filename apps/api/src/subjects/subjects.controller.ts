@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -27,8 +28,8 @@ export class SubjectsController {
   }
 
   @Get()
-  async findAll(@Req() req: any) {
-    return this.subjectsService.findAll(req.activeInstitutionId, req.userId, req.role);
+  async findAll(@Req() req: any, @Query("institutionId") institutionId?: string) {
+    return this.subjectsService.findAll(req.activeInstitutionId, req.userId, req.role, institutionId);
   }
 
   @Patch(":id")

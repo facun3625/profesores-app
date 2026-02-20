@@ -7,8 +7,9 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateExamDto } from "./dto/create-exam.dto";
 import { GenerateExamDto } from "./dto/generate-exam.dto";
-import { Prisma, QuestionDifficulty, QuestionType } from "@prisma/client";
+import { Prisma, QuestionDifficulty, QuestionType, LogAction } from "@prisma/client";
 import * as crypto from "crypto";
+import { ActivityLogService } from "../activity-log/activity-log.service";
 
 import {
   buildInitialPlan,
@@ -20,7 +21,10 @@ type StockPlan = Record<QuestionType, Record<QuestionDifficulty, number>>;
 
 @Injectable()
 export class ExamsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: ActivityLogService,
+  ) { }
 
   private requireInstitutionId(institutionId: string | null | undefined) {
     if (!institutionId) {
@@ -29,7 +33,7 @@ export class ExamsService {
     return institutionId;
   }
 
-  async create(institutionIdRaw: string, dto: CreateExamDto) {
+  async create(institutionIdRaw: string, dto: CreateExamDto, userId?: string) {
     const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     if (!dto.questionIds || dto.questionIds.length === 0) {
@@ -46,9 +50,10 @@ export class ExamsService {
       );
     }
 
-    return this.prisma.exam.create({
+    const exam = await this.prisma.exam.create({
       data: {
         institutionId,
+        createdById: userId ?? null,
         title: dto.title,
         description: dto.description,
         items: {
@@ -63,8 +68,16 @@ export class ExamsService {
           orderBy: { order: "asc" },
           include: { question: true },
         },
+        createdBy: { select: { id: true, name: true, lastName: true } },
       },
     });
+
+    await this.activityLog.log(userId ?? "system", "CREATE", "exam", exam.id, {
+      title: dto.title,
+      questionCount: dto.questionIds.length,
+    });
+
+    return exam;
   }
 
   async list(institutionIdRaw: string) {
@@ -78,6 +91,8 @@ export class ExamsService {
           orderBy: { order: "asc" },
           include: { question: true },
         },
+        signature: true,
+        createdBy: { select: { id: true, name: true, lastName: true } },
       },
     });
   }
@@ -110,7 +125,11 @@ export class ExamsService {
 
     if (!exam) throw new ForbiddenException("Exam not found for active institution");
 
-    await this.prisma.exam.delete({ where: { id: examId } });
+    const removed = await this.prisma.exam.delete({ where: { id: examId } });
+
+    await this.activityLog.log("admin", "DELETE", "exam", examId, {
+      title: (removed as any).title,
+    });
 
     return { ok: true };
   }
@@ -360,7 +379,7 @@ export class ExamsService {
     });
   }
 
-  async generate(institutionIdRaw: string, dto: GenerateExamDto) {
+  async generate(institutionIdRaw: string, dto: GenerateExamDto, userId?: string) {
     const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     if (!dto.title || dto.title.trim().length === 0) {
@@ -382,6 +401,7 @@ export class ExamsService {
           const createdExam = await tx.exam.create({
             data: {
               institutionId,
+              createdById: userId ?? null,
               title: dto.title,
               description: dto.description,
             },
@@ -401,7 +421,7 @@ export class ExamsService {
             })),
           });
 
-          return tx.exam.findUnique({
+          const exam = await tx.exam.findUnique({
             where: { id: createdExam.id },
             include: {
               items: {
@@ -410,9 +430,21 @@ export class ExamsService {
               },
             },
           });
+
+          if (exam) {
+            await this.activityLog.log(userId ?? "system", "CREATE", "exam", exam.id, {
+              title: dto.title,
+              questionCount: ordered.length,
+              subjectIds: dto.subjectIds,
+              topicIds: dto.topicIds,
+            });
+          }
+
+          return exam;
         });
 
         if (!exam) throw new Error("Exam was not created correctly");
+
         return exam;
       } catch (err: any) {
         if (
@@ -430,7 +462,7 @@ export class ExamsService {
     );
   }
 
-  async generateOrReuse(institutionIdRaw: string, dto: GenerateExamDto) {
+  async generateOrReuse(institutionIdRaw: string, dto: GenerateExamDto, userId?: string) {
     const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     if (!dto.title || dto.title.trim().length === 0) {
@@ -453,6 +485,7 @@ export class ExamsService {
           const createdExam = await tx.exam.create({
             data: {
               institutionId,
+              createdById: userId ?? null,
               title: dto.title,
               description: dto.description,
             },
@@ -472,7 +505,7 @@ export class ExamsService {
             })),
           });
 
-          return tx.exam.findUnique({
+          const exam = await tx.exam.findUnique({
             where: { id: createdExam.id },
             include: {
               items: {
@@ -481,6 +514,17 @@ export class ExamsService {
               },
             },
           });
+
+          if (exam) {
+            await this.activityLog.log(userId ?? "system", "CREATE", "exam", exam.id, {
+              title: dto.title,
+              questionCount: ordered.length,
+              subjectIds: dto.subjectIds,
+              topicIds: dto.topicIds,
+            });
+          }
+
+          return exam;
         });
 
         if (!exam) throw new Error("Exam was not created correctly");

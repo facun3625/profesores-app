@@ -220,11 +220,13 @@ function ProfessorForm({
                                 onChange={(e) => updateAccess(idx, { institutionId: e.target.value, subjectIds: [] })}
                                 className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
                             >
-                                {institutions.map((i) => (
-                                    <option key={i.id} value={i.id}>
-                                        {i.name}
-                                    </option>
-                                ))}
+                                {institutions
+                                    .filter((inst) => !access.some((acc, accIdx) => acc.institutionId === inst.id && accIdx !== idx))
+                                    .map((i) => (
+                                        <option key={i.id} value={i.id}>
+                                            {i.name}
+                                        </option>
+                                    ))}
                             </select>
                             <button
                                 type="button"

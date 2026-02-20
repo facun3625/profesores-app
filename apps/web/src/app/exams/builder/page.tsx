@@ -29,7 +29,7 @@ type PreviewQuestionsResponse = {
 
 type GenerateOrReuseResponse = {
   mode: "created" | "reused";
-  exam: { id: string; title: string };
+  exam: { id: string; title: string; createdAt: string };
   exportPdfUrl: string;
 };
 
@@ -52,6 +52,20 @@ function labelType(t: QType) {
 
 function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
+}
+
+function safeName(name: string) {
+  return (name || "exam").replace(/[^a-z0-9\\-_ ]/gi, "").trim() || "exam";
+}
+
+function formatDate(iso: string) {
+  try {
+    return new Intl.DateTimeFormat("es-AR", {
+      dateStyle: "long",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
 }
 
 function SelectPretty({
@@ -455,9 +469,6 @@ export default function Page() {
     if (!result) return;
 
     try {
-      const safeName =
-        (result.exam.title || "exam").replace(/[^a-z0-9\-_ ]/gi, "").trim() || "exam";
-
       // Construir query params si hay opciones
       let url = result.exportPdfUrl;
       if (options) {
@@ -986,11 +997,25 @@ export default function Page() {
 
         {/* Step 7: Result */}
         {step === 7 && result && (
-          <div className="rounded-2xl border border-green-200 bg-green-50/50 backdrop-blur p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-green-900 mb-2">
-              Examen {result.mode === "created" ? "creado" : "reutilizado"}
+          <div className={cn(
+            "rounded-2xl border backdrop-blur p-8 shadow-sm",
+            result.mode === "created" ? "border-green-200 bg-green-50/50" : "border-blue-200 bg-blue-50/50"
+          )}>
+            <h2 className={cn(
+              "text-lg font-semibold mb-2",
+              result.mode === "created" ? "text-green-900" : "text-blue-900"
+            )}>
+              {result.mode === "created" ? "¡Examen generado con éxito!" : "Examen reutilizado"}
             </h2>
-            <p className="text-sm text-green-800 mb-6">{result.exam.title}</p>
+
+            {result.mode === "reused" ? (
+              <p className="text-sm text-blue-800 mb-6">
+                El sistema agotó las combinaciones únicas posibles con estas preguntas.
+                Se muestra un examen existente creado el <b>{formatDate(result.exam.createdAt)}</b>.
+              </p>
+            ) : (
+              <p className="text-sm text-green-800 mb-6">{result.exam.title}</p>
+            )}
 
             <div className="space-y-3">
               <button

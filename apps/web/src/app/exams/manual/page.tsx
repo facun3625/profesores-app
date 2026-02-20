@@ -549,8 +549,17 @@ export default function Page() {
               <SelectPretty
                 value={subjectId}
                 onChange={(e) => {
+                  const newVal = e.target.value;
+                  if (selectedIds.length > 0 && newVal !== subjectId) {
+                    const ok = window.confirm(
+                      "Si cambias de materia se deseleccionarán las preguntas actuales. ¿Continuar?"
+                    );
+                    if (!ok) return;
+                    setSelectedIds([]);
+                    setTopicIds([]);
+                  }
                   touch();
-                  setSubjectId(e.target.value);
+                  setSubjectId(newVal);
                 }}
               >
                 <option value="">— Seleccionar —</option>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDashboardData } from "@/lib/hooks";
 import { StatCardSkeleton } from "@/components/Skeleton";
 
@@ -80,9 +80,21 @@ function ActionCard({
 
 export default function Home() {
   const { data, isLoading, error } = useDashboardData();
+  const [activeInstitutionName, setActiveInstitutionName] = useState("");
 
-  const activeInstitutionName = useMemo(() => {
-    return (safeLSGet("activeInstitutionName") || "").trim();
+  useEffect(() => {
+    setActiveInstitutionName(safeLSGet("activeInstitutionName") || "");
+
+    const sync = () => {
+      setActiveInstitutionName(safeLSGet("activeInstitutionName") || "");
+    };
+
+    window.addEventListener("active-institution-changed", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("active-institution-changed", sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
   return (

@@ -31,24 +31,26 @@ export class SubjectsService {
     }
   }
 
-  async findAll(activeInstitutionId: string | null, userId?: string, role?: string) {
-    if (!activeInstitutionId) {
-      throw new ForbiddenException('No active institution selected');
+  async findAll(activeInstitutionId: string | null, userId?: string, role?: string, institutionId?: string) {
+    const targetInstitutionId = institutionId || activeInstitutionId;
+
+    if (!targetInstitutionId) {
+      throw new ForbiddenException('No target institution selected');
     }
 
     // Profesores: solo sus materias asignadas en esta institución
     if (role === "professor" && userId) {
       const access = await this.prisma.userSubject.findMany({
-        where: { userId, institutionId: activeInstitutionId },
+        where: { userId, institutionId: targetInstitutionId },
         select: { subject: { select: { id: true, name: true } } },
       });
       return access.map((a) => a.subject);
     }
 
-    // Admins: todas las materias de la institución
+    // Admins: todas las materias de la institución (usando el targetInstitutionId)
     return this.prisma.subject.findMany({
       where: {
-        institutionId: activeInstitutionId,
+        institutionId: targetInstitutionId,
       },
       orderBy: {
         name: 'asc',

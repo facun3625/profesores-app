@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { api } from "./api";
 import { getMe } from "./auth";
 
@@ -16,6 +17,32 @@ export function useMe() {
         queryFn: () => getMe() as Promise<any>,
         staleTime: 30_000,
     });
+}
+
+/**
+ * Hook que devuelve la institución activa leyéndola de localStorage
+ * y escuchando el evento personalizado 'active-institution-changed'.
+ */
+export function useActiveInstitution() {
+    const [activeId, setActiveId] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Inicial
+        setActiveId(localStorage.getItem("activeInstitutionId"));
+
+        function sync() {
+            setActiveId(localStorage.getItem("activeInstitutionId"));
+        }
+
+        window.addEventListener("active-institution-changed", sync);
+        window.addEventListener("storage", sync);
+        return () => {
+            window.removeEventListener("active-institution-changed", sync);
+            window.removeEventListener("storage", sync);
+        };
+    }, []);
+
+    return activeId;
 }
 
 /**
@@ -45,8 +72,9 @@ export function useInstitutions() {
  * Hook para obtener materias
  */
 export function useSubjects() {
+    const activeInstitutionId = useActiveInstitution();
     return useQuery({
-        queryKey: ["subjects"],
+        queryKey: ["subjects", activeInstitutionId],
         queryFn: () => api<Subject[]>("/subjects"),
     });
 }
@@ -55,18 +83,22 @@ export function useSubjects() {
  * Hook para obtener exámenes
  */
 export function useExams() {
+    const activeInstitutionId = useActiveInstitution();
     return useQuery({
-        queryKey: ["exams"],
+        queryKey: ["exams", activeInstitutionId],
         queryFn: () => api<Exam[]>("/exams"),
     });
 }
 
 /**
  * Hook para obtener datos del dashboard (optimizado con Promise.all)
+ * Ahora depende de activeInstitutionId para re-ejecutarse al cambiar de instituto.
  */
 export function useDashboardData() {
+    const activeInstitutionId = useActiveInstitution();
+
     return useQuery({
-        queryKey: ["dashboard"],
+        queryKey: ["dashboard", activeInstitutionId],
         queryFn: async () => {
             const [institutions, subjects, exams] = await Promise.all([
                 api<Institution[]>("/institutions"),

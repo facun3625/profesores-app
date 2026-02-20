@@ -17,6 +17,8 @@ type Question = {
   modelAnswer?: string | null;
   openLines?: number | null;
   requiresJustification?: boolean;
+  createdAt?: string | null;
+  createdBy?: { id: string; name: string; lastName: string } | null;
 };
 
 type ListResponse = {
@@ -135,6 +137,17 @@ function PillButton({
       {children}
     </button>
   );
+}
+
+function formatDate(iso?: string | null) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return String(iso);
+  }
 }
 
 function Chevron({ open }: { open: boolean }) {
@@ -1058,6 +1071,14 @@ export default function TopicQuestionsPage() {
                                 <Badge tone="gray">
                                   {labelDifficulty(q.difficulty)}
                                 </Badge>
+                                {q.createdAt && (
+                                  <Badge tone="gray">{formatDate(q.createdAt)}</Badge>
+                                )}
+                                {q.createdBy && (
+                                  <Badge tone="blue">
+                                    Por: {q.createdBy.name} {q.createdBy.lastName}
+                                  </Badge>
+                                )}
                               </div>
                             </div>
 

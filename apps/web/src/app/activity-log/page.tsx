@@ -200,7 +200,7 @@ export default function ActivityLogPage() {
                             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-purple-50 text-3xl">📋</div>
                             <div className="text-sm font-medium text-gray-700">Sin actividad registrada</div>
                             <p className="text-xs text-gray-400 max-w-xs">
-                                Los cambios que hagas vos o tus profesores en preguntas aparecerán acá.
+                                Los cambios que hagas vos o tus profesores aparecerán acá.
                             </p>
                         </div>
                     ) : (
@@ -221,9 +221,9 @@ export default function ActivityLogPage() {
                                             {actorName(l.actor)}
                                         </span>
                                         <span className="text-sm text-gray-500">
-                                            una pregunta
-                                            {l.detail?.statement && (
-                                                <> — <span className="italic text-gray-400 truncate max-w-[260px] inline-block align-bottom">"{l.detail.statement}"</span></>
+                                            {l.entity === "exam" ? "un examen" : "una pregunta"}
+                                            {(l.detail?.statement || l.detail?.title) && (
+                                                <> — <span className="italic text-gray-400 truncate max-w-[260px] inline-block align-bottom">"{l.detail.statement || l.detail.title}"</span></>
                                             )}
                                         </span>
                                     </div>
