@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
 import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
+import ConfirmModal from "@/components/ConfirmModal";
+import { toast } from "sonner";
 
 type Subject = { id: string; name: string };
 type Topic = { id: string; name: string; subjectId: string };
@@ -379,6 +381,11 @@ export default function Page() {
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
   const [selectedExamForDownload, setSelectedExamForDownload] = useState<Exam | null>(null);
 
+  const [confirmDelete, setConfirmDelete] = useState<{
+    isOpen: boolean;
+    exam: Exam | null;
+  }>({ isOpen: false, exam: null });
+
   useEffect(() => {
     setPage(1);
     setOpenExamId(null);
@@ -536,6 +543,28 @@ export default function Page() {
       setOpenExamQuestions([]);
     } finally {
       setOpenLoading(false);
+    }
+  }
+
+  async function deleteExam(exam: Exam) {
+    setConfirmDelete({ isOpen: true, exam });
+  }
+
+  async function onConfirmDelete() {
+    const e = confirmDelete.exam;
+    if (!e) return;
+
+    setLoading(true);
+    setConfirmDelete({ isOpen: false, exam: null });
+
+    try {
+      await api(`/exams/${e.id}`, { method: "DELETE" });
+      toast.success("Examen archivado correctamente");
+      await loadExams();
+    } catch (err: any) {
+      toast.error(err?.message || "Error al archivar el examen");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -851,6 +880,17 @@ export default function Page() {
                       >
                         Duplicar
                       </a>
+
+                      <button
+                        onClick={() => deleteExam(e)}
+                        disabled={loading}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-100 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60 transition-colors"
+                        title="Archivar examen"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
 
@@ -942,6 +982,16 @@ export default function Page() {
             downloadPdf(selectedExamForDownload.id, selectedExamForDownload.title, options);
           }
         }}
+      />
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        title="¿Archivar examen?"
+        message={`El examen "${confirmDelete.exam?.title}" desaparecerá de esta lista, pero se mantendrá guardado para propósitos de auditoría.`}
+        confirmLabel="Sí, archivar"
+        onConfirm={onConfirmDelete}
+        onCancel={() => setConfirmDelete({ isOpen: false, exam: null })}
+        tone="warning"
       />
     </main>
   );

@@ -75,4 +75,18 @@ export class SubjectsService {
       select: { id: true, name: true },
     });
   }
+
+  async remove(activeInstitutionId: string, id: string) {
+    const subject = await this.prisma.subject.findFirst({
+      where: { id, institutionId: activeInstitutionId },
+      select: { id: true },
+    });
+
+    if (!subject) throw new NotFoundException("Subject not found");
+
+    // Borrado físico con cascada habilitada en el esquema Prisma
+    return this.prisma.subject.delete({
+      where: { id },
+    });
+  }
 }

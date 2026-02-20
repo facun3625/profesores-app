@@ -92,6 +92,7 @@ model Topic {
   institutionId String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  status        EntityStatus @default(active)
   questions     Question[]
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
@@ -117,6 +118,7 @@ model Question {
   updatedAt              DateTime           @updatedAt
   difficulty             QuestionDifficulty @default(medium)
   modelAnswer            String?
+  status                 EntityStatus       @default(active)
   examItems              ExamQuestion[]
   institution            Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   subject                Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
@@ -137,6 +139,7 @@ model Exam {
   description   String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  status        EntityStatus   @default(active)
   institution   Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   createdBy     User?          @relation("ExamAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   items         ExamQuestion[]
@@ -257,4 +260,10 @@ enum QuestionDifficulty {
   easy
   medium
   hard
+}
+
+enum EntityStatus {
+  active
+  archived
+  deleted
 }

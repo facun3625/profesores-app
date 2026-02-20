@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
@@ -42,5 +43,13 @@ export class SubjectsController {
       throw new ForbiddenException("Solo los administradores pueden editar materias");
     }
     return this.subjectsService.updateName(req.activeInstitutionId, id, dto.name);
+  }
+
+  @Delete(":id")
+  async remove(@Req() req: any, @Param("id") id: string) {
+    if (req.role !== "admin") {
+      throw new ForbiddenException("Solo los administradores pueden borrar materias");
+    }
+    return this.subjectsService.remove(req.activeInstitutionId, id);
   }
 }

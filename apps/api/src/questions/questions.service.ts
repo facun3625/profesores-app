@@ -157,6 +157,7 @@ export class QuestionsService {
 
     const where: Prisma.QuestionWhereInput = {
       institutionId,
+      status: 'active', // Solo preguntas activas por defecto
       ...(subjectFilter ? { subjectId: { in: subjectFilter } } : {}),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
       ...(query.topicId ? { topicId: query.topicId } : {}),
@@ -227,7 +228,11 @@ export class QuestionsService {
 
     const grouped = await this.prisma.question.groupBy({
       by: ['type', 'difficulty'],
-      where: { institutionId, topicId: { in: resolvedTopicIds } },
+      where: {
+        institutionId,
+        topicId: { in: resolvedTopicIds },
+        status: 'active' // Solo contar las activas para las estadísticas de creación
+      },
       _count: { _all: true },
     });
 
@@ -323,7 +328,7 @@ export class QuestionsService {
 
     if (!question) throw new BadRequestException('Question not found');
     if (question.institutionId !== institutionId) {
-      throw new ForbiddenException('You do not have permission to delete this question');
+      throw new ForbiddenException('You do not have permission to archive this question');
     }
 
     await this.checkSubjectAccess(userId, institutionId, question.subjectId);
@@ -332,9 +337,14 @@ export class QuestionsService {
       subjectId: question.subjectId,
       topicId: question.topicId,
       statement: question.statement.slice(0, 100),
+      archived: true,
     });
 
-    await this.prisma.question.delete({ where: { id } });
+    // En lugar de borrar físicamente, cambiamos el estado
+    await this.prisma.question.update({
+      where: { id },
+      data: { status: 'archived' }
+    });
 
     return { ok: true };
   }

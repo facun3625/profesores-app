@@ -10,7 +10,7 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TopicsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // =========================
   // CREATE TOPIC
@@ -76,6 +76,7 @@ export class TopicsService {
       where: {
         subjectId,
         institutionId: activeInstitutionId,
+        status: 'active', // Solo temas activos por defecto
       },
       orderBy: {
         name: 'asc',
@@ -95,10 +96,12 @@ export class TopicsService {
       where: {
         id: topicId,
         institutionId: activeInstitutionId,
+        // Permitimos ver uno archivado si se tiene el ID (ej: desde un examen viejo)
       },
       select: {
         id: true,
         name: true,
+        status: true,
         subject: {
           select: {
             id: true,
@@ -113,5 +116,20 @@ export class TopicsService {
     }
 
     return topic;
+  }
+
+  async archive(activeInstitutionId: string, topicId: string) {
+    const topic = await this.prisma.topic.findFirst({
+      where: { id: topicId, institutionId: activeInstitutionId },
+      select: { id: true },
+    });
+
+    if (!topic) throw new NotFoundException("Topic not found");
+
+    return this.prisma.topic.update({
+      where: { id: topicId },
+      data: { status: 'archived' },
+      select: { id: true, name: true, status: true },
+    });
   }
 }

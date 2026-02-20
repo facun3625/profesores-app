@@ -84,7 +84,7 @@ export class ExamsService {
     const institutionId = this.requireInstitutionId(institutionIdRaw);
 
     return this.prisma.exam.findMany({
-      where: { institutionId },
+      where: { institutionId, status: 'active' },
       orderBy: { createdAt: "desc" },
       include: {
         items: {
@@ -125,10 +125,14 @@ export class ExamsService {
 
     if (!exam) throw new ForbiddenException("Exam not found for active institution");
 
-    const removed = await this.prisma.exam.delete({ where: { id: examId } });
+    const removed = await this.prisma.exam.update({
+      where: { id: examId },
+      data: { status: 'archived' }
+    });
 
     await this.activityLog.log("admin", "DELETE", "exam", examId, {
       title: (removed as any).title,
+      archived: true,
     });
 
     return { ok: true };
@@ -243,7 +247,11 @@ export class ExamsService {
   ): Promise<StockPlan> {
     const grouped = await this.prisma.question.groupBy({
       by: ["type", "difficulty"],
-      where: { institutionId, topicId: { in: topicIds } },
+      where: {
+        institutionId,
+        topicId: { in: topicIds },
+        status: 'active' // Solo usar preguntas activas para generar nuevos exámenes
+      },
       _count: { _all: true },
     });
 
@@ -332,6 +340,7 @@ export class ExamsService {
           topicId: { in: topicIds },
           type: d.type,
           difficulty: d.difficulty,
+          status: 'active', // Solo preguntas activas
         },
         select: { id: true },
       });

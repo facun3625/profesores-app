@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type Difficulty = "easy" | "medium" | "hard";
 type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN" | "FILL_IN";
@@ -249,6 +251,11 @@ export default function TopicQuestionsPage() {
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
+  const [confirmDelete, setConfirmDelete] = useState<{
+    isOpen: boolean;
+    question: Question | null;
+  }>({ isOpen: false, question: null });
+
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollTimers = useRef<Record<string, number[]>>({});
 
@@ -445,6 +452,24 @@ export default function TopicQuestionsPage() {
       setView("summary");
     } catch (e: any) {
       setError(e?.message || "Error guardando pregunta");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onConfirmDelete() {
+    const q = confirmDelete.question;
+    if (!q) return;
+
+    setLoading(true);
+    setConfirmDelete({ isOpen: false, question: null });
+
+    try {
+      await api(`/questions/${q.id}`, { method: "DELETE" });
+      toast.success("Pregunta archivada correctamente");
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || "Error al archivar la pregunta");
     } finally {
       setLoading(false);
     }
@@ -1096,6 +1121,19 @@ export default function TopicQuestionsPage() {
 
                               <button
                                 type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDelete({ isOpen: true, question: q });
+                                }}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-red-100 bg-white p-0 text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+
+                              <button
+                                type="button"
                                 onClick={() => toggleQuestion(q.id)}
                                 aria-expanded={open}
                                 className={cn(
@@ -1222,9 +1260,16 @@ export default function TopicQuestionsPage() {
           </>
         ) : null}
       </div>
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        title="¿Archivar pregunta?"
+        message="Esta pregunta dejará de estar disponible para nuevos exámenes, pero seguirá apareciendo en los exámenes generados anteriormente."
+        confirmLabel="Sí, archivar"
+        onConfirm={onConfirmDelete}
+        onCancel={() => setConfirmDelete({ isOpen: false, question: null })}
+        tone="warning"
+      />
     </main >
   );
 }
-
-
-

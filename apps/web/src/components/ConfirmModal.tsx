@@ -11,6 +11,7 @@ interface ConfirmModalProps {
     onConfirm: () => void;
     onCancel: () => void;
     tone?: "danger" | "info" | "warning";
+    requireConfirmationText?: string;
 }
 
 export default function ConfirmModal({
@@ -22,21 +23,33 @@ export default function ConfirmModal({
     onConfirm,
     onCancel,
     tone = "info",
+    requireConfirmationText,
 }: ConfirmModalProps) {
     const [mounted, setMounted] = useState(false);
+    const [confirmationInput, setConfirmationInput] = useState("");
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
+    // Reset input when modal closes/opens
+    useEffect(() => {
+        if (!isOpen) setConfirmationInput("");
+    }, [isOpen]);
+
     if (!mounted || !isOpen) return null;
 
+    const isConfirmDisabled = requireConfirmationText
+        ? confirmationInput.trim() !== requireConfirmationText.trim()
+        : false;
+
     const colors = {
-        danger: "bg-red-600 hover:bg-red-700 text-white",
-        warning: "bg-amber-500 hover:bg-amber-600 text-white",
-        info: "bg-indigo-600 hover:bg-indigo-700 text-white",
+        danger: "bg-red-600 hover:bg-red-700 text-white disabled:bg-red-300",
+        warning: "bg-amber-500 hover:bg-amber-600 text-white disabled:bg-amber-300",
+        info: "bg-indigo-600 hover:bg-indigo-700 text-white disabled:bg-indigo-300",
     };
 
+    // ... (icons remain same code)
     const icons = {
         danger: (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
@@ -84,12 +97,31 @@ export default function ConfirmModal({
                     <p className="mt-2 text-sm text-gray-600 leading-relaxed">
                         {message}
                     </p>
+
+                    {requireConfirmationText && (
+                        <div className="mt-6 w-full text-left">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Escribí <span className="text-gray-900 font-bold">"{requireConfirmationText}"</span> para confirmar:
+                            </label>
+                            <input
+                                autoFocus
+                                value={confirmationInput}
+                                onChange={(e) => setConfirmationInput(e.target.value)}
+                                className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all font-medium"
+                                placeholder={requireConfirmationText}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !isConfirmDisabled) onConfirm();
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-8 flex flex-col gap-2 sm:flex-row-reverse sm:gap-3">
                     <button
                         onClick={onConfirm}
-                        className={`inline-flex h-11 flex-1 items-center justify-center rounded-xl text-sm font-semibold transition-all active:scale-95 ${colors[tone]}`}
+                        disabled={isConfirmDisabled}
+                        className={`inline-flex h-11 flex-1 items-center justify-center rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:active:scale-100 ${colors[tone]}`}
                     >
                         {confirmLabel}
                     </button>

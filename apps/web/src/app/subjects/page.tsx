@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useIsAdmin } from "@/lib/hooks";
+import { toast } from "sonner";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type Subject = {
   id: string;
@@ -80,6 +82,11 @@ export default function SubjectsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>("");
 
+  const [confirmDelete, setConfirmDelete] = useState<{
+    isOpen: boolean;
+    subject: Subject | null;
+  }>({ isOpen: false, subject: null });
+
   async function load() {
     setError("");
 
@@ -146,6 +153,24 @@ export default function SubjectsPage() {
       await load();
     } catch (e: any) {
       setError(e?.message || "Error guardando cambios");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onDeleteConfirm() {
+    const s = confirmDelete.subject;
+    if (!s) return;
+
+    setLoading(true);
+    setConfirmDelete({ isOpen: false, subject: null });
+
+    try {
+      await api(`/subjects/${s.id}`, { method: "DELETE" });
+      toast.success("Materia eliminada correctamente");
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al eliminar la materia");
     } finally {
       setLoading(false);
     }
@@ -331,6 +356,29 @@ export default function SubjectsPage() {
                           >
                             Temas →
                           </a>
+
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              disabled={loading}
+                              onClick={() => setConfirmDelete({ isOpen: true, subject: s })}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -345,6 +393,17 @@ export default function SubjectsPage() {
           )}
         </section>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        onCancel={() => setConfirmDelete({ isOpen: false, subject: null })}
+        onConfirm={onDeleteConfirm}
+        title="¿Eliminar materia?"
+        message={`Esto es definitivo. Se borrarán todos los temas, preguntas y exámenes asociados a "${confirmDelete.subject?.name}".`}
+        confirmLabel="Eliminar permanentemente"
+        tone="danger"
+        requireConfirmationText={confirmDelete.subject?.name}
+      />
     </main>
   );
 }
