@@ -163,24 +163,29 @@ function NavLink({
             <Icons.ChevronDown />
           </div>
         </button>
-        {open && (
-          <div className="ml-4 space-y-1 border-l border-gray-100 pl-4">
-            {subItems.map((sub) => (
-              <Link
-                key={sub.href}
-                href={sub.href}
-                onClick={onClick}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                  "text-gray-500 hover:bg-blue-50 hover:text-blue-700"
-                )}
-              >
-                <sub.icon />
-                <span>{sub.label}</span>
-              </Link>
-            ))}
+        <div className={cn(
+          "grid transition-all duration-300 ease-in-out",
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        )}>
+          <div className="overflow-hidden">
+            <div className="ml-4 mt-1 space-y-1 border-l border-gray-100 pl-4">
+              {subItems.map((sub) => (
+                <Link
+                  key={sub.href}
+                  href={sub.href}
+                  onClick={onClick}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                    "text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                  )}
+                >
+                  <sub.icon />
+                  <span>{sub.label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }
