@@ -92,6 +92,9 @@ export default function TopicsPage() {
     topic: Topic | null;
   }>({ isOpen: false, topic: null });
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>("");
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -167,6 +170,38 @@ export default function TopicsPage() {
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Error al archivar el tema");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function startEdit(t: Topic) {
+    setEditingId(t.id);
+    setEditingName(t.name);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingName("");
+  }
+
+  async function saveEdit() {
+    if (!editingId) return;
+    const trimmed = editingName.trim();
+    if (!trimmed) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await api(`/topics/${editingId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: trimmed }),
+      });
+      cancelEdit();
+      await load();
+    } catch (e: any) {
+      setError(e?.message || "Error guardando cambios");
     } finally {
       setLoading(false);
     }
@@ -303,34 +338,86 @@ export default function TopicsPage() {
                   className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-gray-900">
-                      {highlight(t.name, search)}
-                    </div>
-                    <div className="mt-1">
-                      <Mono>{highlight(t.id, search)}</Mono>
-                    </div>
+                    {!editingId || editingId !== t.id ? (
+                      <>
+                        <div className="truncate text-sm font-semibold text-gray-900">
+                          {highlight(t.name, search)}
+                        </div>
+                        <div className="mt-1">
+                          <Mono>{highlight(t.id, search)}</Mono>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          autoFocus
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEdit();
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          className="w-full max-w-[360px] rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        />
+                        <div className="mt-1">
+                          <Mono>{t.id}</Mono>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    <a
-                      href={`/topics/${t.id}/questions?subjectId=${subjectId}`}
-                      className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
-                    >
-                      Gestionar preguntas →
-                    </a>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {editingId === t.id ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={loading || !editingName.trim()}
+                          onClick={saveEdit}
+                          className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={cancelEdit}
+                          className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => startEdit(t)}
+                          className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                        >
+                          Editar
+                        </button>
 
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => setConfirmDelete({ isOpen: true, topic: t })}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-100 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60 transition-colors"
-                        title="Archivar tema"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                        <a
+                          href={`/topics/${t.id}/questions?subjectId=${subjectId}`}
+                          className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          Gestionar preguntas →
+                        </a>
+
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() => setConfirmDelete({ isOpen: true, topic: t })}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-100 bg-white p-0 text-red-600 hover:bg-red-50 disabled:opacity-60 transition-colors"
+                            title="Archivar tema"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

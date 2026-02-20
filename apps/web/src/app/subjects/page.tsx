@@ -341,14 +341,16 @@ export default function SubjectsPage() {
                         </>
                       ) : (
                         <>
-                          <button
-                            type="button"
-                            disabled={loading}
-                            onClick={() => startEdit(s)}
-                            className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                          >
-                            Editar
-                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              disabled={loading}
+                              onClick={() => startEdit(s)}
+                              className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                            >
+                              Editar
+                            </button>
+                          )}
 
                           <a
                             href={`/subjects/${s.id}/topics`}

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { TopicsService } from './topics.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -26,5 +26,14 @@ export class TopicsController {
   @Delete(':topicId')
   async archive(@Req() req: any, @Param('topicId') topicId: string) {
     return this.topicsService.archive(req.activeInstitutionId, topicId);
+  }
+
+  @Patch(':topicId')
+  async updateName(
+    @Req() req: any,
+    @Param('topicId') topicId: string,
+    @Body() dto: { name: string }
+  ) {
+    return this.topicsService.updateName(req.activeInstitutionId, topicId, dto.name);
   }
 }

@@ -132,4 +132,21 @@ export class TopicsService {
       select: { id: true, name: true, status: true },
     });
   }
+
+  // =========================
+  // UPDATE TOPIC NAME
+  // =========================
+  async updateName(activeInstitutionId: string, topicId: string, name: string) {
+    const topic = await this.prisma.topic.findFirst({
+      where: { id: topicId, institutionId: activeInstitutionId },
+      select: { id: true },
+    });
+
+    if (!topic) throw new NotFoundException("Topic not found");
+
+    return this.prisma.topic.update({
+      where: { id: topicId },
+      data: { name: name.trim() },
+    });
+  }
 }
