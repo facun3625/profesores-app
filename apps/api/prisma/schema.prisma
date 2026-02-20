@@ -21,6 +21,7 @@ model User {
   city                String?
   province            String?
   country             String?
+  mustChangePassword  Boolean           @default(false)
   authProvider        AuthProvider      @default(local)
   googleSub           String?           @unique
   status              UserStatus        @default(active)
@@ -29,25 +30,29 @@ model User {
   activeInstitutionId String?
   activeInstitution   Institution?      @relation(fields: [activeInstitutionId], references: [id])
   memberships         UserInstitution[]
+  subjectAccess       UserSubject[]
   sessions            Session[]
+  createdQuestions    Question[]        @relation("QuestionAuthor")
+  activityLogs        ActivityLog[]
 
   @@index([activeInstitutionId])
 }
 
 model Institution {
-  id          String            @id @default(cuid())
-  name        String
-  plan        InstitutionPlan   @default(free)
-  status      InstitutionStatus @default(active)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  exams       Exam[]
-  signatures  ExamSignature[]
-  questions   Question[]
-  subjects    Subject[]
-  topics      Topic[]
-  activeUsers User[]
-  memberships UserInstitution[]
+  id            String            @id @default(cuid())
+  name          String
+  plan          InstitutionPlan   @default(free)
+  status        InstitutionStatus @default(active)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  exams         Exam[]
+  signatures    ExamSignature[]
+  questions     Question[]
+  subjects      Subject[]
+  topics        Topic[]
+  activeUsers   User[]
+  memberships   UserInstitution[]
+  subjectAccess UserSubject[]
 }
 
 model UserInstitution {
@@ -73,6 +78,7 @@ model Subject {
   questions     Question[]
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   topics        Topic[]
+  userAccess    UserSubject[]
 
   @@unique([institutionId, name])
   @@index([institutionId])
@@ -99,6 +105,7 @@ model Question {
   institutionId          String
   subjectId              String
   topicId                String
+  createdById            String?
   type                   QuestionType       @default(MULTIPLE_CHOICE)
   statement              String
   options                Json?
@@ -113,10 +120,12 @@ model Question {
   institution            Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   subject                Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   topic                  Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  createdBy              User?              @relation("QuestionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([institutionId])
   @@index([subjectId])
   @@index([topicId])
+  @@index([createdById])
 }
 
 model Exam {
@@ -171,6 +180,37 @@ model Session {
   @@index([userId])
 }
 
+model UserSubject {
+  id            String      @id @default(cuid())
+  userId        String
+  subjectId     String
+  institutionId String
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([userId])
+  @@index([subjectId])
+  @@index([institutionId])
+}
+
+model ActivityLog {
+  id        String      @id @default(cuid())
+  actorId   String
+  action    LogAction
+  entity    String
+  entityId  String
+  detail    Json?
+  createdAt DateTime    @default(now())
+  actor     User        @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([entityId])
+  @@index([createdAt])
+}
+
 enum AuthProvider {
   local
   google
@@ -194,6 +234,12 @@ enum InstitutionStatus {
 enum InstitutionRole {
   admin
   professor
+}
+
+enum LogAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
 enum QuestionType {

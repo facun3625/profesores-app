@@ -183,8 +183,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       { href: "/institutions", label: "Mis instituciones", group: "core" as const },
       { href: "/subjects", label: "Mis materias", group: "core" as const },
       { href: "/exams", label: "Mis exámenes", group: "core" as const },
+      { href: "/users", label: "Profesores", group: "core" as const },
       { href: "/exams/builder", label: "Examen automático", group: "gen" as const },
       { href: "/exams/manual", label: "Examen manual", group: "gen" as const },
+      { href: "/activity-log", label: "Actividad", group: "gen" as const },
     ],
     []
   );

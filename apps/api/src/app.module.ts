@@ -7,9 +7,11 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { TopicsModule } from './topics/topics.module';
 import { QuestionsModule } from './questions/questions.module';
 import { ExamsModule } from './exams/exams.module';
+import { UsersModule } from './users/users.module';
+import { ActivityLogModule } from './activity-log/activity-log.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, InstitutionsModule, SubjectsModule, TopicsModule, QuestionsModule, ExamsModule],
+  imports: [PrismaModule, AuthModule, InstitutionsModule, SubjectsModule, TopicsModule, QuestionsModule, ExamsModule, UsersModule, ActivityLogModule],
   controllers: [MeController],
 })
-export class AppModule {}
+export class AppModule { }

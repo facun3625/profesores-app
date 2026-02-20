@@ -8,10 +8,14 @@ import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { QuestionDifficulty, QuestionType, Prisma } from '@prisma/client';
 import { ListQuestionsDto } from './dto/list-questions.dto';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 
 @Injectable()
 export class QuestionsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activityLog: ActivityLogService,
+  ) { }
 
   private async getActiveInstitutionId(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
@@ -26,6 +30,23 @@ export class QuestionsService {
     return user.activeInstitutionId;
   }
 
+  /** Check if professor has access to the subject. Admins always have access. */
+  private async checkSubjectAccess(userId: string, institutionId: string, subjectId: string) {
+    const membership = await this.prisma.userInstitution.findUnique({
+      where: { userId_institutionId: { userId, institutionId } },
+    });
+    if (!membership) throw new ForbiddenException('No membership in this institution');
+
+    if (membership.role === 'admin') return; // admins have full access
+
+    const subjectAccess = await this.prisma.userSubject.findUnique({
+      where: { userId_subjectId: { userId, subjectId } },
+    });
+    if (!subjectAccess) {
+      throw new ForbiddenException('You do not have access to this subject');
+    }
+  }
+
   async create(userId: string, dto: CreateQuestionDto) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
@@ -37,19 +58,16 @@ export class QuestionsService {
       throw new ForbiddenException('Subject does not belong to active institution');
     }
 
+    await this.checkSubjectAccess(userId, institutionId, dto.subjectId);
+
     const topic = await this.prisma.topic.findFirst({
-      where: {
-        id: dto.topicId,
-        subjectId: dto.subjectId,
-        institutionId,
-      },
+      where: { id: dto.topicId, subjectId: dto.subjectId, institutionId },
       select: { id: true },
     });
     if (!topic) {
       throw new ForbiddenException('Topic does not belong to subject/institution');
     }
 
-    // Variables compatibles con Prisma
     let options: any = undefined;
     let correctIndex: number | null = null;
 
@@ -78,10 +96,6 @@ export class QuestionsService {
         break;
 
       case QuestionType.OPEN:
-        options = null;
-        correctIndex = null;
-        break;
-
       case QuestionType.FILL_IN:
         options = null;
         correctIndex = null;
@@ -91,11 +105,12 @@ export class QuestionsService {
         throw new BadRequestException('Invalid question type');
     }
 
-    return this.prisma.question.create({
+    const question = await this.prisma.question.create({
       data: {
         institutionId,
         subjectId: dto.subjectId,
         topicId: dto.topicId,
+        createdById: userId,
         statement: dto.statement,
         type: dto.type as QuestionType,
         difficulty: dto.difficulty,
@@ -106,30 +121,49 @@ export class QuestionsService {
         requiresJustification: dto.requiresJustification ?? false,
       },
     });
+
+    await this.activityLog.log(userId, 'CREATE', 'question', question.id, {
+      subjectId: dto.subjectId,
+      topicId: dto.topicId,
+      type: dto.type,
+      statement: dto.statement.slice(0, 100),
+    });
+
+    return question;
   }
 
   async list(userId: string, query: ListQuestionsDto) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
+    // If professor, restrict to their subjects
+    const membership = await this.prisma.userInstitution.findUnique({
+      where: { userId_institutionId: { userId, institutionId } },
+    });
+
+    let subjectFilter: string[] | undefined;
+    if (membership?.role === 'professor') {
+      const access = await this.prisma.userSubject.findMany({
+        where: { userId, institutionId },
+        select: { subjectId: true },
+      });
+      subjectFilter = access.map((a) => a.subjectId);
+      if (subjectFilter.length === 0) return { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 1 } };
+    }
+
     const page = query.page ?? 1;
     let limit = query.limit ?? 20;
     if (limit > 100) limit = 100;
-
     const skip = (page - 1) * limit;
 
     const where: Prisma.QuestionWhereInput = {
       institutionId,
+      ...(subjectFilter ? { subjectId: { in: subjectFilter } } : {}),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
       ...(query.topicId ? { topicId: query.topicId } : {}),
       ...(query.difficulty ? { difficulty: query.difficulty } : {}),
       ...(query.type ? { type: query.type } : {}),
       ...(query.q
-        ? {
-          statement: {
-            contains: query.q,
-            mode: 'insensitive',
-          },
-        }
+        ? { statement: { contains: query.q, mode: 'insensitive' } }
         : {}),
     };
 
@@ -140,23 +174,17 @@ export class QuestionsService {
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
+        include: {
+          createdBy: { select: { id: true, name: true, lastName: true } },
+        },
       }),
     ]);
 
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
-    return {
-      data,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages,
-      },
-    };
+    return { data, meta: { page, limit, total, totalPages } };
   }
 
-  // ✅ stats para saber stock por tipo + dificultad (antes de generar examen)
   async stats(userId: string, subjectIds?: string[], topicIds?: string[]) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
@@ -199,10 +227,7 @@ export class QuestionsService {
 
     const grouped = await this.prisma.question.groupBy({
       by: ['type', 'difficulty'],
-      where: {
-        institutionId,
-        topicId: { in: resolvedTopicIds },
-      },
+      where: { institutionId, topicId: { in: resolvedTopicIds } },
       _count: { _all: true },
     });
 
@@ -228,44 +253,31 @@ export class QuestionsService {
       counts[row.type][row.difficulty] = row._count._all;
     }
 
-    return {
-      institutionId,
-      topicIds: resolvedTopicIds,
-      counts,
-    };
+    return { institutionId, topicIds: resolvedTopicIds, counts };
   }
 
   async update(id: string, userId: string, dto: UpdateQuestionDto) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
-    const question = await this.prisma.question.findUnique({
-      where: { id },
-    });
+    const question = await this.prisma.question.findUnique({ where: { id } });
 
-    if (!question) {
-      throw new BadRequestException('Question not found');
-    }
-
+    if (!question) throw new BadRequestException('Question not found');
     if (question.institutionId !== institutionId) {
       throw new ForbiddenException('You do not have permission to edit this question');
     }
 
-    // Validaciones basicas si cambia el tipo
+    await this.checkSubjectAccess(userId, institutionId, question.subjectId);
+
     const type = dto.type ?? (question.type as QuestionType);
     let options = dto.options ?? (question.options as any);
     let correctIndex =
       dto.correctIndex !== undefined ? dto.correctIndex : question.correctIndex;
 
-    // Si cambia el tipo, revalidar
     if (type === QuestionType.MULTIPLE_CHOICE) {
       if (!options || !Array.isArray(options) || options.length < 2) {
         throw new BadRequestException('MULTIPLE_CHOICE requires at least 2 options');
       }
-      if (
-        correctIndex === null ||
-        correctIndex < 0 ||
-        correctIndex >= options.length
-      ) {
+      if (correctIndex === null || correctIndex < 0 || correctIndex >= options.length) {
         throw new BadRequestException('Invalid correctIndex for MULTIPLE_CHOICE');
       }
     } else if (type === QuestionType.TRUE_FALSE) {
@@ -278,7 +290,7 @@ export class QuestionsService {
       correctIndex = null;
     }
 
-    return this.prisma.question.update({
+    const updated = await this.prisma.question.update({
       where: { id },
       data: {
         statement: dto.statement,
@@ -288,10 +300,42 @@ export class QuestionsService {
         correctIndex: correctIndex,
         modelAnswer: dto.modelAnswer,
         openLines: dto.openLines !== undefined ? dto.openLines : question.openLines,
-        requiresJustification: dto.requiresJustification !== undefined
-          ? dto.requiresJustification
-          : question.requiresJustification,
+        requiresJustification:
+          dto.requiresJustification !== undefined
+            ? dto.requiresJustification
+            : question.requiresJustification,
       },
     });
+
+    await this.activityLog.log(userId, 'UPDATE', 'question', id, {
+      subjectId: question.subjectId,
+      topicId: question.topicId,
+      statement: (dto.statement ?? question.statement).slice(0, 100),
+    });
+
+    return updated;
+  }
+
+  async delete(id: string, userId: string) {
+    const institutionId = await this.getActiveInstitutionId(userId);
+
+    const question = await this.prisma.question.findUnique({ where: { id } });
+
+    if (!question) throw new BadRequestException('Question not found');
+    if (question.institutionId !== institutionId) {
+      throw new ForbiddenException('You do not have permission to delete this question');
+    }
+
+    await this.checkSubjectAccess(userId, institutionId, question.subjectId);
+
+    await this.activityLog.log(userId, 'DELETE', 'question', id, {
+      subjectId: question.subjectId,
+      topicId: question.topicId,
+      statement: question.statement.slice(0, 100),
+    });
+
+    await this.prisma.question.delete({ where: { id } });
+
+    return { ok: true };
   }
 }

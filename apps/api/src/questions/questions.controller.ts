@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Patch, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { QuestionsService } from "./questions.service";
 import { CreateQuestionDto } from "./dto/create-question.dto";
 import { UpdateQuestionDto } from "./dto/update-question.dto";
@@ -12,7 +12,6 @@ export class QuestionsController {
 
   @Post()
   create(@Req() req: any, @Body() dto: CreateQuestionDto) {
-    // Ojo: el service todavía espera userId, no institutionId.
     return this.questionsService.create(req.userId, dto);
   }
 
@@ -25,6 +24,11 @@ export class QuestionsController {
     return this.questionsService.update(id, req.userId, dto);
   }
 
+  @Delete(":id")
+  remove(@Req() req: any, @Param("id") id: string) {
+    return this.questionsService.delete(id, req.userId);
+  }
+
   @Get()
   list(@Req() req: any, @Query() query: ListQuestionsDto) {
     return this.questionsService.list(req.userId, query);
@@ -33,10 +37,10 @@ export class QuestionsController {
   @Get("stats")
   stats(
     @Req() req: any,
-    @Query("subjectIds") subjectIds?: string, // "id1,id2,id3"
-    @Query("topicIds") topicIds?: string, // "id1,id2,id3"
-    @Query("subjectId") subjectId?: string, // opcional single
-    @Query("topicId") topicId?: string, // opcional single
+    @Query("subjectIds") subjectIds?: string,
+    @Query("topicIds") topicIds?: string,
+    @Query("subjectId") subjectId?: string,
+    @Query("topicId") topicId?: string,
   ) {
     const subjectIdList =
       subjectIds?.split(",").map((s) => s.trim()).filter(Boolean) ??
