@@ -18,22 +18,22 @@ export class TopicsController {
     return this.topicsService.findBySubject(req.activeInstitutionId, subjectId);
   }
 
-  @Get(':topicId')
-  async findOne(@Req() req: any, @Param('topicId') topicId: string) {
-    return this.topicsService.findOne(req.activeInstitutionId, topicId);
+  @Get(':id')
+  async findOne(@Req() req: any, @Param('id') id: string) {
+    return this.topicsService.findOne(req.activeInstitutionId, id);
   }
 
-  @Delete(':topicId')
-  async archive(@Req() req: any, @Param('topicId') topicId: string) {
-    return this.topicsService.archive(req.activeInstitutionId, topicId);
+  @Delete(':id')
+  async archive(@Req() req: any, @Param('id') id: string) {
+    return this.topicsService.archive(req.activeInstitutionId, id);
   }
 
-  @Patch(':topicId')
+  @Patch(':id')
   async updateName(
     @Req() req: any,
-    @Param('topicId') topicId: string,
+    @Param('id') id: string,
     @Body() dto: { name: string }
   ) {
-    return this.topicsService.updateName(req.activeInstitutionId, topicId, dto.name);
+    return this.topicsService.updateName(req.activeInstitutionId, id, dto.name);
   }
 }
