@@ -1,11 +1,16 @@
 #!/bin/sh
 
-# Usar el binario local de prisma para evitar problemas de versión (v6 vs v7)
-PRISMA_BIN="./node_modules/.bin/prisma"
+echo "--- Debug: Listando archivos en apps/api ---"
+ls -R apps/api/dist || echo "No se encontró carpeta dist en apps/api"
 
-echo "Ejecutando migraciones de Prisma..."
-\$PRISMA_BIN migrate deploy --schema=apps/api/prisma/schema.prisma
+echo "Ejecutando migraciones de Prisma (usando v6 local)..."
+./node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma
 
 echo "Iniciando servidor NestJS..."
-# Asegurarse de que el archivo existe y usar la extensión .js por si acaso
-exec node apps/api/dist/main.js
+# Intentar las dos rutas más comunes en monorepos
+if [ -f "apps/api/dist/main.js" ]; then
+    exec node apps/api/dist/main.js
+else
+    echo "Error: No se encontró apps/api/dist/main.js, intentando src/main.js..."
+    exec node apps/api/dist/src/main.js
+fi
