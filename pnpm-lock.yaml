@@ -132,6 +132,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@profesores-app/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.3)
