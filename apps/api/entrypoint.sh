@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# Esperar opcionalmente a que la DB esté lista (Prisma lo maneja bastante bien, pero podrías usar wait-for-it)
+# Usar el binario local de prisma para evitar problemas de versión (v6 vs v7)
+PRISMA_BIN="./node_modules/.bin/prisma"
+
 echo "Ejecutando migraciones de Prisma..."
-npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+\$PRISMA_BIN migrate deploy --schema=apps/api/prisma/schema.prisma
 
 echo "Iniciando servidor NestJS..."
-exec node apps/api/dist/main
+# Asegurarse de que el archivo existe y usar la extensión .js por si acaso
+exec node apps/api/dist/main.js
