@@ -1,15 +1,14 @@
 // apps/web/src/app/layout.tsx
 import type { Metadata } from "next";
-import { Roboto, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "./layout.client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ReactQueryProvider } from "@/components/ReactQueryProvider";
 import { Toaster } from "sonner";
 
-const roboto = Roboto({
-  weight: ["300", "400", "500", "700"],
-  variable: "--font-roboto",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
@@ -26,7 +25,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${roboto.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ErrorBoundary>
           <ReactQueryProvider>
             <ClientLayout>{children}</ClientLayout>
