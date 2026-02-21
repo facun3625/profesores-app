@@ -1248,7 +1248,6 @@ export default function TopicQuestionsPage() {
             </section>
           </>
         ) : null}
-      </div>
 
       <ConfirmModal
         isOpen={confirmDelete.isOpen}
@@ -1259,6 +1258,6 @@ export default function TopicQuestionsPage() {
         onCancel={() => setConfirmDelete({ isOpen: false, question: null })}
         tone="warning"
       />
-    </div >
+    </div>
   );
 }
