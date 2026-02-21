@@ -132,7 +132,7 @@ export default function Page() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [topicIds, setTopicIds] = useState<string[]>([]);
 
-  const [title, setTitle] = useState("Examen automático");
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
   const [mc, setMc] = useState(0);
@@ -506,7 +506,7 @@ export default function Page() {
     setStep(1);
     setSubjectId("");
     setTopicIds([]);
-    setTitle("Examen automático");
+    setTitle("");
     setDescription("");
     setMc(0);
     setTf(0);
@@ -546,7 +546,7 @@ export default function Page() {
       </div>
 
       {/* Progress Steps */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         {[
           { num: 1, label: "Materia" },
           { num: 2, label: "Temas" },
@@ -564,11 +564,11 @@ export default function Page() {
               >
                 {s.num}
               </div>
-              <span className="mt-2 text-xs text-gray-600">{s.label}</span>
+              <span className="mt-1 text-[10px] font-medium text-gray-500">{s.label}</span>
             </div>
             {idx < 4 && (
               <div
-                className={`mx-2 h-1 flex-1 rounded transition ${step > s.num ? "bg-blue-600" : "bg-gray-200"
+                className={`mx-2 mb-4 h-1 flex-1 rounded transition ${step > s.num ? "bg-blue-600" : "bg-gray-200"
                   }`}
               />
             )}
@@ -599,6 +599,18 @@ export default function Page() {
                 placeholder="Ej: Examen de Matemática - Unidad 1"
               />
             </label>
+
+            {(!subjectId || !title.trim()) && (
+              <div className="flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4 transition-all animate-in fade-in slide-in-from-top-2">
+                <div className="flex shrink-0 items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 14" /></svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">Configuración requerida</p>
+                  <p className="text-sm text-blue-700/80">Asigná un <strong>título</strong> y elegí una <strong>materia</strong> para habilitar el generador.</p>
+                </div>
+              </div>
+            )}
 
             <label className="block">
               <span className="text-sm font-medium text-gray-700">Descripción (opcional)</span>

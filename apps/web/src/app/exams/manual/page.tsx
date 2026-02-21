@@ -202,7 +202,7 @@ export default function Page() {
   const [subjectId, setSubjectId] = useState("");
   const [topicIds, setTopicIds] = useState<string[]>([]);
 
-  const [title, setTitle] = useState("Examen manual");
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
   const [bankLoading, setBankLoading] = useState(false);
@@ -451,20 +451,22 @@ export default function Page() {
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <a
-            href="/exams"
-            className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-          >
-            Volver
-          </a>
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {saving ? "Procesando..." : isDuplicate ? "Duplicar" : "Crear"}
-          </button>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-3">
+            <a
+              href="/exams"
+              className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Volver
+            </a>
+            <button
+              onClick={submit}
+              disabled={saving || !title.trim() || !subjectId}
+              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {saving ? "Procesando..." : isDuplicate ? "Duplicar" : "Crear"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -525,6 +527,18 @@ export default function Page() {
               className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </label>
+
+          {(!title.trim() || !subjectId) && (
+            <div className="flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4 transition-all animate-in fade-in slide-in-from-top-2 md:col-span-2 lg:col-span-1">
+              <div className="flex shrink-0 items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 14" /></svg>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-blue-900 leading-tight">Configuración requerida</p>
+                <p className="text-[11px] text-blue-700/80 leading-snug mt-0.5">Asigná un título y materia.</p>
+              </div>
+            </div>
+          )}
 
           <label className="grid gap-2 md:col-span-2">
             <span className="text-xs font-medium text-gray-500">Descripción</span>

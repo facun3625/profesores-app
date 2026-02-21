@@ -509,7 +509,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         )}
 
         {/* Main Content Area */}
-        <main className="relative flex-1 overflow-y-auto px-6 py-8">
+        <main className="relative flex-1 overflow-y-auto px-6 pt-4 pb-12">
           {/* Global Background Decorations */}
           <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
           <div
