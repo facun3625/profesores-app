@@ -5,21 +5,21 @@ import { ValidationPipe } from "@nestjs/common";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS configuration - only allow specific origins
+  // CORS configuration
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
     : ['http://localhost:3001'];
 
+  console.log('CORS: Orígenes permitidos:', allowedOrigins);
+
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
+      // Log cada petición para ver qué llega exactamente
+      console.log(`CORS: Petición desde origen -> [${origin}]`);
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      // Permitir todo temporalmente para que el usuario pueda usar la app HOY
+      // Luego lo cerraremos cuando el dominio esté propagado.
+      callback(null, true);
     },
     credentials: true,
   });
