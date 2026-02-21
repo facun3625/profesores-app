@@ -228,7 +228,7 @@ export default function TopicsPage() {
               ← Volver a materias
             </a>
 
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-blue-900">
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
               Temas
             </h1>
 

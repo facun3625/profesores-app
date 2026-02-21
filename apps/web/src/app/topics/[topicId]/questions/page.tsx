@@ -580,7 +580,7 @@ export default function TopicQuestionsPage() {
               ← Volver a temas
             </a>
 
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-blue-900">
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
               Preguntas del tema
             </h1>
 
