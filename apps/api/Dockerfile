@@ -33,11 +33,15 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder /app/packages/types ./packages/types
+COPY apps/api/entrypoint.sh ./apps/api/entrypoint.sh
+
+RUN chmod +x ./apps/api/entrypoint.sh
 
 EXPOSE 3000
 
 ENV NODE_ENV=production
 
-# Command to run the application
-CMD ["node", "apps/api/dist/main"]
+# Command to run the application using entrypoint
+ENTRYPOINT ["./apps/api/entrypoint.sh"]
