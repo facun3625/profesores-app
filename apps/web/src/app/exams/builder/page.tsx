@@ -528,7 +528,7 @@ export default function Page() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-            Generador de Exámenes
+            Generador IA
           </h1>
           <p className="mt-1 text-sm text-gray-600">
             Creá exámenes automáticamente desde tu banco de preguntas.

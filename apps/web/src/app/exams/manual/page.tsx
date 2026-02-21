@@ -440,287 +440,285 @@ export default function Page() {
 
   return (
     <div className="space-y-8">
-      <div className="mx-auto w-full max-w-7xl">
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-              {isDuplicate ? "Duplicar examen" : "Crear examen manual"}
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Seleccioná preguntas manualmente desde tu banco.
-            </p>
-          </div>
-
-          <div className="flex gap-3">
-            <a
-              href="/exams"
-              className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-            >
-              Volver
-            </a>
-            <button
-              onClick={submit}
-              disabled={saving}
-              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {saving ? "Procesando..." : isDuplicate ? "Duplicar" : "Crear"}
-            </button>
-          </div>
+      {/* Header */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            {isDuplicate ? "Duplicar examen" : "Generador Manual"}
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Seleccioná preguntas manualmente desde tu banco.
+          </p>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        <div className="flex gap-3">
+          <a
+            href="/exams"
+            className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
+            Volver
+          </a>
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {saving ? "Procesando..." : isDuplicate ? "Duplicar" : "Crear"}
+          </button>
+        </div>
+      </div>
 
-        {/* Success */}
-        {createdExamId && (
-          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="text-sm text-blue-900">
-                <b>Examen creado:</b>{" "}
-                <span className="font-mono text-xs">{createdExamId}</span>
-              </div>
+      {/* Error */}
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => downloadPdf()}
-                  className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
-                >
-                  PDF estándar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCustomizeModal(true)}
-                  className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
-                >
-                  Personalizar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push("/exams")}
-                  className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
-                >
-                  Ir a exámenes
-                </button>
-              </div>
+      {/* Success */}
+      {createdExamId && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-sm text-blue-900">
+              <b>Examen creado:</b>{" "}
+              <span className="font-mono text-xs">{createdExamId}</span>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => downloadPdf()}
+                className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+              >
+                PDF estándar
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCustomizeModal(true)}
+                className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+              >
+                Personalizar
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/exams")}
+                className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+              >
+                Ir a exámenes
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Form */}
-        <section className="mb-6 rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-3">
+      {/* Form */}
+      <section className="mb-6 rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-3">
+          <label className="grid gap-2">
+            <span className="text-xs font-medium text-gray-500">Título</span>
+            <input
+              value={title}
+              onChange={(e) => {
+                touch();
+                setTitle(e.target.value);
+              }}
+              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </label>
+
+          <label className="grid gap-2 md:col-span-2">
+            <span className="text-xs font-medium text-gray-500">Descripción</span>
+            <input
+              value={description}
+              onChange={(e) => {
+                touch();
+                setDescription(e.target.value);
+              }}
+              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-medium text-gray-500">Materia</span>
+            <SelectPretty
+              value={subjectId}
+              onChange={(e) => {
+                const newVal = e.target.value;
+                if (selectedIds.length > 0 && newVal !== subjectId) {
+                  setConfirmSubjectChange({ isOpen: true, pendingId: newVal });
+                } else {
+                  touch();
+                  setSubjectId(newVal);
+                }
+              }}
+            >
+              <option value="">— Seleccionar —</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </SelectPretty>
+          </label>
+        </div>
+      </section>
+
+      {/* Main content */}
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        {/* Bank */}
+        <section className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Banco de preguntas</h2>
+
+          {/* Topics */}
+          {topics.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs font-medium text-gray-500 mb-2">Temas</div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {topics.map((t) => (
+                  <label key={t.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={topicIds.includes(t.id)}
+                      onChange={() => toggleTopic(t.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                    {t.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Filters */}
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">Título</span>
+              <span className="text-xs font-medium text-gray-500">Buscar</span>
               <input
-                value={title}
+                value={search}
                 onChange={(e) => {
                   touch();
-                  setTitle(e.target.value);
+                  setSearch(e.target.value);
                 }}
+                placeholder="Escribí y filtra..."
                 className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
 
-            <label className="grid gap-2 md:col-span-2">
-              <span className="text-xs font-medium text-gray-500">Descripción</span>
-              <input
-                value={description}
-                onChange={(e) => {
-                  touch();
-                  setDescription(e.target.value);
-                }}
-                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              />
-            </label>
-
             <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">Materia</span>
+              <span className="text-xs font-medium text-gray-500">Tipo</span>
               <SelectPretty
-                value={subjectId}
+                value={typeFilter}
                 onChange={(e) => {
-                  const newVal = e.target.value;
-                  if (selectedIds.length > 0 && newVal !== subjectId) {
-                    setConfirmSubjectChange({ isOpen: true, pendingId: newVal });
-                  } else {
-                    touch();
-                    setSubjectId(newVal);
-                  }
+                  touch();
+                  setTypeFilter(e.target.value as any);
                 }}
               >
-                <option value="">— Seleccionar —</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
+                <option value="ALL">Todos</option>
+                <option value="MULTIPLE_CHOICE">Multiple choice</option>
+                <option value="TRUE_FALSE">Verdadero / Falso</option>
+                <option value="OPEN">De desarrollo</option>
+              </SelectPretty>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-xs font-medium text-gray-500">Dificultad</span>
+              <SelectPretty
+                value={diffFilter}
+                onChange={(e) => {
+                  touch();
+                  setDiffFilter(e.target.value as any);
+                }}
+              >
+                <option value="ALL">Todas</option>
+                <option value="easy">Fácil</option>
+                <option value="medium">Medio</option>
+                <option value="hard">Difícil</option>
               </SelectPretty>
             </label>
           </div>
+
+          {/* Questions */}
+          {bankLoading ? (
+            <div className="text-sm text-gray-600">Cargando preguntas...</div>
+          ) : (
+            <div className="grid gap-2 max-h-[600px] overflow-y-auto">
+              {filteredBank.map((q) => (
+                <label
+                  key={q.id}
+                  className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-gray-50 transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedSet.has(q.id)}
+                    onChange={() => toggleSelect(q.id)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900">{q.statement}</div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {labelType(q.type)} · {labelDifficulty(q.difficulty)} · {q.id}
+                    </div>
+                  </div>
+                </label>
+              ))}
+              {filteredBank.length === 0 && (
+                <div className="text-sm text-gray-600">No hay preguntas con esos filtros.</div>
+              )}
+            </div>
+          )}
         </section>
 
-        {/* Main content */}
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          {/* Bank */}
-          <section className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Banco de preguntas</h2>
+        {/* Selected */}
+        <section className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Seleccionadas ({selectedIds.length})
+          </h2>
 
-            {/* Topics */}
-            {topics.length > 0 && (
-              <div className="mb-4">
-                <div className="text-xs font-medium text-gray-500 mb-2">Temas</div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {topics.map((t) => (
-                    <label key={t.id} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={topicIds.includes(t.id)}
-                        onChange={() => toggleTopic(t.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
-                      />
-                      {t.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Filters */}
-            <div className="mb-4 grid gap-3 sm:grid-cols-3">
-              <label className="grid gap-2">
-                <span className="text-xs font-medium text-gray-500">Buscar</span>
-                <input
-                  value={search}
-                  onChange={(e) => {
-                    touch();
-                    setSearch(e.target.value);
-                  }}
-                  placeholder="Escribí y filtra..."
-                  className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-xs font-medium text-gray-500">Tipo</span>
-                <SelectPretty
-                  value={typeFilter}
-                  onChange={(e) => {
-                    touch();
-                    setTypeFilter(e.target.value as any);
-                  }}
-                >
-                  <option value="ALL">Todos</option>
-                  <option value="MULTIPLE_CHOICE">Multiple choice</option>
-                  <option value="TRUE_FALSE">Verdadero / Falso</option>
-                  <option value="OPEN">De desarrollo</option>
-                </SelectPretty>
-              </label>
-
-              <label className="grid gap-2">
-                <span className="text-xs font-medium text-gray-500">Dificultad</span>
-                <SelectPretty
-                  value={diffFilter}
-                  onChange={(e) => {
-                    touch();
-                    setDiffFilter(e.target.value as any);
-                  }}
-                >
-                  <option value="ALL">Todas</option>
-                  <option value="easy">Fácil</option>
-                  <option value="medium">Medio</option>
-                  <option value="hard">Difícil</option>
-                </SelectPretty>
-              </label>
-            </div>
-
-            {/* Questions */}
-            {bankLoading ? (
-              <div className="text-sm text-gray-600">Cargando preguntas...</div>
-            ) : (
-              <div className="grid gap-2 max-h-[600px] overflow-y-auto">
-                {filteredBank.map((q) => (
-                  <label
-                    key={q.id}
-                    className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-gray-50 transition"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedSet.has(q.id)}
-                      onChange={() => toggleSelect(q.id)}
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
-                    />
+          {selectedIds.length === 0 ? (
+            <div className="text-sm text-gray-600">Elegí preguntas del banco.</div>
+          ) : (
+            <ol className="grid gap-3 max-h-[600px] overflow-y-auto">
+              {selectedQuestions.map((q: any, idx) => (
+                <li key={q.id} className="rounded-lg border border-gray-200 p-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900">{q.statement}</div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {labelType(q.type)} · {labelDifficulty(q.difficulty)} · {q.id}
+                      <div className="text-sm font-medium text-gray-900">
+                        {idx + 1}. {q.statement ?? "(sin enunciado)"}
                       </div>
+                      <div className="mt-1 text-xs text-gray-500 font-mono">{q.id}</div>
                     </div>
-                  </label>
-                ))}
-                {filteredBank.length === 0 && (
-                  <div className="text-sm text-gray-600">No hay preguntas con esos filtros.</div>
-                )}
-              </div>
-            )}
-          </section>
+                  </div>
 
-          {/* Selected */}
-          <section className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Seleccionadas ({selectedIds.length})
-            </h2>
-
-            {selectedIds.length === 0 ? (
-              <div className="text-sm text-gray-600">Elegí preguntas del banco.</div>
-            ) : (
-              <ol className="grid gap-3 max-h-[600px] overflow-y-auto">
-                {selectedQuestions.map((q: any, idx) => (
-                  <li key={q.id} className="rounded-lg border border-gray-200 p-3">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900">
-                          {idx + 1}. {q.statement ?? "(sin enunciado)"}
-                        </div>
-                        <div className="mt-1 text-xs text-gray-500 font-mono">{q.id}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => moveSelected(q.id, -1)}
-                        disabled={idx === 0}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveSelected(q.id, 1)}
-                        disabled={idx === selectedIds.length - 1}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeSelected(q.id)}
-                        className="inline-flex h-7 items-center rounded border border-red-300 bg-white px-2 text-xs font-medium text-red-700 hover:bg-red-50 transition"
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-        </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => moveSelected(q.id, -1)}
+                      disabled={idx === 0}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveSelected(q.id, 1)}
+                      disabled={idx === selectedIds.length - 1}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeSelected(q.id)}
+                      className="inline-flex h-7 items-center rounded border border-red-300 bg-white px-2 text-xs font-medium text-red-700 hover:bg-red-50 transition"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
       </div>
 
       {/* PDF Customize Modal */}

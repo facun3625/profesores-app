@@ -666,14 +666,14 @@ export default function Page() {
             href="/exams/manual"
             className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
           >
-            + Nuevo examen manual
+            Generador Manual
           </a>
 
           <a
             href="/exams/builder"
             className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
           >
-            Crear examen automático
+            Generador IA
           </a>
 
           <button

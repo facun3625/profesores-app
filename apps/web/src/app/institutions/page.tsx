@@ -355,7 +355,7 @@ export default function InstitutionsPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nombre o ID…"
+                placeholder="Buscar por nombre…"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
@@ -397,9 +397,6 @@ export default function InstitutionsPage() {
                       {isActive ? <Badge tone="green">Activa</Badge> : null}
                     </div>
 
-                    <div className="mt-1">
-                      <Mono>{highlight(inst.id, search)}</Mono>
-                    </div>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">

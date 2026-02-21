@@ -264,7 +264,7 @@ export default function SubjectsPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nombre o ID…"
+                placeholder="Buscar por nombre…"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
@@ -303,9 +303,6 @@ export default function SubjectsPage() {
                       )}
                     </div>
 
-                    <div className="mt-1">
-                      <Mono>{highlight(s.id, search)}</Mono>
-                    </div>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -379,7 +376,7 @@ export default function SubjectsPage() {
           </div>
         ) : (
           <div className="px-6 py-8 text-sm text-gray-600">
-            No hay resultados. Probá con otro nombre o pegá un ID.
+            No hay resultados. Probá con otro nombre.
           </div>
         )}
       </section>

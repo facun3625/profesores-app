@@ -153,7 +153,6 @@ export default function InactiveInstitutionsPage() {
                                     <div className="flex flex-wrap items-center justify-between gap-4">
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900">{inst.name}</h3>
-                                            <p className="text-sm font-mono text-gray-400">{inst.id}</p>
                                         </div>
 
                                         <div className="flex items-center gap-2">
