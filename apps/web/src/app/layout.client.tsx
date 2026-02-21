@@ -391,7 +391,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <div className="flex h-16 items-center border-b border-gray-200 px-6">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-2xl font-bold tracking-tight text-blue-600" style={{ fontFamily: "'Montserrat Alternates', sans-serif" }}>
-            examia
+            profly
           </span>
         </Link>
       </div>

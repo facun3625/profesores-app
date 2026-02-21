@@ -1,18 +1,51 @@
-version: "3.9"
-
 services:
-  postgres:
-    image: postgres:16
-    container_name: profesores_postgres
+  db:
+    image: postgres:16-alpine
+    container_name: profly-db
     restart: always
-    ports:
-      - "5432:5432"
     environment:
-      POSTGRES_DB: profesores
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-profly_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - profly-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: profly-api
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-profly_db}?schema=public
+      PORT: 3000
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    networks:
+      - profly-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: profly-web
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+    depends_on:
+      - api
+    ports:
+      - "3001:3000"
+    networks:
+      - profly-network
+
+networks:
+  profly-network:
+    driver: bridge
 
 volumes:
   postgres_data:

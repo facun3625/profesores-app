@@ -20,7 +20,7 @@ type MeResponse = {
 
 type FieldKey = "name" | "lastName" | "city" | "province" | "country";
 
-function ExamiaMark() {
+function ProflyMark() {
   return (
     <div className="select-none">
       <div
@@ -30,7 +30,7 @@ function ExamiaMark() {
             "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
         }}
       >
-        examia
+        profly
       </div>
       <div className="mt-0.5 text-xs text-gray-500">Perfil</div>
     </div>
@@ -321,7 +321,7 @@ export default function ProfilePage() {
                 Edición por campo (sin romper nada).
               </div>
             </div>
-            <ExamiaMark />
+            <ProflyMark />
           </div>
 
           <div className="mt-5 grid gap-3">
@@ -431,7 +431,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="mt-6 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} Examia
+        © {new Date().getFullYear()} profly
       </div>
     </div>
   );

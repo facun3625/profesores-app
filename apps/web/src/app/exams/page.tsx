@@ -152,7 +152,7 @@ function Pill({
   );
 }
 
-function ExamiaMark() {
+function ProflyMark() {
   return (
     <div className="select-none text-right">
       <div
@@ -162,7 +162,7 @@ function ExamiaMark() {
             "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
         }}
       >
-        examia
+        profly
       </div>
       <div className="mt-0.5 text-xs text-gray-500">Exámenes</div>
     </div>
@@ -703,7 +703,7 @@ export default function Page() {
               Afiná la búsqueda sin volverte loco.
             </div>
           </div>
-          <ExamiaMark />
+          <ProflyMark />
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">

@@ -27,7 +27,7 @@ export function AppHeader({ activeInstitutionId }: Props) {
         borderBottom: "1px solid #e5e5e5",
       }}
     >
-      <strong>Examia</strong>
+      <strong>profly</strong>
 
       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
         <span style={{ fontSize: 14 }}>

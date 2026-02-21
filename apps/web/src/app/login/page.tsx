@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 
-function ExamiaLogo() {
+function ProflyLogo() {
   return (
     <div className="select-none text-center">
       <div
@@ -15,7 +15,7 @@ function ExamiaLogo() {
             "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
         }}
       >
-        examia
+        profly
       </div>
       <div className="mt-1 text-xs text-gray-500">
         Texto
@@ -67,7 +67,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-full max-w-sm">
           <div className="mb-6">
-            <ExamiaLogo />
+            <ProflyLogo />
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
@@ -139,7 +139,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 text-center text-xs text-gray-500">
-            © {new Date().getFullYear()} Examia
+            © {new Date().getFullYear()} profly
           </div>
         </div>
       </div>
