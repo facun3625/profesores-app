@@ -18,7 +18,7 @@ function ProflyLogo() {
         profly
       </div>
       <div className="mt-1 text-xs text-gray-500">
-        Texto
+        Gestión Inteligente de Exámenes
       </div>
     </div>
   );
@@ -27,8 +27,8 @@ function ProflyLogo() {
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("test+auth8@test.com");
-  const [password, setPassword] = useState("12345678");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
