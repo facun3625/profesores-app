@@ -32,13 +32,19 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy standalone build
+# In monorepos, Next.js standalone includes the whole workspace structure
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /app/apps/web/public ./apps/web/public
+
+# Important: next.js expects server.js to be in the folder apps/web inside standalone
+# but we are running it from /app.
+# We might need to adjust the CMD if server.js is not in the root.
 
 EXPOSE 3000
 
 ENV PORT=3000
 
 # Command to run the application
-CMD ["node", "server.js"]
+# In monorepos, server.js is located inside the app's directory within standalone
+CMD ["node", "apps/web/server.js"]
