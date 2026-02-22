@@ -5,6 +5,12 @@
   --font-roboto: var(--font-roboto);
 }
 
+.font-logo {
+  font-family: var(--font-logo);
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: "liga" 1, "clig" 1;
+}
+
 @variant dark (&:where(.dark, .dark *));
 
 :root {

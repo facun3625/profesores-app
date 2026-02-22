@@ -527,7 +527,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 group transition-transform active:scale-95">
-              <span className="text-2xl font-semibold tracking-tighter text-white font-[family-name:var(--font-logo)]">profly</span>
+              <span className="text-2xl font-medium text-white font-logo">profly</span>
             </Link>
             <div className="hidden sm:flex items-center gap-2 border-l border-blue-500/50 pl-4">
               <span className="text-xs font-bold uppercase tracking-widest text-blue-200/60">Institución</span>
@@ -682,7 +682,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           />
           <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 shadow-2xl md:hidden">
             <div className="flex h-16 items-center border-b border-blue-500 bg-blue-600 px-6">
-              <span className="text-xl font-semibold tracking-tighter text-white font-[family-name:var(--font-logo)]">profly</span>
+              <span className="text-xl font-medium text-white font-logo">profly</span>
             </div>
             <nav className="p-4 space-y-1">
               {(isAdmin ? [...navItems, ...adminItems] : navItems).map((item) => (
