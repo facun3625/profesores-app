@@ -65,7 +65,7 @@ export class AuthService {
       const institution = await tx.institution.create({
         data: {
           name: input.institutionName,
-          plan: "free",
+          plan: "FREE",
           status: "active",
         },
       });
@@ -122,17 +122,63 @@ export class AuthService {
 
   async login(input: LoginInput) {
     const email = this.normalizeEmail(input.email);
+    console.log(`[AuthService] Intento de login para: ${email}`);
 
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || user.authProvider !== "local" || !user.passwordHash) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: {
+        memberships: {
+          include: { institution: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!user) {
+      console.log(`[AuthService] Usuario no encontrado: ${email}`);
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    if (user.authProvider !== "local" || !user.passwordHash) {
+      console.log(`[AuthService] Usuario ${email} no usa auth local`);
       throw new UnauthorizedException("Invalid credentials");
     }
 
     const ok = await bcrypt.compare(input.password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException("Invalid credentials");
+    if (!ok) {
+      console.log(`[AuthService] Contraseña incorrecta para: ${email}`);
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    if (user.status === "suspended") {
+      console.log(`[AuthService] Usuario suspendido intentando acceder: ${email}`);
+      throw new UnauthorizedException(
+        "Su cuenta está inactiva. Por favor, contacte a info@profly.com.ar"
+      );
+    }
 
     const session = await this.createSession(user.id);
-    return { accessToken: session.token };
+    const membership = user.memberships[0];
+
+    return {
+      accessToken: session.token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        lastName: user.lastName,
+        status: user.status,
+        globalRole: user.globalRole,
+        activeInstitutionId: user.activeInstitutionId,
+      },
+      institution: membership ? {
+        id: membership.institution.id,
+        name: membership.institution.name,
+        plan: membership.institution.plan,
+        status: membership.institution.status,
+      } : null,
+      role: membership?.role ?? null,
+    };
   }
 
   async me(userId: string) {
@@ -161,6 +207,7 @@ export class AuthService {
         country: user.country,
         status: user.status,
         activeInstitutionId: user.activeInstitutionId,
+        globalRole: user.globalRole,
         activeRole,                     // "admin" | "professor" | null
         mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
@@ -185,8 +232,14 @@ export class AuthService {
       city?: string;
       province?: string;
       country?: string;
+      password?: string;
     }
   ) {
+    let passwordHash: string | undefined = undefined;
+    if (input.password) {
+      passwordHash = await bcrypt.hash(input.password, 10);
+    }
+
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -195,6 +248,7 @@ export class AuthService {
         city: input.city ?? undefined,
         province: input.province ?? undefined,
         country: input.country ?? undefined,
+        passwordHash: passwordHash ?? undefined,
       },
     });
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { getMe, logout } from "@/lib/auth";
 
@@ -11,14 +12,16 @@ type MeResponse = {
     id: string;
     email: string;
     name?: string | null;
+    lastName?: string | null;
+    globalRole?: 'USER' | 'ADMIN';
     activeInstitutionId?: string | null;
     activeRole?: string | null;
     mustChangePassword?: boolean;
   };
-  activeInstitution?: { id: string; name: string } | null;
+  activeInstitution?: { id: string; name: string; plan: string } | null;
   activeInstitutionId?: string | null;
-  institution?: { id: string; name: string } | null;
-  institutions?: Array<{ id: string; name: string; role: string }> | null;
+  institution?: { id: string; name: string; plan: string } | null;
+  institutions?: Array<{ id: string; name: string; plan: string; role: string; status: string }> | null;
 };
 
 // --- Helpers ---
@@ -304,6 +307,7 @@ async function resolveInstitutionNameById(id: string) {
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   const publicPage = useMemo(() => isPublicPath(pathname), [pathname]);
 
@@ -324,6 +328,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [me?.user?.name, me?.user?.email]);
 
   const isAdmin = me?.user?.activeRole === "admin" || me?.user?.activeRole == null;
+  const isSuperAdmin = me?.user?.globalRole === "ADMIN";
+  const activePlan = useMemo(() => {
+    if (!me?.user?.activeInstitutionId || !me?.institutions) return "FREE";
+    const active = me.institutions.find(i => i.id === me.user?.activeInstitutionId);
+    return active?.plan || "FREE";
+  }, [me?.user?.activeInstitutionId, me?.institutions]);
+
   const activeInstitutionsCount = me?.institutions?.filter((i: any) => i.status !== "inactive").length ?? 0;
   const showInstitutionButton = activeInstitutionsCount > 1 && !pathname.startsWith("/institutions");
 
@@ -381,10 +392,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const ADMIN_ROUTES = ["/users", "/activity-log"];
   useEffect(() => {
     if (!ready || publicPage || !me) return;
+
+    // Redirigir SuperAdmin a /admin si está en la raíz
+    if (isSuperAdmin && pathname === "/") {
+      router.replace("/admin");
+      return;
+    }
+
     if (!isAdmin && ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
       router.replace("/");
     }
-  }, [ready, publicPage, me, isAdmin, pathname, router]);
+  }, [ready, publicPage, me, isAdmin, isSuperAdmin, pathname, router]);
 
   const refreshActiveInstitution = async () => {
     if (isRefreshing.current) return;
@@ -458,25 +476,33 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const isActive = (path: string) => pathname === path || (path !== "/" && pathname.startsWith(path));
 
-  const navItems = useMemo<any[]>(() => [
-    { name: "Inicio", href: "/", icon: Icons.Home },
-    { name: "Instituciones", href: "/institutions", icon: Icons.Institutions },
-    { name: "Materias", href: "/subjects", icon: Icons.Subjects },
-    { name: "Exámenes", href: "/exams", icon: Icons.Exams },
-    {
-      name: "Generar Exámenes",
-      icon: Icons.Generate,
-      subItems: [
-        { name: "Generador IA", href: "/exams/builder", icon: Icons.Sparkles },
-        { name: "Generador Manual", href: "/exams/manual", icon: Icons.Hammer },
-      ],
-    },
-  ], []);
+  const navItems = useMemo<any[]>(() => {
+    const base = [
+      { name: "Inicio", href: "/", icon: Icons.Home },
+      { name: "Instituciones", href: "/institutions", icon: Icons.Institutions },
+      { name: "Materias", href: "/subjects", icon: Icons.Subjects },
+      { name: "Exámenes", href: "/exams", icon: Icons.Exams },
+      {
+        name: "Generar Exámenes",
+        icon: Icons.Generate,
+        subItems: [
+          { name: "Generador IA", href: "/exams/builder", icon: Icons.Sparkles },
+          { name: "Generador Manual", href: "/exams/manual", icon: Icons.Hammer },
+        ],
+      },
+    ];
+    if (isSuperAdmin) return [];
+    return base;
+  }, [isSuperAdmin]);
 
-  const adminItems = useMemo<any[]>(() => [
-    { name: "Equipo", href: "/users", icon: Icons.Team },
-    { name: "Historial", href: "/activity-log", icon: Icons.History },
-  ], []);
+  const adminItems = useMemo<any[]>(() => {
+    const base = [
+      { name: "Equipo", href: "/users", icon: Icons.Team },
+      { name: "Historial", href: "/activity-log", icon: Icons.History },
+    ];
+    if (isSuperAdmin) return [];
+    return base;
+  }, [isSuperAdmin]);
 
   if (!ready) return null;
   if (publicPage) return <div className="min-h-screen bg-white">{children}</div>;
@@ -503,7 +529,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </Link>
             <div className="hidden sm:flex items-center gap-2 border-l border-blue-500/50 pl-4">
               <span className="text-xs font-bold uppercase tracking-widest text-blue-200/60">Institución</span>
-              <span className="text-sm font-medium text-white truncate max-w-[200px]">{activeInstitutionName}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white truncate max-w-[200px]">{activeInstitutionName}</span>
+                <span className={cn(
+                  "px-1.5 py-0.5 text-[10px] font-bold rounded border",
+                  activePlan === 'PREMIUM' ? "bg-amber-400 text-amber-950 border-amber-300" :
+                    activePlan === 'FULL' ? "bg-emerald-400 text-emerald-950 border-emerald-300" :
+                      "bg-blue-500 text-blue-100 border-blue-400"
+                )}>
+                  {activePlan}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -560,9 +596,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   <button
                     onClick={() => {
                       logout();
-                      localStorage.removeItem("theme");
-                      setTheme("light");
-                      document.documentElement.classList.remove("dark");
+                      // Resetear estados locales para evitar residuo visual (stale state)
+                      setMe(null);
+                      setActiveInstitutionName("Sin institución");
+
+                      // Limpiar caché de react-query para que el próximo login empiece de cero
+                      queryClient.clear();
+
+                      // El flujo de logout ya limpia localStorage y redirige
                       router.push("/login");
                     }}
                     className="flex w-full items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md"
@@ -592,6 +633,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   subItems={item.subItems?.map((s: any) => ({ ...s, label: s.name }))}
                 />
               ))}
+
+              {isSuperAdmin && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+                  <NavLink
+                    href="/admin"
+                    label="Sistema Maestro"
+                    active={isActive("/admin")}
+                    icon={Icons.Institutions} // O crear uno de corona/shield
+                  />
+                </div>
+              )}
 
               {isAdmin && (
                 <div className="my-6 border-t border-gray-100 dark:border-slate-800 pt-6">

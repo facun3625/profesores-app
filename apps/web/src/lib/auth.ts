@@ -15,6 +15,21 @@ function clearAccessToken() {
   document.cookie = "accessToken=; Path=/; Max-Age=0; SameSite=Lax";
 }
 
+export function clearSession() {
+  if (typeof window === "undefined") return;
+
+  // Limpiar tokens
+  clearAccessToken();
+
+  // Limpiar cualquier otra variable de estado persistida
+  localStorage.removeItem("me");
+  localStorage.removeItem("activeInstitutionId");
+  localStorage.removeItem("activeInstitutionName");
+  localStorage.removeItem("profileData"); // Por si existe
+
+  // Nota: Mantenemos 'theme' y 'rememberedEmail' por conveniencia del usuario
+}
+
 function pickToken(data: any): string | null {
   const t = data?.token ?? data?.accessToken ?? null;
   return typeof t === "string" && t.length ? t : null;
@@ -53,7 +68,7 @@ export async function register(
 }
 
 export function logout() {
-  clearAccessToken();
+  clearSession();
 }
 
 export async function getMe() {

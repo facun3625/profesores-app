@@ -25,6 +25,7 @@ model User {
   authProvider        AuthProvider      @default(local)
   googleSub           String?           @unique
   status              UserStatus        @default(active)
+  globalRole          GlobalRole        @default(USER)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   activeInstitutionId String?
@@ -42,7 +43,7 @@ model User {
 model Institution {
   id            String            @id @default(cuid())
   name          String
-  plan          InstitutionPlan   @default(free)
+  plan          InstitutionPlan   @default(FREE)
   status        InstitutionStatus @default(active)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -229,8 +230,14 @@ enum UserStatus {
 }
 
 enum InstitutionPlan {
-  free
-  premium
+  FREE
+  FULL
+  PREMIUM
+}
+
+enum GlobalRole {
+  USER
+  ADMIN
 }
 
 enum InstitutionStatus {

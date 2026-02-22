@@ -2,14 +2,19 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } fro
 import { TopicsService } from './topics.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
+import { QuotaService } from '../quota/quota.service';
 
 @Controller('topics')
 @UseGuards(AuthGuard)
 export class TopicsController {
-  constructor(private readonly topicsService: TopicsService) { }
+  constructor(
+    private readonly topicsService: TopicsService,
+    private readonly quotaService: QuotaService
+  ) { }
 
   @Post()
   async create(@Req() req: any, @Body() dto: CreateTopicDto) {
+    await this.quotaService.checkQuota(req.activeInstitutionId, 'topics', dto.subjectId);
     return this.topicsService.create(req.activeInstitutionId, dto);
   }
 

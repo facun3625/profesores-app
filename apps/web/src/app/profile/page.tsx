@@ -155,6 +155,10 @@ export default function ProfilePage() {
     country: "",
   });
   const [savingField, setSavingField] = useState<FieldKey | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -259,6 +263,44 @@ export default function ProfilePage() {
       setErr(e?.message ?? "No se pudo guardar el perfil");
     } finally {
       setSavingField(null);
+    }
+  }
+
+  async function updatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      setErr("Ambos campos son obligatorios.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setErr("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErr("Las contraseñas no coinciden.");
+      return;
+    }
+
+    try {
+      setSavingPassword(true);
+      setErr(null);
+      setPasswordSuccess(false);
+
+      await api(`/auth/me`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          password: newPassword,
+        }),
+      });
+
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSuccess(true);
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch (e: any) {
+      setErr(e?.message ?? "No se pudo actualizar la contraseña");
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -398,6 +440,64 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+        </section>
+      </div>
+
+      <div className="mt-6">
+        <section className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">Seguridad y Acceso</div>
+              <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">
+                Cambio de contraseña.
+              </div>
+            </div>
+            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+          </div>
+
+          <form onSubmit={updatePassword} className="mt-5 grid gap-4 max-w-md">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-500 dark:text-slate-500">Nueva Contraseña</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                className="h-10 w-full rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 px-4 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-500 dark:text-slate-500">Confirmar Contraseña</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                className="h-10 w-full rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 px-4 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                placeholder="Repetir contraseña"
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={savingPassword}
+                className={cn(
+                  "inline-flex h-10 items-center justify-center rounded-xl bg-blue-600 px-6 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition-all hover:bg-blue-700 hover:shadow-blue-500/20 active:scale-[0.98] disabled:opacity-60",
+                  passwordSuccess && "bg-emerald-600 hover:bg-emerald-600 shadow-emerald-500/10"
+                )}
+              >
+                {savingPassword ? "Actualizando..." : passwordSuccess ? "¡Contraseña actualizada!" : "Actualizar Contraseña"}
+              </button>
+            </div>
+          </form>
         </section>
       </div>
 

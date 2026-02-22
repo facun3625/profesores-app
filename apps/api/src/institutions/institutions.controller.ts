@@ -2,6 +2,7 @@ import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, 
 import { IsString } from "class-validator";
 import { InstitutionsService } from "./institutions.service";
 import { AuthGuard } from "../auth/guards/auth.guard";
+import { QuotaService } from "../quota/quota.service";
 
 class CreateInstitutionDto {
   @IsString()
@@ -26,7 +27,10 @@ class UpdateStatusDto {
 @Controller("institutions")
 @UseGuards(AuthGuard)
 export class InstitutionsController {
-  constructor(private readonly institutionsService: InstitutionsService) { }
+  constructor(
+    private readonly institutionsService: InstitutionsService,
+    private readonly quotaService: QuotaService
+  ) { }
 
   @Get()
   list(@Req() req: any) {
@@ -34,10 +38,15 @@ export class InstitutionsController {
   }
 
   @Post()
-  create(@Req() req: any, @Body() dto: CreateInstitutionDto) {
+  async create(@Req() req: any, @Body() dto: CreateInstitutionDto) {
     if (req.role !== "admin") {
       throw new ForbiddenException("Solo los administradores pueden crear instituciones");
     }
+
+    // Validar cuota de instituciones
+    // Pasamos req.userId para contar cuántas instituciones ya administra
+    await this.quotaService.checkQuota(req.activeInstitutionId, 'institutions', req.userId);
+
     return this.institutionsService.createForAdmin(req.userId, dto.name);
   }
 

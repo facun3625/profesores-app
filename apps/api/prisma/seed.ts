@@ -1,10 +1,10 @@
 import { PrismaClient, QuestionDifficulty, QuestionType } from '@prisma/client';
-import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-function hashPassword(pw: string) {
-  return crypto.createHash('sha256').update(pw).digest('hex');
+async function hashPassword(pw: string) {
+  return bcrypt.hash(pw, 10);
 }
 
 async function main() {
@@ -23,7 +23,7 @@ async function main() {
   const institution = await prisma.institution.create({
     data: {
       name: 'Instituto Demo',
-      plan: 'free',
+      plan: 'FREE',
       status: 'active',
     },
   });
@@ -33,9 +33,10 @@ async function main() {
     data: {
       email: 'test+seed@test.com',
       name: 'Admin Seed',
-      passwordHash: hashPassword('12345678'),
+      passwordHash: await hashPassword('12345678'),
       authProvider: 'local',
       status: 'active',
+      globalRole: 'ADMIN',
       activeInstitutionId: institution.id,
     },
   });

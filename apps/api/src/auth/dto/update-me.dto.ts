@@ -25,4 +25,9 @@ export class UpdateMeDto {
   @IsString()
   @MaxLength(80)
   country?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  password?: string;
 }

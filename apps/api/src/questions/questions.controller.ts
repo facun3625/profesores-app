@@ -4,14 +4,19 @@ import { CreateQuestionDto } from "./dto/create-question.dto";
 import { UpdateQuestionDto } from "./dto/update-question.dto";
 import { ListQuestionsDto } from "./dto/list-questions.dto";
 import { AuthGuard } from "../auth/guards/auth.guard";
+import { QuotaService } from "../quota/quota.service";
 
 @Controller("questions")
 @UseGuards(AuthGuard)
 export class QuestionsController {
-  constructor(private readonly questionsService: QuestionsService) { }
+  constructor(
+    private readonly questionsService: QuestionsService,
+    private readonly quotaService: QuotaService
+  ) { }
 
   @Post()
-  create(@Req() req: any, @Body() dto: CreateQuestionDto) {
+  async create(@Req() req: any, @Body() dto: CreateQuestionDto) {
+    await this.quotaService.checkQuota(req.activeInstitutionId, 'questions', dto.topicId);
     return this.questionsService.create(req.userId, dto);
   }
 

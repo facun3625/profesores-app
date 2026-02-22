@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('me')
 export class MeController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   @Get()
   async me(@Headers('x-user-id') userId?: string) {
@@ -15,7 +15,9 @@ export class MeController {
         id: true,
         email: true,
         name: true,
+        lastName: true,
         status: true,
+        globalRole: true,
         authProvider: true,
         activeInstitutionId: true,
       },
@@ -23,14 +25,14 @@ export class MeController {
 
     const institutions = userId
       ? await this.prisma.userInstitution.findMany({
-          where: { userId },
-          select: {
-            institution: {
-              select: { id: true, name: true, plan: true, status: true },
-            },
-            role: true,
+        where: { userId },
+        select: {
+          institution: {
+            select: { id: true, name: true, plan: true, status: true },
           },
-        })
+          role: true,
+        },
+      })
       : [];
 
     return {

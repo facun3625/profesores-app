@@ -14,17 +14,24 @@ import {
 import { SubjectsService } from "./subjects.service";
 import { CreateSubjectDto } from "./dto/create-subject.dto";
 import { AuthGuard } from "../auth/guards/auth.guard";
+import { QuotaService } from "../quota/quota.service";
 
 @Controller("subjects")
 @UseGuards(AuthGuard)
 export class SubjectsController {
-  constructor(private readonly subjectsService: SubjectsService) { }
+  constructor(
+    private readonly subjectsService: SubjectsService,
+    private readonly quotaService: QuotaService
+  ) { }
 
   @Post()
   async create(@Req() req: any, @Body() dto: CreateSubjectDto) {
     if (req.role !== "admin") {
       throw new ForbiddenException("Solo los administradores pueden crear materias");
     }
+
+    await this.quotaService.checkQuota(req.activeInstitutionId, 'subjects');
+
     return this.subjectsService.create(req.activeInstitutionId, dto);
   }
 

@@ -48,7 +48,7 @@ export class InstitutionsService {
     const institution = await this.prisma.institution.create({
       data: {
         name: name.trim(),
-        plan: "free",
+        plan: "FREE",
         status: "active",
       },
       select: {
