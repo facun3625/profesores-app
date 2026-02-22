@@ -11,6 +11,7 @@ type RegisterInput = {
   email: string;
   password: string;
   name?: string;
+  lastName?: string;
   institutionName: string;
 };
 
@@ -54,6 +55,7 @@ export class AuthService {
         data: {
           email,
           name: input.name ?? null,
+          lastName: input.lastName ?? null,
           passwordHash,
           authProvider: "local",
           status: "active",
