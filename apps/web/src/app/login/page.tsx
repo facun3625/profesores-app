@@ -148,15 +148,6 @@ export default function LoginPage() {
               Continuar con Google
             </button>
 
-            {/* Separador */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-100"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-4 text-gray-400 font-medium">o</span>
-              </div>
-            </div>
 
             <form onSubmit={onSubmit} className="space-y-5">
               <div className="space-y-1">
