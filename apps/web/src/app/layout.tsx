@@ -27,6 +27,9 @@ const montserratAlternates = Montserrat_Alternates({
 export const metadata: Metadata = {
   title: "profly",
   description: "Sistema de gestión y generación de exámenes",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

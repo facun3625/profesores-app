@@ -476,6 +476,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const isActive = (path: string) => pathname === path || (path !== "/" && pathname.startsWith(path));
 
+
   const navItems = useMemo<any[]>(() => {
     const base = [
       { name: "Inicio", href: "/", icon: Icons.Home },
