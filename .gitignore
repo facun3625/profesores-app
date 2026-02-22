@@ -1,5 +1,28 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependency directories
 node_modules
+/jspm_packages
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System
 .DS_Store
-.DS_Store
-*.zip
-*.pdf
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

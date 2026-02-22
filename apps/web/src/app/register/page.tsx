@@ -60,113 +60,117 @@ export default function Page() {
   }
 
   return (
-    <main className="min-h-screen px-4">
-      {/* Fondo con gradient + grid sutil */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-      <div
-        className="fixed inset-0 -z-10 opacity-[0.08]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.08) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
+    <main className="min-h-screen flex">
+      {/* Panel Izquierdo: Branding (Solo en Desktop) */}
+      <div className="hidden lg:flex lg:w-[40%] flex-col items-center justify-center bg-blue-600 p-12 text-white relative h-screen sticky top-0 shadow-2xl z-10">
+        <div className="max-w-md text-center space-y-3">
+          <div className="text-5xl font-semibold tracking-tighter font-[family-name:var(--font-logo)]">
+            profly
+          </div>
+          <p className="text-lg font-medium opacity-80">
+            Gestión Inteligente de Exámenes
+          </p>
+        </div>
 
-      <div className="min-h-screen flex justify-center pt-[60px] md:pt-32">
-        <div className="w-full max-w-md px-4">
-          <div className="mb-6">
+        {/* Decoración sutil */}
+        <div className="absolute inset-x-0 bottom-12 text-center text-sm opacity-60 font-[family-name:var(--font-logo)]">
+          © {new Date().getFullYear()} profly
+        </div>
+      </div>
+
+      {/* Panel Derecho: Formulario Estilo DonWeb */}
+      <div className="flex-1 flex flex-col justify-center items-center relative overflow-hidden bg-white">
+        <div className="w-full max-w-md px-8 pb-12 -mt-12">
+          {/* Logo móvil (Solo visible en pantallas pequeñas) */}
+          <div className="mb-10 lg:hidden text-center">
             <ProflyLogo />
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
-            <div className="mb-6 text-center">
-              <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Creá tu usuario y tu institución inicial
+          <div className="space-y-8">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">Crear cuenta</h1>
+              <p className="mt-2 text-sm text-gray-500">
+                ¿Ya tienes cuenta?{" "}
+                <a href="/login" className="text-blue-600 font-semibold hover:underline">
+                  Iniciá sesión aquí
+                </a>
               </p>
             </div>
 
             {error && (
-              <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div className="mb-4 rounded-xl border border-red-50 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
                 {error}
               </div>
             )}
 
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-800">Nombre</label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Tu nombre"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
+            <form onSubmit={onSubmit} className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Tu nombre"
+                    className="w-full h-12 rounded-xl border border-gray-100 bg-gray-50/50 px-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all text-gray-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Tu apellido"
+                    className="w-full h-12 rounded-xl border border-gray-100 bg-gray-50/50 px-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all text-gray-900"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-800">Apellido</label>
-                <input
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Tu apellido"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-800">Institución</label>
                 <input
                   value={institutionName}
                   onChange={(e) => setInstitutionName(e.target.value)}
                   placeholder="Nombre de la institución"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-12 rounded-xl border border-gray-100 bg-gray-50/50 px-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all text-gray-900"
                 />
-                <p className="text-xs text-gray-500">
-                  Podés cambiarla o sumar más instituciones después.
+                <p className="text-[11px] text-gray-400 mt-1 pl-1">
+                  Ej: Colegio San José, Instituto Técnico, etc.
                 </p>
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-800">Email</label>
                 <input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
-                  placeholder="email@ejemplo.com"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="Email institucional o personal"
+                  className="w-full h-12 rounded-xl border border-gray-100 bg-gray-50/50 px-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all text-gray-900"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-800">Contraseña</label>
                 <input
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type="password"
-                  placeholder="Mínimo 8 caracteres"
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="Elegí una contraseña (mín. 8 caracteres)"
+                  className="w-full h-12 rounded-xl border border-gray-100 bg-gray-50/50 px-4 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all text-gray-900"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+                className="w-full h-12 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-lg shadow-blue-500/10 transition-all hover:bg-blue-700 hover:shadow-blue-500/20 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none mt-2"
               >
-                {loading ? "Creando..." : "Registrarme"}
+                {loading ? "Creando..." : "Crear mi cuenta"}
               </button>
-
-              <div className="text-center text-sm text-gray-600">
-                ¿Ya tenés cuenta?{" "}
-                <a href="/login" className="font-medium text-blue-600 hover:underline">
-                  Iniciar sesión
-                </a>
-              </div>
             </form>
           </div>
 
-          <div className="mt-6 text-center text-xs text-gray-500 font-[family-name:var(--font-logo)]">
-            © {new Date().getFullYear()} profly
+          <div className="mt-8 text-center lg:hidden">
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-logo)]">
+              © {new Date().getFullYear()} profly
+            </p>
           </div>
         </div>
       </div>
