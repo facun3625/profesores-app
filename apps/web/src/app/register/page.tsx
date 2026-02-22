@@ -4,20 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth";
 
-function ProflyLogo() {
-  return (
-    <div className="select-none text-center">
-      <div
-        className="text-4xl font-semibold tracking-tight text-blue-600 font-[family-name:var(--font-logo)]"
-      >
-        profly
-      </div>
-      <div className="mt-1 text-xs text-gray-500">
-        Instituciones · Exámenes · Gestión
-      </div>
-    </div>
-  );
-}
 
 export default function Page() {
   const router = useRouter();
@@ -64,7 +50,7 @@ export default function Page() {
       {/* Panel Izquierdo: Branding (Solo en Desktop) */}
       <div className="hidden lg:flex lg:w-[40%] flex-col items-center justify-center bg-blue-600 p-12 text-white relative h-screen sticky top-0 shadow-2xl z-10">
         <div className="max-w-md text-center space-y-3">
-          <div className="text-5xl font-semibold tracking-tighter font-[family-name:var(--font-logo)]">
+          <div className="text-5xl font-medium font-logo">
             profly
           </div>
           <p className="text-lg font-medium opacity-80">
@@ -83,7 +69,7 @@ export default function Page() {
         <div className="w-full max-w-md px-8 pb-12 -mt-12">
           {/* Logo móvil (Solo visible en pantallas pequeñas) */}
           <div className="mb-10 lg:hidden text-center">
-            <ProflyLogo />
+            <span className="text-4xl font-medium text-blue-600 font-logo">profly</span>
           </div>
 
           <div className="space-y-8">
