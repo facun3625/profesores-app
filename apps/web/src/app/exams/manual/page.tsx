@@ -72,7 +72,7 @@ function SelectPretty({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className="h-10 w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 pr-11 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        className="h-10 w-full appearance-none rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 pr-11 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
       >
         {children}
       </select>
@@ -443,10 +443,10 @@ export default function Page() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             {isDuplicate ? "Duplicar examen" : "Generador Manual"}
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
             Seleccioná preguntas manualmente desde tu banco.
           </p>
         </div>
@@ -455,7 +455,7 @@ export default function Page() {
           <div className="flex gap-3">
             <a
               href="/exams"
-              className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              className="inline-flex h-9 items-center rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
             >
               Volver
             </a>
@@ -472,39 +472,39 @@ export default function Page() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mb-6 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-400">
           {error}
         </div>
       )}
 
       {/* Success */}
       {createdExamId && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="mb-6 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 p-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="text-sm text-blue-900">
+            <div className="text-sm text-blue-900 dark:text-blue-400">
               <b>Examen creado:</b>{" "}
-              <span className="font-mono text-xs">{createdExamId}</span>
+              <span className="font-mono text-xs text-blue-800 dark:text-blue-300">{createdExamId}</span>
             </div>
 
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => downloadPdf()}
-                className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+                className="inline-flex h-8 items-center rounded-md border border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-800 px-3 text-xs font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition"
               >
                 PDF estándar
               </button>
               <button
                 type="button"
                 onClick={() => setShowCustomizeModal(true)}
-                className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+                className="inline-flex h-8 items-center rounded-md border border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-800 px-3 text-xs font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition"
               >
                 Personalizar
               </button>
               <button
                 type="button"
                 onClick={() => router.push("/exams")}
-                className="inline-flex h-8 items-center rounded-md border border-blue-300 bg-white px-3 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+                className="inline-flex h-8 items-center rounded-md border border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-800 px-3 text-xs font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition"
               >
                 Ir a exámenes
               </button>
@@ -514,46 +514,46 @@ export default function Page() {
       )}
 
       {/* Form */}
-      <section className="mb-6 rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
+      <section className="mb-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 backdrop-blur p-6 shadow-sm">
         <div className="grid gap-4 md:grid-cols-3">
           <label className="grid gap-2">
-            <span className="text-xs font-medium text-gray-500">Título</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Título</span>
             <input
               value={title}
               onChange={(e) => {
                 touch();
                 setTitle(e.target.value);
               }}
-              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-10 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </label>
 
           {(!title.trim() || !subjectId) && (
-            <div className="flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4 transition-all animate-in fade-in slide-in-from-top-2 md:col-span-2 lg:col-span-1">
-              <div className="flex shrink-0 items-center justify-center rounded-lg bg-blue-100 p-2 text-blue-600">
+            <div className="flex items-start gap-4 rounded-xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/20 p-4 transition-all animate-in fade-in slide-in-from-top-2 md:col-span-2 lg:col-span-1">
+              <div className="flex shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 p-2 text-blue-600 dark:text-blue-400">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 14" /></svg>
               </div>
               <div>
-                <p className="text-xs font-semibold text-blue-900 leading-tight">Configuración requerida</p>
-                <p className="text-[11px] text-blue-700/80 leading-snug mt-0.5">Asigná un título y materia.</p>
+                <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 leading-tight">Configuración requerida</p>
+                <p className="text-[11px] text-blue-700/80 dark:text-blue-400/80 leading-snug mt-0.5">Asigná un título y materia.</p>
               </div>
             </div>
           )}
 
           <label className="grid gap-2 md:col-span-2">
-            <span className="text-xs font-medium text-gray-500">Descripción</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Descripción</span>
             <input
               value={description}
               onChange={(e) => {
                 touch();
                 setDescription(e.target.value);
               }}
-              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-10 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </label>
 
           <label className="grid gap-2">
-            <span className="text-xs font-medium text-gray-500">Materia</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Materia</span>
             <SelectPretty
               value={subjectId}
               onChange={(e) => {
@@ -580,13 +580,13 @@ export default function Page() {
       {/* Main content */}
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         {/* Bank */}
-        <section className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Banco de preguntas</h2>
+        <section className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 backdrop-blur p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Banco de preguntas</h2>
 
           {/* Topics */}
           {topics.length > 0 && (
             <div className="mb-4">
-              <div className="text-xs font-medium text-gray-500 mb-2">Temas</div>
+              <div className="text-xs font-medium text-gray-500 dark:text-slate-500 mb-2">Temas</div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {topics.map((t) => (
                   <label key={t.id} className="flex items-center gap-2 text-sm">
@@ -594,9 +594,9 @@ export default function Page() {
                       type="checkbox"
                       checked={topicIds.includes(t.id)}
                       onChange={() => toggleTopic(t.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                      className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                     />
-                    {t.name}
+                    <span className="text-gray-700 dark:text-slate-300">{t.name}</span>
                   </label>
                 ))}
               </div>
@@ -606,7 +606,7 @@ export default function Page() {
           {/* Filters */}
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">Buscar</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Buscar</span>
               <input
                 value={search}
                 onChange={(e) => {
@@ -614,12 +614,12 @@ export default function Page() {
                   setSearch(e.target.value);
                 }}
                 placeholder="Escribí y filtra..."
-                className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="h-10 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
 
             <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">Tipo</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Tipo</span>
               <SelectPretty
                 value={typeFilter}
                 onChange={(e) => {
@@ -635,7 +635,7 @@ export default function Page() {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-xs font-medium text-gray-500">Dificultad</span>
+              <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Dificultad</span>
               <SelectPretty
                 value={diffFilter}
                 onChange={(e) => {
@@ -653,53 +653,53 @@ export default function Page() {
 
           {/* Questions */}
           {bankLoading ? (
-            <div className="text-sm text-gray-600">Cargando preguntas...</div>
+            <div className="text-sm text-gray-600 dark:text-slate-400">Cargando preguntas...</div>
           ) : (
             <div className="grid gap-2 max-h-[600px] overflow-y-auto">
               {filteredBank.map((q) => (
                 <label
                   key={q.id}
-                  className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-gray-50 transition"
+                  className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-slate-800 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition"
                 >
                   <input
                     type="checkbox"
                     checked={selectedSet.has(q.id)}
                     onChange={() => toggleSelect(q.id)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900">{q.statement}</div>
-                    <div className="mt-1 text-xs text-gray-500">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{q.statement}</div>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-slate-500">
                       {labelType(q.type)} · {labelDifficulty(q.difficulty)} · {q.id}
                     </div>
                   </div>
                 </label>
               ))}
               {filteredBank.length === 0 && (
-                <div className="text-sm text-gray-600">No hay preguntas con esos filtros.</div>
+                <div className="text-sm text-gray-600 dark:text-slate-400">No hay preguntas con esos filtros.</div>
               )}
             </div>
           )}
         </section>
 
         {/* Selected */}
-        <section className="rounded-2xl border border-gray-200 bg-white/90 backdrop-blur p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <section className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 backdrop-blur p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Seleccionadas ({selectedIds.length})
           </h2>
 
           {selectedIds.length === 0 ? (
-            <div className="text-sm text-gray-600">Elegí preguntas del banco.</div>
+            <div className="text-sm text-gray-600 dark:text-slate-400">Elegí preguntas del banco.</div>
           ) : (
             <ol className="grid gap-3 max-h-[600px] overflow-y-auto">
               {selectedQuestions.map((q: any, idx) => (
-                <li key={q.id} className="rounded-lg border border-gray-200 p-3">
+                <li key={q.id} className="rounded-lg border border-gray-200 dark:border-slate-800 p-3">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {idx + 1}. {q.statement ?? "(sin enunciado)"}
                       </div>
-                      <div className="mt-1 text-xs text-gray-500 font-mono">{q.id}</div>
+                      <div className="mt-1 text-xs text-gray-500 dark:text-slate-500 font-mono">{q.id}</div>
                     </div>
                   </div>
 
@@ -708,7 +708,7 @@ export default function Page() {
                       type="button"
                       onClick={() => moveSelected(q.id, -1)}
                       disabled={idx === 0}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       ↑
                     </button>
@@ -716,14 +716,14 @@ export default function Page() {
                       type="button"
                       onClick={() => moveSelected(q.id, 1)}
                       disabled={idx === selectedIds.length - 1}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       ↓
                     </button>
                     <button
                       type="button"
                       onClick={() => removeSelected(q.id)}
-                      className="inline-flex h-7 items-center rounded border border-red-300 bg-white px-2 text-xs font-medium text-red-700 hover:bg-red-50 transition"
+                      className="inline-flex h-7 items-center rounded border border-red-300 dark:border-red-900/50 bg-white dark:bg-slate-800 px-2 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                     >
                       Quitar
                     </button>

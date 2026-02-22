@@ -38,8 +38,8 @@ export default function PdfCustomizeModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Personalizar formato del PDF
                 </h2>
 
@@ -52,14 +52,14 @@ export default function PdfCustomizeModal({
                             onChange={(e) =>
                                 setOptions({ ...options, boldStatement: e.target.checked })
                             }
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                            className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                         />
-                        <span className="text-sm text-gray-700">Enunciado en negrita</span>
+                        <span className="text-sm text-gray-700 dark:text-slate-300">Enunciado en negrita</span>
                     </label>
 
                     {/* Tipografía */}
                     <label className="block">
-                        <span className="text-sm font-medium text-gray-700">Tipografía</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-slate-500">Tipografía</span>
                         <select
                             value={options.fontFamily}
                             onChange={(e) =>
@@ -68,7 +68,7 @@ export default function PdfCustomizeModal({
                                     fontFamily: e.target.value as PdfOptions["fontFamily"],
                                 })
                             }
-                            className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="mt-2 block w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="Calibri">Calibri</option>
                             <option value="Times New Roman">Times New Roman</option>
@@ -78,7 +78,7 @@ export default function PdfCustomizeModal({
 
                     {/* Tamaño pregunta */}
                     <label className="block">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-sm font-medium text-gray-700 dark:text-slate-500">
                             Tamaño de pregunta
                         </span>
                         <select
@@ -89,7 +89,7 @@ export default function PdfCustomizeModal({
                                     questionSize: +e.target.value as PdfOptions["questionSize"],
                                 })
                             }
-                            className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="mt-2 block w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="9">9</option>
                             <option value="10">10</option>
@@ -101,7 +101,7 @@ export default function PdfCustomizeModal({
 
                     {/* Tamaño respuesta */}
                     <label className="block">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-sm font-medium text-gray-700 dark:text-slate-500">
                             Tamaño de respuesta
                         </span>
                         <select
@@ -112,7 +112,7 @@ export default function PdfCustomizeModal({
                                     answerSize: +e.target.value as PdfOptions["answerSize"],
                                 })
                             }
-                            className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="mt-2 block w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="9">9</option>
                             <option value="10">10</option>
@@ -124,7 +124,7 @@ export default function PdfCustomizeModal({
 
                     {/* Interlineado */}
                     <label className="block">
-                        <span className="text-sm font-medium text-gray-700">Interlineado</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-slate-500">Interlineado</span>
                         <select
                             value={options.lineSpacing}
                             onChange={(e) =>
@@ -133,7 +133,7 @@ export default function PdfCustomizeModal({
                                     lineSpacing: +e.target.value as PdfOptions["lineSpacing"],
                                 })
                             }
-                            className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="mt-2 block w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="1.0">Sencillo (1.0)</option>
                             <option value="1.5">1.5</option>
@@ -144,7 +144,7 @@ export default function PdfCustomizeModal({
                 <div className="flex gap-3">
                     <button
                         onClick={onClose}
-                        className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                        className="flex-1 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                     >
                         Cancelar
                     </button>

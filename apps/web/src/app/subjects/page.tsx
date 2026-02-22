@@ -24,14 +24,14 @@ function Badge({
 }) {
   const cls =
     tone === "blue"
-      ? "border-blue-200 bg-blue-50 text-blue-700"
+      ? "border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
       : tone === "green"
-        ? "border-green-200 bg-green-50 text-green-700"
+        ? "border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
         : tone === "gray"
-          ? "border-gray-200 bg-gray-50 text-gray-700"
+          ? "border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300"
           : tone === "emerald"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-            : "border-gray-200 bg-white text-gray-700";
+            ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+            : "border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300";
 
   return (
     <span
@@ -46,7 +46,7 @@ function Badge({
 }
 
 function Mono({ children }: { children: React.ReactNode }) {
-  return <span className="font-mono text-[12px] text-gray-500">{children}</span>;
+  return <span className="font-mono text-[12px] text-gray-500 dark:text-slate-500">{children}</span>;
 }
 
 function highlight(text: string, q: string) {
@@ -63,7 +63,7 @@ function highlight(text: string, q: string) {
   return (
     <>
       {a}
-      <mark className="rounded bg-yellow-100 px-1 text-gray-900">{b}</mark>
+      <mark className="rounded bg-yellow-100 dark:bg-yellow-900/40 px-1 text-gray-900 dark:text-yellow-200">{b}</mark>
       {c}
     </>
   );
@@ -190,10 +190,10 @@ export default function SubjectsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             Materias
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
             Acá se arma el mapa. Después vienen los exámenes a repartir justicia.
           </p>
         </div>
@@ -211,11 +211,11 @@ export default function SubjectsPage() {
 
       {/* Formulario nueva materia: solo admins */}
       {isAdmin && (
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-gray-900">Nueva materia</div>
-              <div className="mt-1 text-sm text-gray-600">
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">Nueva materia</div>
+              <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">
                 Nombre simple y a otra cosa.
               </div>
             </div>
@@ -230,7 +230,7 @@ export default function SubjectsPage() {
                 if (e.key === "Enter" && canCreate) createSubject();
               }}
               placeholder="Ej: Matemática"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
 
             <button
@@ -245,16 +245,16 @@ export default function SubjectsPage() {
         </section>
       )}
 
-      <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="mt-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-gray-200 dark:border-slate-800 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <div className="h-5 w-1 rounded-full bg-blue-600" />
-              <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+              <div className="text-sm font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
                 Tus Materias
               </div>
             </div>
-            <div className="mt-1 text-sm text-gray-600">
+            <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">
               Entrá a “Temas” para completar la estructura.
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function SubjectsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre…"
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <Badge tone="gray">{filtered.length}</Badge>
@@ -273,9 +273,9 @@ export default function SubjectsPage() {
         </div>
 
         {initialLoading ? (
-          <div className="px-6 py-8 text-sm text-gray-600">Cargando…</div>
+          <div className="px-6 py-8 text-sm text-gray-600 dark:text-slate-400">Cargando…</div>
         ) : filtered.length ? (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-slate-800">
             {filtered.map((s) => {
               const isEditing = editingId === s.id;
 
@@ -287,7 +287,7 @@ export default function SubjectsPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       {!isEditing ? (
-                        <div className="truncate text-sm font-semibold text-gray-900">
+                        <div className="truncate text-sm font-semibold text-gray-900 dark:text-white">
                           {highlight(s.name, search)}
                         </div>
                       ) : (
@@ -298,7 +298,7 @@ export default function SubjectsPage() {
                             if (e.key === "Enter") saveEdit();
                             if (e.key === "Escape") cancelEdit();
                           }}
-                          className="w-full max-w-[360px] rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                          className="w-full max-w-[360px] rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                         />
                       )}
                     </div>
@@ -320,7 +320,7 @@ export default function SubjectsPage() {
                           type="button"
                           disabled={loading}
                           onClick={cancelEdit}
-                          className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          className="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-60"
                         >
                           Cancelar
                         </button>

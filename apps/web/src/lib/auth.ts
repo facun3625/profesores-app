@@ -6,9 +6,8 @@ function setAccessToken(token: string) {
   localStorage.setItem("accessToken", token);
 
   // cookie (para middleware/server)
-  document.cookie = `accessToken=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=${
-    60 * 60 * 24 * 7
-  }`;
+  document.cookie = `accessToken=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7
+    }`;
 }
 
 function clearAccessToken() {
@@ -38,11 +37,12 @@ export async function register(
   email: string,
   password: string,
   name: string,
+  lastName: string,
   institutionName: string
 ) {
   const data = await api<any>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password, name, institutionName }),
+    body: JSON.stringify({ email, password, name, lastName, institutionName }),
   });
 
   const token = pickToken(data);

@@ -30,16 +30,16 @@ function Badge({
 }) {
     const cls =
         tone === "blue"
-            ? "border-blue-200 bg-blue-50 text-blue-700"
+            ? "border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
             : tone === "green"
-                ? "border-green-200 bg-green-50 text-green-700"
+                ? "border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
                 : tone === "red"
-                    ? "border-red-200 bg-red-50 text-red-700"
+                    ? "border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
                     : tone === "yellow"
-                        ? "border-yellow-200 bg-yellow-50 text-yellow-700"
+                        ? "border-yellow-200 dark:border-yellow-900/50 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
                         : tone === "gray"
-                            ? "border-gray-200 bg-gray-50 text-gray-700"
-                            : "border-gray-200 bg-white text-gray-700";
+                            ? "border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300"
+                            : "border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300";
 
     return (
         <span
@@ -73,7 +73,7 @@ function SubjectMultiSelect({
     }, [institutionId]);
 
     if (!subjects.length) {
-        return <p className="text-xs text-gray-400 mt-1">Sin materias disponibles</p>;
+        return <p className="text-xs text-gray-400 dark:text-slate-600 mt-1">Sin materias disponibles</p>;
     }
 
     return (
@@ -89,7 +89,7 @@ function SubjectMultiSelect({
                         }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-gray-700 truncate">{s.name}</span>
+                    <span className="text-gray-700 dark:text-slate-300 truncate">{s.name}</span>
                 </label>
             ))}
         </div>
@@ -152,35 +152,35 @@ function ProfessorForm({
         <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-500 mb-1">Nombre *</label>
                     <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Juan"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Apellido</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-500 mb-1">Apellido</label>
                     <input
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Pérez"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-500 mb-1">Email *</label>
                     <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="juan@escuela.com"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-500 mb-1">
                         Contraseña {!initial?.email ? "* (mín. 6 caracteres)" : "(dejar vacío para no cambiar)"}
                     </label>
                     <input
@@ -188,14 +188,14 @@ function ProfessorForm({
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                     />
                 </div>
             </div>
 
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs font-medium text-gray-700">Acceso a instituciones y materias *</div>
+                    <div className="text-xs font-medium text-gray-700 dark:text-slate-500">Acceso a instituciones y materias *</div>
                     <button
                         type="button"
                         onClick={addInstitution}
@@ -207,18 +207,18 @@ function ProfessorForm({
                 </div>
 
                 {access.length === 0 && (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-slate-600">
                         Agregá al menos una institución con sus materias.
                     </p>
                 )}
 
                 {access.map((a, idx) => (
-                    <div key={idx} className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <div key={idx} className="mt-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 p-3">
                         <div className="flex items-center gap-2">
                             <select
                                 value={a.institutionId}
                                 onChange={(e) => updateAccess(idx, { institutionId: e.target.value, subjectIds: [] })}
-                                className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                                className="flex-1 rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500"
                             >
                                 {institutions
                                     .filter((inst) => !access.some((acc, accIdx) => acc.institutionId === inst.id && accIdx !== idx))
@@ -270,7 +270,7 @@ function ProfessorForm({
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
                 >
                     Cancelar
                 </button>
@@ -373,10 +373,10 @@ export default function UsersPage() {
             {/* Header */}
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                    <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
                         Equipo
                     </h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
                         Gestioná el acceso de tus profesores a instituciones y materias.
                     </p>
                 </div>
@@ -402,8 +402,8 @@ export default function UsersPage() {
 
             {/* Create form */}
             {showCreate && (
-                <section className="mt-6 rounded-2xl border border-blue-200 bg-white/90 p-6 shadow-sm">
-                    <div className="mb-4 text-sm font-semibold text-gray-900">Nuevo profesor</div>
+                <section className="mt-6 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-white/90 dark:bg-slate-900/50 p-6 shadow-sm">
+                    <div className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Nuevo profesor</div>
                     <ProfessorForm
                         institutions={institutions}
                         onSave={handleCreate}
@@ -414,11 +414,11 @@ export default function UsersPage() {
             )}
 
             {/* List */}
-            <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <section className="mt-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-gray-200 dark:border-slate-800 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                         <div className="h-5 w-1 rounded-full bg-blue-600" />
-                        <div className="text-sm font-semibold uppercase tracking-wide text-blue-700">
+                        <div className="text-sm font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
                             Tu Equipo
                         </div>
                     </div>
@@ -426,7 +426,7 @@ export default function UsersPage() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Buscar por nombre o email…"
-                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[280px]"
+                        className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[280px]"
                     />
                 </div>
 
@@ -434,18 +434,18 @@ export default function UsersPage() {
                     <div className="px-6 py-12 text-center text-sm text-gray-400">Cargando…</div>
                 ) : filtered.length === 0 && !search ? (
                     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">👩‍🏫</div>
-                        <div className="text-sm font-medium text-gray-700">Todavía no hay profesores</div>
-                        <p className="text-xs text-gray-400 max-w-xs">
-                            Creá el primero con el botón <strong className="text-gray-600">+ Nuevo profesor</strong> y asignale instituciones y materias.
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 text-3xl">👩‍🏫</div>
+                        <div className="text-sm font-medium text-gray-700 dark:text-slate-300">Todavía no hay profesores</div>
+                        <p className="text-xs text-gray-400 dark:text-slate-600 max-w-xs">
+                            Creá el primero con el botón <strong className="text-gray-600 dark:text-slate-400">+ Nuevo profesor</strong> y asignale instituciones y materias.
                         </p>
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div className="px-6 py-10 text-center text-sm text-gray-400">
-                        Sin resultados para <strong className="text-gray-600">{search}</strong>.
+                    <div className="px-6 py-10 text-center text-sm text-gray-400 dark:text-slate-600">
+                        Sin resultados para <strong className="text-gray-600 dark:text-slate-400">{search}</strong>.
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-gray-100 dark:divide-slate-800">
                         {filtered.map((p) => {
                             const isEditing = editingId === p.id;
                             const fullName = [p.name, p.lastName].filter(Boolean).join(" ") || p.email;
@@ -454,7 +454,7 @@ export default function UsersPage() {
                                 <div key={p.id} className="px-6 py-4">
                                     {isEditing ? (
                                         <div>
-                                            <div className="mb-3 text-sm font-semibold text-gray-900">
+                                            <div className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
                                                 Editando: {fullName}
                                             </div>
                                             <ProfessorForm
@@ -477,7 +477,7 @@ export default function UsersPage() {
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <div className="min-w-0">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-sm font-semibold text-gray-900">
+                                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                                         {fullName}
                                                     </span>
                                                     <Badge tone={p.status === "active" ? "green" : "red"}>
@@ -488,12 +488,12 @@ export default function UsersPage() {
                                                     )}
                                                 </div>
 
-                                                <div className="mt-0.5 text-xs text-gray-500">{p.email}</div>
+                                                <div className="mt-0.5 text-xs text-gray-500 dark:text-slate-500">{p.email}</div>
 
                                                 <div className="mt-2 flex flex-wrap gap-2">
                                                     {p.access.map((a) => (
-                                                        <div key={a.institution.id} className="text-xs text-gray-600">
-                                                            <span className="font-medium text-gray-800">
+                                                        <div key={a.institution.id} className="text-xs text-gray-600 dark:text-slate-400">
+                                                            <span className="font-medium text-gray-800 dark:text-slate-300">
                                                                 {a.institution.name}:
                                                             </span>{" "}
                                                             {a.subjects.map((s) => s.name).join(", ") || "—"}
@@ -506,7 +506,7 @@ export default function UsersPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => { setEditingId(p.id); setShowCreate(false); }}
-                                                    className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                                    className="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
                                                 >
                                                     Editar
                                                 </button>
@@ -517,8 +517,8 @@ export default function UsersPage() {
                                                     className={cn(
                                                         "inline-flex h-9 items-center rounded-md px-3 text-sm font-medium disabled:opacity-60",
                                                         p.status === "active"
-                                                            ? "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                                                            : "border border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                                            ? "border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+                                                            : "border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
                                                     )}
                                                 >
                                                     {p.status === "active" ? "Suspender" : "Activar"}

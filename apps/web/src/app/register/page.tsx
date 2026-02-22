@@ -8,11 +8,7 @@ function ProflyLogo() {
   return (
     <div className="select-none text-center">
       <div
-        className="text-4xl font-semibold tracking-tight text-blue-600"
-        style={{
-          fontFamily:
-            "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
-        }}
+        className="text-4xl font-semibold tracking-tight text-blue-600 font-[family-name:var(--font-logo)]"
       >
         profly
       </div>
@@ -27,6 +23,7 @@ export default function Page() {
   const router = useRouter();
 
   const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [institutionName, setInstitutionName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,16 +36,24 @@ export default function Page() {
     setError(null);
 
     if (!name.trim()) return setError("Poné tu nombre.");
+    if (!lastName.trim()) return setError("Poné tu apellido.");
     if (!institutionName.trim()) return setError("Poné el nombre de la institución.");
     if (!email.trim()) return setError("Poné tu email.");
     if (password.length < 8) return setError("La contraseña debe tener al menos 8 caracteres.");
 
     setLoading(true);
     try {
-      await register(email.trim(), password, name.trim(), institutionName.trim());
+      await register(email.trim(), password, name.trim(), lastName.trim(), institutionName.trim());
       router.push("/");
     } catch (e: any) {
-      setError(e?.message ?? "Error registrando usuario");
+      const msg = e?.message || "";
+      if (msg.includes("already exists") || msg.includes("Conflict")) {
+        setError("Ese email ya está registrado.");
+      } else if (msg.includes("Network Error") || msg.includes("fetch")) {
+        setError("Error de conexión. Verificá tu internet.");
+      } else {
+        setError(msg || "Ocurrió un error al intentar registrarte.");
+      }
     } finally {
       setLoading(false);
     }
@@ -67,8 +72,8 @@ export default function Page() {
         }}
       />
 
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen flex justify-center pt-[60px] md:pt-32">
+        <div className="w-full max-w-md px-4">
           <div className="mb-6">
             <ProflyLogo />
           </div>
@@ -94,6 +99,16 @@ export default function Page() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Tu nombre"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-800">Apellido</label>
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Tu apellido"
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -150,7 +165,7 @@ export default function Page() {
             </form>
           </div>
 
-          <div className="mt-6 text-center text-xs text-gray-500">
+          <div className="mt-6 text-center text-xs text-gray-500 font-[family-name:var(--font-logo)]">
             © {new Date().getFullYear()} profly
           </div>
         </div>

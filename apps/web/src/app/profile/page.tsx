@@ -24,15 +24,11 @@ function ProflyMark() {
   return (
     <div className="select-none">
       <div
-        className="text-xl font-semibold tracking-tight text-blue-600"
-        style={{
-          fontFamily:
-            "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
-        }}
+        className="text-xl font-semibold tracking-tight text-blue-600 font-[family-name:var(--font-logo)]"
       >
         profly
       </div>
-      <div className="mt-0.5 text-xs text-gray-500">Perfil</div>
+      <div className="mt-0.5 text-xs text-gray-500 dark:text-slate-500">Perfil</div>
     </div>
   );
 }
@@ -71,12 +67,12 @@ function FieldRowPro({
   saving: boolean;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-2 rounded-xl border border-gray-200 bg-white/70 px-4 py-3 sm:grid-cols-[180px_1fr_auto] sm:items-center">
-      <div className="text-xs font-medium text-gray-500">{label}</div>
+    <div className="grid grid-cols-1 gap-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 px-4 py-3 sm:grid-cols-[180px_1fr_auto] sm:items-center">
+      <div className="text-xs font-medium text-gray-500 dark:text-slate-500">{label}</div>
 
       {!editing ? (
-        <div className="text-sm font-medium text-gray-900">
-          {value.trim() ? value : <span className="text-gray-400">—</span>}
+        <div className="text-sm font-medium text-gray-900 dark:text-white">
+          {value.trim() ? value : <span className="text-gray-400 dark:text-slate-600">—</span>}
         </div>
       ) : (
         <input
@@ -92,7 +88,7 @@ function FieldRowPro({
               onCancel();
             }
           }}
-          className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          className="h-9 w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           autoFocus
         />
       )}
@@ -102,7 +98,7 @@ function FieldRowPro({
           <button
             type="button"
             onClick={onEdit}
-            className="h-9 rounded-md border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            className="h-9 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-xs font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
           >
             Editar
           </button>
@@ -124,7 +120,7 @@ function FieldRowPro({
               onClick={onCancel}
               disabled={saving}
               className={cn(
-                "h-9 rounded-md border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 hover:bg-gray-50",
+                "h-9 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-xs font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700",
                 saving && "opacity-60"
               )}
             >
@@ -269,15 +265,15 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+        <div className="mt-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-gray-900">
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">
                 Cargando…
               </div>
-              <div className="mt-1 text-sm text-gray-600">Traemos tu info.</div>
+              <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">Traemos tu info.</div>
             </div>
-            <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
+            <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200 dark:bg-slate-700" />
           </div>
         </div>
       </div>
@@ -288,20 +284,20 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white/90 text-sm font-semibold text-gray-800 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900 text-sm font-semibold text-gray-800 dark:text-white shadow-sm">
             {avatarLabel}
           </div>
 
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
                 Perfil
               </h1>
-              <span className="rounded-full border border-gray-200 bg-white/80 px-2.5 py-1 text-xs text-gray-600">
+              <span className="rounded-full border border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 px-2.5 py-1 text-xs text-gray-600 dark:text-slate-400">
                 Cuenta
               </span>
             </div>
-            <p className="mt-1 text-sm text-gray-600">Datos de tu usuario.</p>
+            <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">Datos de tu usuario.</p>
           </div>
         </div>
       </div>
@@ -313,11 +309,11 @@ export default function ProfilePage() {
       ) : null}
 
       <div className="mt-6">
-        <section className="rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-6 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-gray-900">Cuenta</div>
-              <div className="mt-1 text-sm text-gray-600">
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">Cuenta</div>
+              <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">
                 Edición por campo (sin romper nada).
               </div>
             </div>
@@ -387,16 +383,16 @@ export default function ProfilePage() {
               saving={savingField === "country"}
             />
 
-            <div className="mt-2 grid gap-2 rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
+            <div className="mt-2 grid gap-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 px-4 py-3">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <div className="text-xs font-medium text-gray-500">Email</div>
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-xs font-medium text-gray-500 dark:text-slate-500">Email</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-white">
                   {user?.email || "—"}
                 </div>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <div className="text-xs font-medium text-gray-500">User ID</div>
-                <div className="font-mono text-[12px] text-gray-700">
+                <div className="text-xs font-medium text-gray-500 dark:text-slate-500">User ID</div>
+                <div className="font-mono text-[12px] text-gray-700 dark:text-slate-400">
                   {user?.id || "—"}
                 </div>
               </div>
@@ -405,17 +401,17 @@ export default function ProfilePage() {
         </section>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-5 shadow-sm">
         <div>
-          <div className="text-sm font-semibold text-gray-900">Acciones</div>
-          <div className="mt-1 text-sm text-gray-600">Lo justo y necesario.</div>
+          <div className="text-sm font-semibold text-gray-900 dark:text-white">Acciones</div>
+          <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">Lo justo y necesario.</div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+            className="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-800 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
           >
             Volver al dashboard
           </button>
@@ -430,7 +426,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="mt-6 text-center text-xs text-gray-500">
+      <div className="mt-6 text-center text-xs text-gray-500 dark:text-slate-500 font-[family-name:var(--font-logo)]">
         © {new Date().getFullYear()} profly
       </div>
     </div>

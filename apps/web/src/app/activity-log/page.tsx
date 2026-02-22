@@ -97,10 +97,10 @@ export default function ActivityLogPage() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-purple-900">
+                    <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
                         Historial
                     </h1>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
                         Historial de cambios realizados por vos y tus profesores.
                     </p>
                 </div>
@@ -113,7 +113,7 @@ export default function ActivityLogPage() {
             )}
 
             {/* Filters */}
-            <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-4 shadow-sm">
+            <section className="mt-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-4 shadow-sm">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                     <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
@@ -121,7 +121,7 @@ export default function ActivityLogPage() {
                             type="date"
                             value={from}
                             onChange={(e) => setFrom(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                            className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         />
                     </div>
                     <div>
@@ -130,7 +130,7 @@ export default function ActivityLogPage() {
                             type="date"
                             value={to}
                             onChange={(e) => setTo(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                            className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         />
                     </div>
                     <div>
@@ -138,7 +138,7 @@ export default function ActivityLogPage() {
                         <select
                             value={actorFilter}
                             onChange={(e) => setActorFilter(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                            className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="">Todos</option>
                             {actors.map((a) => (
@@ -151,7 +151,7 @@ export default function ActivityLogPage() {
                         <select
                             value={actionFilter}
                             onChange={(e) => setActionFilter(e.target.value as any)}
-                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                            className="w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="">Todas</option>
                             <option value="CREATE">Creó</option>
@@ -164,14 +164,14 @@ export default function ActivityLogPage() {
                     <button
                         type="button"
                         onClick={load}
-                        className="inline-flex h-9 items-center rounded-md bg-purple-600 px-4 text-sm font-medium text-white hover:bg-purple-700"
+                        className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
                     >
                         {loading ? "Cargando…" : "Buscar"}
                     </button>
                     <button
                         type="button"
                         onClick={() => { setFrom(""); setTo(""); setActorFilter(""); setActionFilter(""); }}
-                        className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        className="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
                     >
                         Limpiar
                     </button>
@@ -179,11 +179,11 @@ export default function ActivityLogPage() {
             </section>
 
             {/* Table */}
-            <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 shadow-sm overflow-hidden">
+            <section className="mt-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 shadow-sm overflow-hidden">
                 <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="h-5 w-1 rounded-full bg-purple-600" />
-                        <div className="text-sm font-semibold uppercase tracking-wide text-purple-700">
+                        <div className="h-5 w-1 rounded-full bg-blue-600" />
+                        <div className="text-sm font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
                             Eventos
                         </div>
                     </div>
@@ -194,7 +194,7 @@ export default function ActivityLogPage() {
                     <div className="px-6 py-12 text-center text-sm text-gray-400">Cargando…</div>
                 ) : filtered.length === 0 ? (
                     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-purple-50 text-3xl">📋</div>
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 text-3xl">📋</div>
                         <div className="text-sm font-medium text-gray-700">Sin actividad registrada</div>
                         <p className="text-xs text-gray-400 max-w-xs">
                             Los cambios que hagas vos o tus profesores aparecerán acá.

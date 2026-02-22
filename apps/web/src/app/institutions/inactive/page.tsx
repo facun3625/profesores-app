@@ -65,6 +65,7 @@ export default function InactiveInstitutionsPage() {
                 body: JSON.stringify({ status: "active" }),
             });
             toast.success("Institución restaurada");
+            window.dispatchEvent(new Event("active-institution-changed"));
             await load();
         } catch (e: any) {
             toast.error(e.message);

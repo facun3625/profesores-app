@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,11 +9,7 @@ function ProflyLogo() {
   return (
     <div className="select-none text-center">
       <div
-        className="text-4xl font-semibold tracking-tight text-blue-600"
-        style={{
-          fontFamily:
-            "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
-        }}
+        className="text-4xl font-semibold tracking-tight text-blue-600 font-[family-name:var(--font-logo)]"
       >
         profly
       </div>
@@ -29,23 +25,58 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const queryClient = useQueryClient();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Validaciones preventivas en español
+    if (!email.trim()) {
+      setError("Por favor, ingresá tu email.");
+      return;
+    }
+    if (!password) {
+      setError("La contraseña es obligatoria.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       await login(email.trim(), password);
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email.trim());
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
+
       // ✅ Invalidar todo para que el Dashboard pida datos frescos con el nuevo token/contexto
       await queryClient.invalidateQueries();
       router.push("/");
     } catch (err: any) {
-      setError(err?.message ?? "Login error");
+      // Intento de traducir errores comunes del servidor
+      const msg = err?.message || "";
+      if (msg.includes("Invalid credentials") || msg.includes("Unauthorized")) {
+        setError("Email o contraseña incorrectos.");
+      } else if (msg.includes("Network Error") || msg.includes("fetch")) {
+        setError("Error de conexión. Verificá tu internet.");
+      } else {
+        setError(msg || "Ocurrió un error al intentar ingresar.");
+      }
     } finally {
       setLoading(false);
     }
@@ -64,8 +95,8 @@ export default function LoginPage() {
         }}
       />
 
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-full max-w-sm">
+      <div className="min-h-screen flex justify-center pt-[60px] md:pt-32">
+        <div className="w-full max-w-sm px-4">
           <div className="mb-6">
             <ProflyLogo />
           </div>
@@ -103,6 +134,19 @@ export default function LoginPage() {
                 />
               </div>
 
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="rememberMe" className="text-sm font-medium text-gray-700 select-none">
+                  Recordarme
+                </label>
+              </div>
+
               {error && (
                 <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {error}
@@ -138,7 +182,7 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="mt-6 text-center text-xs text-gray-500">
+          <div className="mt-6 text-center text-xs text-gray-500 font-[family-name:var(--font-logo)]">
             © {new Date().getFullYear()} profly
           </div>
         </div>

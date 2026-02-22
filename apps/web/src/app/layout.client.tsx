@@ -124,6 +124,45 @@ const Icons = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
     </svg>
+  ),
+  Help: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16h.01" />
+      <path d="M12 8v4" />
+    </svg>
+  ),
+  Bell: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  ),
+  Switch: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M16 3h5v5" />
+      <path d="M8 3H3v5" />
+      <path d="M12 21v-4" />
+      <path d="M24 12l-4-4v8l4-4zM0 12l4 4V8l-4 4z" />
+    </svg>
+  ),
+  Sun: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="4.22" x2="19.78" y2="5.64" />
+    </svg>
+  ),
+  Moon: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
   )
 };
 
@@ -152,7 +191,7 @@ function NavLink({
           onClick={() => setOpen(!open)}
           className={cn(
             "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-            "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+            "text-gray-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
           )}
         >
           <div className="flex items-center gap-3">
@@ -176,7 +215,7 @@ function NavLink({
                   onClick={onClick}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                    "text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                    "text-gray-500 hover:bg-blue-50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-blue-400"
                   )}
                 >
                   <sub.icon />
@@ -189,22 +228,26 @@ function NavLink({
       </div>
     );
   }
-
-  return (
-    <Link
-      href={href!}
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-        active
-          ? "bg-blue-50 text-blue-700"
-          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-      )}
-    >
-      <Icon />
-      <span>{label}</span>
-    </Link>
-  );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={onClick}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+          active
+            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 shadow-sm"
+            : "text-gray-600 hover:bg-gray-50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+        )}
+      >
+        <span className={cn("transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-slate-500")}>
+          <Icon />
+        </span>
+        <span className="dark:text-slate-300">{label}</span>
+      </Link>
+    );
+  }
+  return null;
 }
 
 function useOutsideClose<T extends HTMLElement>(open: boolean, onClose: () => void) {
@@ -269,6 +312,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [activeInstitutionName, setActiveInstitutionName] = useState("Sin institución");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const isRefreshing = useRef(false);
 
   const userMenuRef = useOutsideClose<HTMLDivElement>(userMenuOpen, () => setUserMenuOpen(false));
 
@@ -279,11 +324,44 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [me?.user?.name, me?.user?.email]);
 
   const isAdmin = me?.user?.activeRole === "admin" || me?.user?.activeRole == null;
-  const institutionCount = me?.institutions?.length ?? 1;
+  const activeInstitutionsCount = me?.institutions?.filter((i: any) => i.status !== "inactive").length ?? 0;
+  const showInstitutionButton = activeInstitutionsCount > 1 && !pathname.startsWith("/institutions");
 
   useEffect(() => {
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+
+    // Si es una página pública (login/register), siempre modo día
+    if (publicPage) {
+      setTheme("light");
+      document.documentElement.classList.remove("dark");
+      return;
+    }
+
+    const isDark = savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    if (isDark) {
+      setTheme("dark");
+      document.documentElement.classList.add("dark");
+    } else {
+      setTheme("light");
+      document.documentElement.classList.remove("dark");
+    }
+  }, [publicPage]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
 
   useEffect(() => {
     setMobileSidebarOpen(false);
@@ -308,7 +386,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [ready, publicPage, me, isAdmin, pathname, router]);
 
-  async function refreshActiveInstitution() {
+  const refreshActiveInstitution = async () => {
+    if (isRefreshing.current) return;
+    isRefreshing.current = true;
+
     const lsName = (safeLSGet("activeInstitutionName") || "").trim();
     const lsId = (safeLSGet("activeInstitutionId") || "").trim();
     if (lsName) setActiveInstitutionName(lsName);
@@ -323,35 +404,30 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           setActiveInstitutionName(fromMe.activeName);
           safeLSSet("activeInstitutionName", fromMe.activeName);
           if (fromMe.activeId) safeLSSet("activeInstitutionId", fromMe.activeId);
-          window.dispatchEvent(new Event("active-institution-changed"));
         }
-        return;
-      }
-
-      const idToUse = (fromMe.activeId || lsId).trim();
-      if (!idToUse) {
-        setActiveInstitutionName(lsName || "Sin institución");
-        return;
-      }
-
-      const nameFromList = await resolveInstitutionNameById(idToUse);
-      const finalName = (nameFromList || lsName || "Sin institución").trim();
-
-      if (finalName !== lsName || idToUse !== lsId) {
-        setActiveInstitutionName(finalName);
-        safeLSSet("activeInstitutionName", finalName);
-        safeLSSet("activeInstitutionId", idToUse);
-        window.dispatchEvent(new Event("active-institution-changed"));
+      } else {
+        const idToUse = (fromMe.activeId || lsId).trim();
+        if (idToUse) {
+          const nameFromList = await resolveInstitutionNameById(idToUse);
+          const finalName = (nameFromList || lsName || "Sin institución").trim();
+          if (finalName !== lsName || idToUse !== lsId) {
+            setActiveInstitutionName(finalName);
+            safeLSSet("activeInstitutionName", finalName);
+            safeLSSet("activeInstitutionId", idToUse);
+          }
+        }
       }
     } catch {
       if (!lsName) setActiveInstitutionName("Sin institución");
+    } finally {
+      isRefreshing.current = false;
     }
-  }
+  };
 
   useEffect(() => {
     if (!ready || publicPage) return;
     refreshActiveInstitution();
-  }, [ready, publicPage]);
+  }, [ready, publicPage, pathname]);
 
   useEffect(() => {
     if (!ready) return;
@@ -380,117 +456,116 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     };
   }, [ready, publicPage]);
 
+  const isActive = (path: string) => pathname === path || (path !== "/" && pathname.startsWith(path));
+
+  const navItems = useMemo<any[]>(() => [
+    { name: "Inicio", href: "/", icon: Icons.Home },
+    { name: "Instituciones", href: "/institutions", icon: Icons.Institutions },
+    { name: "Materias", href: "/subjects", icon: Icons.Subjects },
+    { name: "Exámenes", href: "/exams", icon: Icons.Exams },
+    {
+      name: "Generar Exámenes",
+      icon: Icons.Generate,
+      subItems: [
+        { name: "Generador IA", href: "/exams/builder", icon: Icons.Sparkles },
+        { name: "Generador Manual", href: "/exams/manual", icon: Icons.Hammer },
+      ],
+    },
+  ], []);
+
+  const adminItems = useMemo<any[]>(() => [
+    { name: "Equipo", href: "/users", icon: Icons.Team },
+    { name: "Historial", href: "/activity-log", icon: Icons.History },
+  ], []);
+
   if (!ready) return null;
-
-  const Sidebar = () => (
-    <aside className={cn(
-      "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-300 md:relative md:translate-x-0",
-      !mobileSidebarOpen && "-translate-x-full"
-    )}>
-      {/* Sidebar Header */}
-      <div className="flex h-16 items-center border-b border-gray-200 px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-bold tracking-tight text-blue-600" style={{ fontFamily: "'Montserrat Alternates', sans-serif" }}>
-            profly
-          </span>
-        </Link>
-      </div>
-
-      {/* Nav Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        <div className="space-y-1">
-          <NavLink href="/" label="Inicio" active={pathname === "/"} icon={Icons.Home} />
-          <NavLink href="/institutions" label="Instituciones" active={pathname === "/institutions"} icon={Icons.Institutions} />
-          <NavLink href="/subjects" label="Materias" active={pathname === "/subjects" || pathname.startsWith("/subjects/")} icon={Icons.Subjects} />
-          <NavLink href="/exams" label="Exámenes" active={pathname === "/exams"} icon={Icons.Exams} />
-        </div>
-
-        <div className="pt-4 border-t border-gray-100 space-y-1">
-          <NavLink
-            label="Generar Exámenes"
-            active={pathname.startsWith("/exams/builder") || pathname.startsWith("/exams/manual")}
-            icon={Icons.Generate}
-            subItems={[
-              { href: "/exams/builder", label: "Generador IA", icon: Icons.Sparkles },
-              { href: "/exams/manual", label: "Generador Manual", icon: Icons.Hammer },
-            ]}
-          />
-        </div>
-
-        {isAdmin && (
-          <div className="pt-4 border-t border-gray-100 space-y-1">
-            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">Administración</p>
-            <NavLink href="/users" label="Equipo" active={pathname === "/users"} icon={Icons.Team} />
-            <NavLink href="/activity-log" label="Historial" active={pathname === "/activity-log"} icon={Icons.History} />
-          </div>
-        )}
-      </div>
-
-      {/* Sidebar Footer (User info potentially) */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="rounded-lg bg-blue-50 p-3">
-          <p className="text-[10px] font-bold uppercase text-blue-600">Plan</p>
-          <p className="text-sm font-semibold text-blue-900">Institucional Pro</p>
-        </div>
-      </div>
-    </aside>
-  );
-
   if (publicPage) return <div className="min-h-screen bg-white">{children}</div>;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50/50">
-      <Sidebar />
+    <div className="flex h-screen flex-col overflow-hidden bg-white dark:bg-slate-900 transition-colors duration-300">
+      {/* Background Decorations (Full Width) */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
+      <div
+        className="fixed inset-0 -z-10 opacity-[0.06] dark:opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
+          backgroundSize: "72px 72px",
+        }}
+      />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white/70 px-6 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setMobileSidebarOpen(true)}
-              className="md:hidden p-2 text-gray-500 hover:text-gray-900"
-            >
-              ☰
-            </button>
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-400">/</span>
-              <span className="text-sm font-medium text-gray-600 truncate max-w-[200px]">{activeInstitutionName}</span>
+      {/* Topbar (Centered Content) */}
+      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center border-b border-blue-500 bg-blue-600 dark:bg-slate-950 dark:border-slate-800 shadow-lg transition-colors duration-200">
+        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2 group transition-transform active:scale-95">
+              <span className="text-2xl font-semibold tracking-tighter text-white font-[family-name:var(--font-logo)]">profly</span>
+            </Link>
+            <div className="hidden sm:flex items-center gap-2 border-l border-blue-500/50 pl-4">
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-200/60">Institución</span>
+              <span className="text-sm font-medium text-white truncate max-w-[200px]">{activeInstitutionName}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            {institutionCount > 1 && (
-              <Link
-                href="/institutions"
-                className="hidden sm:inline-flex h-9 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+            <div className="hidden md:flex items-center gap-1.5 border-r border-blue-500/50 pr-4 mr-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-blue-100 hover:text-white transition-colors rounded-lg hover:bg-blue-500/30"
+                title={theme === "light" ? "Modo Noche" : "Modo Día"}
               >
-                Cambiar Institución
-              </Link>
-            )}
+                {theme === "light" ? <Icons.Moon /> : <Icons.Sun />}
+              </button>
+              <button className="p-2 text-blue-100 hover:text-white transition-colors rounded-lg hover:bg-blue-500/30" title="Ayuda">
+                <Icons.Help />
+              </button>
+              <button className="p-2 text-blue-100 hover:text-white transition-colors rounded-lg hover:bg-blue-500/30" title="Notificaciones">
+                <Icons.Bell />
+              </button>
+              {showInstitutionButton && (
+                <Link
+                  href="/institutions"
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-blue-400 dark:border-slate-700 bg-blue-500/30 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500/50 dark:hover:bg-slate-700 active:scale-95"
+                >
+                  Cambiar Institución
+                </Link>
+              )}
+            </div>
 
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden p-2 text-white hover:text-blue-100"
+            >
+              <span className="text-2xl">☰</span>
+            </button>
             <div ref={userMenuRef} className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-sm ring-2 ring-blue-100 transition-transform active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-xs font-bold text-blue-600 shadow-md ring-2 ring-blue-400 transition-transform active:scale-95 hover:ring-white"
               >
                 {userLabel[0].toUpperCase()}
               </button>
-
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 bg-white p-1 shadow-xl ring-1 ring-black/5">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs font-medium text-gray-900 truncate">{userLabel}</p>
-                    <p className="text-[10px] text-gray-500 truncate">{me?.user?.email}</p>
+                <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1 shadow-xl ring-1 ring-black/5">
+                  <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800">
+                    <p className="text-xs font-medium text-gray-900 dark:text-slate-100 truncate">{userLabel}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-slate-500 truncate">{me?.user?.email}</p>
                   </div>
                   <button
                     onClick={() => { router.push("/profile"); setUserMenuOpen(false); }}
-                    className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+                    className="flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md"
                   >
                     Mi Perfil
                   </button>
                   <button
-                    onClick={() => { logout(); router.push("/login"); }}
-                    className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                    onClick={() => {
+                      logout();
+                      localStorage.removeItem("theme");
+                      setTheme("light");
+                      document.documentElement.classList.remove("dark");
+                      router.push("/login");
+                    }}
+                    className="flex w-full items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md"
                   >
                     Cerrar Sesión
                   </button>
@@ -498,39 +573,79 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               )}
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Backdrop for mobile sidebar */}
-        {mobileSidebarOpen && (
+      {/* Main Area Centered (includes Sidebar) */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="mx-auto flex w-full max-w-[1440px]">
+          {/* Desktop Sidebar */}
+          <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-gray-100 dark:border-slate-800 bg-transparent py-8 md:flex">
+            <nav className="flex-1 space-y-1 px-4">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.name}
+                  href={item.href}
+                  label={item.name}
+                  active={item.href ? isActive(item.href) : (item.subItems?.some((s: any) => isActive(s.href)) ?? false)}
+                  icon={item.icon}
+                  subItems={item.subItems?.map((s: any) => ({ ...s, label: s.name }))}
+                />
+              ))}
+
+              {isAdmin && (
+                <div className="my-6 border-t border-gray-100 dark:border-slate-800 pt-6">
+                  <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">Administración</p>
+                  <div className="mt-3 space-y-1">
+                    {adminItems.map((item) => (
+                      <NavLink
+                        key={item.name}
+                        href={item.href}
+                        label={item.name}
+                        active={isActive(item.href)}
+                        icon={item.icon}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </nav>
+          </aside>
+
+          {/* Page Content */}
+          <main className="flex-1 overflow-y-auto px-6 pt-4 pb-12">
+            {children}
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile Sidebar */}
+      {mobileSidebarOpen && (
+        <>
           <div
-            className="fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm md:hidden"
             onClick={() => setMobileSidebarOpen(false)}
           />
-        )}
-
-        {/* Main Content Area */}
-        <main className="relative flex-1 overflow-y-auto px-6 pt-4 pb-12">
-          {/* Global Background Decorations */}
-          <div className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-white to-gray-100" />
-          <div
-            className="fixed inset-0 -z-10 opacity-[0.06]"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(0,0,0,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.10) 1px, transparent 1px)",
-              backgroundSize: "72px 72px",
-            }}
-          />
-
-          <div className="relative mx-auto max-w-6xl">
-            {children}
-          </div>
-
-          {/* Visual background decoration (blob) */}
-          <div className="pointer-events-none fixed bottom-0 right-0 -z-10 translate-x-1/4 translate-y-1/4">
-            <div className="h-[400px] w-[400px] rounded-full bg-blue-50 blur-[100px]" />
-          </div>
-        </main>
-      </div>
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 shadow-2xl md:hidden">
+            <div className="flex h-16 items-center border-b border-blue-500 bg-blue-600 px-6">
+              <span className="text-xl font-semibold tracking-tighter text-white font-[family-name:var(--font-logo)]">profly</span>
+            </div>
+            <nav className="p-4 space-y-1">
+              {(isAdmin ? [...navItems, ...adminItems] : navItems).map((item) => (
+                <NavLink
+                  key={item.name}
+                  href={item.href}
+                  label={item.name}
+                  active={item.href ? isActive(item.href) : (item.subItems?.some((s: any) => isActive(s.href)) ?? false)}
+                  icon={item.icon}
+                  subItems={item.subItems?.map((s: any) => ({ ...s, label: s.name }))}
+                  onClick={() => setMobileSidebarOpen(false)}
+                />
+              ))}
+            </nav>
+          </aside>
+        </>
+      )}
     </div>
   );
 }

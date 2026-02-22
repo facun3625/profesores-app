@@ -143,8 +143,8 @@ function Pill({
       className={cn(
         "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-medium",
         tone === "blue"
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-gray-200 bg-gray-50 text-gray-700"
+          ? "border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+          : "border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300"
       )}
     >
       {children}
@@ -156,15 +156,11 @@ function ProflyMark() {
   return (
     <div className="select-none text-right">
       <div
-        className="text-xl font-semibold tracking-tight text-blue-600"
-        style={{
-          fontFamily:
-            "'Montserrat Alternates','Inter','Helvetica Neue',Arial,sans-serif",
-        }}
+        className="text-xl font-semibold tracking-tight text-blue-600 font-[family-name:var(--font-logo)]"
       >
         profly
       </div>
-      <div className="mt-0.5 text-xs text-gray-500">Exámenes</div>
+      <div className="mt-0.5 text-xs text-gray-500 dark:text-slate-500">Exámenes</div>
     </div>
   );
 }
@@ -194,7 +190,7 @@ function SelectPretty({
         disabled={disabled}
         className={cn(
           height,
-          "w-full appearance-none rounded-md border border-gray-300 bg-white px-3 pr-11 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          "w-full appearance-none rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 pr-11 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         )}
       >
         {children}
@@ -246,16 +242,16 @@ function Pagination({
   for (let p = start; p <= end; p++) pages.push(p);
 
   return (
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white/90 px-4 py-3 shadow-sm">
-      <div className="text-sm text-gray-600">
-        Mostrando <span className="font-medium text-gray-900">{from}</span>–
-        <span className="font-medium text-gray-900">{to}</span> de{" "}
-        <span className="font-medium text-gray-900">{totalItems}</span>
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 px-4 py-3 shadow-sm">
+      <div className="text-sm text-gray-600 dark:text-slate-400">
+        Mostrando <span className="font-medium text-gray-900 dark:text-white">{from}</span>–
+        <span className="font-medium text-gray-900 dark:text-white">{to}</span> de{" "}
+        <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
-          <span className="text-xs font-medium text-gray-500">Por página</span>
+        <label className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+          <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Por página</span>
           <div className="w-[92px]">
             <SelectPretty
               size="sm"
@@ -276,7 +272,7 @@ function Pagination({
           onClick={() => onPage(clamped - 1)}
           disabled={clamped <= 1}
           className={cn(
-            "inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50",
+            "inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-800 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700",
             clamped <= 1 && "opacity-50"
           )}
         >
@@ -291,8 +287,8 @@ function Pagination({
               className={cn(
                 "inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium",
                 clamped === 1
-                  ? "border-blue-200 bg-blue-50 text-blue-700"
-                  : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50"
+                  ? "border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                  : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
               )}
             >
               1
@@ -309,8 +305,8 @@ function Pagination({
             className={cn(
               "inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium",
               clamped === p
-                ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50"
+                ? "border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
             )}
           >
             {p}
@@ -342,7 +338,7 @@ function Pagination({
           onClick={() => onPage(clamped + 1)}
           disabled={clamped >= totalPages}
           className={cn(
-            "inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50",
+            "inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-800 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700",
             clamped >= totalPages && "opacity-50"
           )}
         >
@@ -649,14 +645,14 @@ export default function Page() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
               Exámenes guardados
             </h1>
             <Pill tone="gray">
               {filtered.length} / {exams.length}
             </Pill>
           </div>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
             Buscá, filtrá por materia/tema y descargá el PDF cuando quieras.
           </p>
         </div>
@@ -664,7 +660,7 @@ export default function Page() {
         <div className="flex flex-wrap items-center gap-2">
           <a
             href="/exams/manual"
-            className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+            className="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-800 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
           >
             Generador Manual
           </a>
@@ -680,7 +676,7 @@ export default function Page() {
             onClick={loadExams}
             disabled={loading}
             className={cn(
-              "inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50",
+              "inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm font-medium text-gray-800 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700",
               loading && "opacity-60"
             )}
           >
@@ -695,11 +691,11 @@ export default function Page() {
         </div>
       )}
 
-      <section className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm">
+      <section className="mt-6 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-gray-900">Filtros</div>
-            <div className="mt-1 text-sm text-gray-600">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">Filtros</div>
+            <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">
               Afiná la búsqueda sin volverte loco.
             </div>
           </div>
@@ -715,7 +711,7 @@ export default function Page() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Ej: fracciones, cml..., prueba..."
-              className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-10 rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </label>
 
@@ -785,7 +781,7 @@ export default function Page() {
 
       <section className="mt-6 grid gap-3">
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-gray-200 bg-white/90 p-6 text-sm text-gray-600 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 p-6 text-sm text-gray-600 dark:text-slate-400 shadow-sm">
             No hay resultados con los filtros actuales.
           </div>
         ) : (

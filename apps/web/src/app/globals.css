@@ -1,23 +1,81 @@
 @import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  --font-logo: var(--font-logo);
+  --font-roboto: var(--font-roboto);
+}
+
+@variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1d2327;
+  --text-primary: #1d2327;
+  --text-secondary: #606770;
+  --border-subtle: #f3f4f6;
+  --card-bg: rgba(255, 255, 255, 0.9);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0f172a;
+  /* Slate 900 */
+  --foreground: #f8fafc;
+  /* Slate 50 */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  /* Slate 400 */
+  --border-subtle: #1e293b;
+  /* Slate 800 */
+  --card-bg: rgba(30, 41, 59, 0.7);
+  /* Slate 800 blur */
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-roboto), system-ui, sans-serif;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--background);
+  color: var(--foreground);
+  border-color: var(--border-subtle);
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1a1a1b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+/* Tipografía Premium Estilo Docker/MUI */
+.title-premium {
+  font-family: var(--font-roboto), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 1.286rem;
+  /* aprox 18px */
+  line-height: 1.333;
+  letter-spacing: 0.01em;
+}
+
+.text-premium {
+  font-family: var(--font-roboto), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.429;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.sidebar-item {
+  font-family: var(--font-roboto), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.929rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
 }
