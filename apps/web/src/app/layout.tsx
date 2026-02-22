@@ -25,7 +25,7 @@ const montserratAlternates = Montserrat_Alternates({
 });
 
 export const metadata: Metadata = {
-  title: "profly | Gestión Inteligente de Exámenes",
+  title: "profly | Exámenes Inteligentes",
   description: "Sistema de gestión y generación de exámenes",
   icons: {
     icon: "/favicon.svg",
