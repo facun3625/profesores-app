@@ -8,15 +8,13 @@ import React from "react";
  * Wraps the application and handles the Google Client ID from environment variables.
  */
 export default function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
     if (!clientId) {
         console.warn(
             "[GoogleAuthProvider] Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID environment variable. " +
-            "Google login features will be disabled or may throw errors."
+            "Google login features will be disabled. App will continue to run."
         );
-        // Render children without provider if ID is missing to prevent total app failure
-        return <>{children}</>;
     }
 
     return (

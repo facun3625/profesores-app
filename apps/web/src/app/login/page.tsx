@@ -137,17 +137,19 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Botón de Google Funcional */}
-            <div className="w-full flex justify-center">
-              <GoogleLogin
-                onSuccess={onGoogleSuccess}
-                onError={() => {
-                  setError("Error en la autenticación con Google");
-                }}
-                theme="outline"
-                shape="pill"
-              />
-            </div>
+            {/* Botón de Google Funcional - Solo si hay Client ID */}
+            {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+              <div className="w-full flex justify-center">
+                <GoogleLogin
+                  onSuccess={onGoogleSuccess}
+                  onError={() => {
+                    setError("Error en la autenticación con Google");
+                  }}
+                  theme="outline"
+                  shape="pill"
+                />
+              </div>
+            )}
 
 
             <form onSubmit={onSubmit} className="space-y-5">

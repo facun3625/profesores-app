@@ -114,17 +114,19 @@ export default function Page() {
               </p>
             </div>
 
-            {/* Botón de Google Funcional */}
-            <div className="w-full flex justify-center">
-              <GoogleLogin
-                onSuccess={onGoogleSuccess}
-                onError={() => {
-                  setError("Error en la autenticación con Google");
-                }}
-                theme="outline"
-                shape="pill"
-              />
-            </div>
+            {/* Botón de Google Funcional - Solo si hay Client ID */}
+            {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+              <div className="w-full flex justify-center">
+                <GoogleLogin
+                  onSuccess={onGoogleSuccess}
+                  onError={() => {
+                    setError("Error en la autenticación con Google");
+                  }}
+                  theme="outline"
+                  shape="pill"
+                />
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 rounded-xl border border-red-50 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-center gap-2">
