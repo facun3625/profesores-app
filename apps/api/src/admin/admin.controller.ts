@@ -106,6 +106,22 @@ export class AdminController {
 
     @Delete('users/:id')
     async deleteUser(@Param('id') id: string) {
+        // Encontrar todas las instituciones donde este usuario es el único miembro (o simplemente todas si el usuario es "dueño")
+        // Según el requerimiento: "se deben borrar instituciones, materias, etc de TODAS las instituciones que tenía"
+        const memberships = await this.prisma.userInstitution.findMany({
+            where: { userId: id }
+        });
+
+        const institutionIds = memberships.map(m => m.institutionId);
+
+        // Borrar instituciones (esto dispara cascada para subjects, questions, exams, etc en DB)
+        if (institutionIds.length > 0) {
+            await this.prisma.institution.deleteMany({
+                where: { id: { in: institutionIds } }
+            });
+        }
+
+        // Finalmente borrar el usuario
         return this.prisma.user.delete({
             where: { id },
         });
