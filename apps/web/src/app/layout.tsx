@@ -6,7 +6,7 @@ import ClientLayout from "./layout.client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ReactQueryProvider } from "@/components/ReactQueryProvider";
 import { Toaster } from "sonner";
-import { GoogleOAuthProvider } from "@react-oauth/google";
+import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700"],
@@ -34,18 +34,16 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-
   return (
     <html lang="es">
       <body className={`${roboto.variable} ${geistMono.variable} ${montserratAlternates.variable} font-sans antialiased`}>
         <ErrorBoundary>
-          <GoogleOAuthProvider clientId={googleClientId}>
+          <GoogleAuthProvider>
             <ReactQueryProvider>
               <ClientLayout>{children}</ClientLayout>
               <Toaster position="top-right" richColors />
             </ReactQueryProvider>
-          </GoogleOAuthProvider>
+          </GoogleAuthProvider>
         </ErrorBoundary>
       </body>
     </html>
