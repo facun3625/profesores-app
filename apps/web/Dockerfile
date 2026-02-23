@@ -21,7 +21,9 @@ COPY apps/web ./apps/web
 # Build the application
 # We need NEXT_PUBLIC_API_URL during build time for Next.js to embed it if used in SSG/ISR
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
 RUN pnpm --filter web build
 

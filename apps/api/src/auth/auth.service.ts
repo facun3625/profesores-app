@@ -6,6 +6,7 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import * as bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
+import { OAuth2Client } from "google-auth-library";
 
 type RegisterInput = {
   email: string;
@@ -22,7 +23,11 @@ type LoginInput = {
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) { }
+  private googleClient: OAuth2Client;
+
+  constructor(private readonly prisma: PrismaService) {
+    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  }
 
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
@@ -179,6 +184,126 @@ export class AuthService {
       } : null,
       role: membership?.role ?? null,
     };
+  }
+
+  async googleLogin(idToken: string) {
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        throw new UnauthorizedException("Invalid Google token payload");
+      }
+
+      const email = this.normalizeEmail(payload.email);
+      const googleSub = payload.sub;
+
+      let user = await this.prisma.user.findUnique({
+        where: { email },
+        include: {
+          memberships: {
+            include: { institution: true },
+            take: 1,
+          },
+        },
+      });
+
+      if (!user) {
+        // Registro automático
+        user = await this.prisma.$transaction(async (tx) => {
+          const newUser = await tx.user.create({
+            data: {
+              email,
+              name: payload.given_name ?? null,
+              lastName: payload.family_name ?? null,
+              authProvider: "google",
+              googleSub,
+              status: "active",
+            },
+          });
+
+          const institution = await tx.institution.create({
+            data: {
+              name: `Institución de ${payload.given_name ?? email}`,
+              plan: "FREE",
+              status: "active",
+            },
+          });
+
+          await tx.userInstitution.create({
+            data: {
+              userId: newUser.id,
+              institutionId: institution.id,
+              role: "admin",
+            },
+          });
+
+          return tx.user.update({
+            where: { id: newUser.id },
+            data: { activeInstitutionId: institution.id },
+            include: {
+              memberships: {
+                include: { institution: true },
+                take: 1,
+              },
+            },
+          });
+        });
+      } else {
+        // Vincular si no tenía googleSub o authProvider diferente
+        if (!user.googleSub || user.authProvider !== "google") {
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              googleSub,
+              authProvider: "google",
+            },
+            include: {
+              memberships: {
+                include: { institution: true },
+                take: 1,
+              },
+            },
+          });
+        }
+      }
+
+      if (user.status === "suspended") {
+        throw new UnauthorizedException(
+          "Su cuenta está inactiva. Por favor, contacte a info@profly.com.ar"
+        );
+      }
+
+      const session = await this.createSession(user.id);
+      const membership = user.memberships[0];
+
+      return {
+        accessToken: session.token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          lastName: user.lastName,
+          status: user.status,
+          globalRole: user.globalRole,
+          activeInstitutionId: user.activeInstitutionId,
+        },
+        institution: membership ? {
+          id: membership.institution.id,
+          name: membership.institution.name,
+          plan: membership.institution.plan,
+          status: membership.institution.status,
+        } : null,
+        role: membership?.role ?? null,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      console.error("[AuthService] Google login error:", error);
+      throw new UnauthorizedException("Falla en la autenticación con Google");
+    }
   }
 
   async me(userId: string) {

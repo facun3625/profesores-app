@@ -3,10 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth";
+import { GoogleLogin } from "@react-oauth/google";
+import { api } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 export default function Page() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -40,6 +44,33 @@ export default function Page() {
       } else {
         setError(msg || "Ocurrió un error al intentar registrarte.");
       }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onGoogleSuccess(credentialResponse: any) {
+    if (!credentialResponse.credential) return;
+    setError(null);
+    setLoading(true);
+
+    try {
+      const data = await api<{ accessToken: string }>("/auth/google-login", {
+        method: "POST",
+        body: JSON.stringify({
+          idToken: credentialResponse.credential,
+        }),
+      });
+
+      const { accessToken } = data;
+      localStorage.setItem("accessToken", accessToken);
+      document.cookie = `accessToken=${accessToken}; path=/; max-age=1209600; SameSite=Lax`;
+
+      await queryClient.invalidateQueries();
+      router.push("/");
+    } catch (err: any) {
+      console.error("[Register] Google login error:", err);
+      setError(err?.message || "Falla al registrarse con Google");
     } finally {
       setLoading(false);
     }
@@ -81,6 +112,18 @@ export default function Page() {
                   Iniciá sesión aquí
                 </a>
               </p>
+            </div>
+
+            {/* Botón de Google Funcional */}
+            <div className="w-full flex justify-center">
+              <GoogleLogin
+                onSuccess={onGoogleSuccess}
+                onError={() => {
+                  setError("Error en la autenticación con Google");
+                }}
+                theme="outline"
+                shape="pill"
+              />
             </div>
 
             {error && (

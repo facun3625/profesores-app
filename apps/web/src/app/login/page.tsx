@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
+import { GoogleLogin } from "@react-oauth/google";
+import { api } from "@/lib/api";
 
 
 export default function LoginPage() {
@@ -70,6 +72,33 @@ export default function LoginPage() {
     }
   }
 
+  async function onGoogleSuccess(credentialResponse: any) {
+    if (!credentialResponse.credential) return;
+    setError(null);
+    setLoading(true);
+
+    try {
+      const data = await api<{ accessToken: string }>("/auth/google-login", {
+        method: "POST",
+        body: JSON.stringify({
+          idToken: credentialResponse.credential,
+        }),
+      });
+
+      const { accessToken } = data;
+      localStorage.setItem("accessToken", accessToken);
+      document.cookie = `accessToken=${accessToken}; path=/; max-age=1209600; SameSite=Lax`;
+
+      await queryClient.invalidateQueries();
+      router.push("/");
+    } catch (err: any) {
+      console.error("[Login] Google login error:", err);
+      setError(err?.message || "Falla al iniciar sesión con Google");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen flex">
       {/* Panel Izquierdo: Branding (Solo en Desktop) */}
@@ -108,31 +137,17 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Botón de Google */}
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path
-                  d="M 22.56 12.25 c 0 -0.78 -0.07 -1.53 -0.2 -2.25 H 12 v 4.26 h 5.92 c -0.26 1.37 -1.04 2.53 -2.21 3.31 v 2.77 h 3.57 c 2.08 -1.92 3.28 -4.74 3.28 -8.09 z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M 12 23 c 2.97 0 5.46 -0.98 7.28 -2.66 l -3.57 -2.77 c -0.98 0.66 -2.23 1.06 -3.71 1.06 -2.86 0 -5.29 -1.93 -6.16 -4.53 H 2.18 v 2.84 C 3.99 20.53 7.7 23 12 23 z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M 5.84 14.09 c -0.22 -0.66 -0.35 -1.36 -0.35 -2.09 s 0.13 -1.43 0.35 -2.09 V 7.07 H 2.18 C 1.43 8.55 1 10.22 1 12 s 0.43 3.45 1.18 4.93 l 3.66 -2.84 z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M 12 5.38 c 1.62 0 3.06 0.56 4.21 1.66 l 3.15 -3.15 C 17.45 2.09 14.97 1 12 1 C 7.7 1 3.47 2.18 7.07 l 3.66 2.84 c 0.87 -2.6 3.3 -4.53 6.16 -4.53 z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Continuar con Google
-            </button>
+            {/* Botón de Google Funcional */}
+            <div className="w-full flex justify-center">
+              <GoogleLogin
+                onSuccess={onGoogleSuccess}
+                onError={() => {
+                  setError("Error en la autenticación con Google");
+                }}
+                theme="outline"
+                shape="pill"
+              />
+            </div>
 
 
             <form onSubmit={onSubmit} className="space-y-5">

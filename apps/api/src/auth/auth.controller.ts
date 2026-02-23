@@ -15,7 +15,7 @@ import { AuthGuard } from "./guards/auth.guard";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post("register")
   register(@Body() dto: RegisterDto) {
@@ -25,6 +25,11 @@ export class AuthController {
   @Post("login")
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post("google-login")
+  googleLogin(@Body("idToken") idToken: string) {
+    return this.authService.googleLogin(idToken);
   }
 
   @UseGuards(AuthGuard)
