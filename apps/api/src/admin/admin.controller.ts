@@ -33,7 +33,7 @@ export class AdminController {
                 memberships: {
                     include: {
                         institution: {
-                            select: { id: true, name: true, plan: true }
+                            select: { id: true, name: true }
                         }
                     }
                 }
@@ -58,7 +58,7 @@ export class AdminController {
                     where: { role: 'admin' },
                     include: {
                         user: {
-                            select: { name: true, lastName: true, email: true }
+                            select: { name: true, lastName: true, email: true, plan: true }
                         }
                     },
                     take: 1
@@ -70,7 +70,7 @@ export class AdminController {
         return institutions.map(inst => ({
             id: inst.id,
             name: inst.name,
-            plan: inst.plan,
+            plan: inst.memberships[0]?.user?.plan || 'FREE',
             status: inst.status,
             subjectsCount: inst._count.subjects,
             topicsCount: inst._count.topics,
@@ -88,19 +88,19 @@ export class AdminController {
         });
     }
 
+    @Patch('users/:id/plan')
+    async updateUserPlan(@Param('id') id: string, @Body() body: { plan: InstitutionPlan }) {
+        return this.prisma.user.update({
+            where: { id },
+            data: { plan: body.plan as any },
+        });
+    }
+
     @Patch('institutions/:id/status')
     async updateInstitutionStatus(@Param('id') id: string, @Body() body: { status: 'active' | 'inactive' }) {
         return this.prisma.institution.update({
             where: { id },
             data: { status: body.status as any },
-        });
-    }
-
-    @Patch('institutions/:id/plan')
-    async updateInstitutionPlan(@Param('id') id: string, @Body() body: { plan: InstitutionPlan }) {
-        return this.prisma.institution.update({
-            where: { id },
-            data: { plan: body.plan as any },
         });
     }
 

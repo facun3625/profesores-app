@@ -23,7 +23,6 @@ async function main() {
   const institution = await prisma.institution.create({
     data: {
       name: 'Instituto Demo',
-      plan: 'FREE',
       status: 'active',
     },
   });
@@ -37,6 +36,7 @@ async function main() {
       authProvider: 'local',
       status: 'active',
       globalRole: 'ADMIN',
+      plan: 'PREMIUM',
       activeInstitutionId: institution.id,
     },
   });

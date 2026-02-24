@@ -20,6 +20,7 @@ export class MeController {
         globalRole: true,
         authProvider: true,
         activeInstitutionId: true,
+        plan: true,
       },
     });
 
@@ -28,7 +29,7 @@ export class MeController {
         where: { userId },
         select: {
           institution: {
-            select: { id: true, name: true, plan: true, status: true },
+            select: { id: true, name: true, status: true },
           },
           role: true,
         },

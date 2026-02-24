@@ -70,7 +70,6 @@ export class AuthService {
       const institution = await tx.institution.create({
         data: {
           name: input.institutionName,
-          plan: "FREE",
           status: "active",
         },
       });
@@ -112,13 +111,13 @@ export class AuthService {
         country: result.user.country,
         status: result.user.status,
         activeInstitutionId: result.user.activeInstitutionId,
+        plan: result.user.plan,
         createdAt: result.user.createdAt,
         updatedAt: result.user.updatedAt,
       },
       institution: {
         id: result.institution.id,
         name: result.institution.name,
-        plan: result.institution.plan,
         status: result.institution.status,
       },
       role: "admin",
@@ -175,11 +174,11 @@ export class AuthService {
         status: user.status,
         globalRole: user.globalRole,
         activeInstitutionId: user.activeInstitutionId,
+        plan: user.plan,
       },
       institution: membership ? {
         id: membership.institution.id,
         name: membership.institution.name,
-        plan: membership.institution.plan,
         status: membership.institution.status,
       } : null,
       role: membership?.role ?? null,
@@ -228,7 +227,6 @@ export class AuthService {
           const institution = await tx.institution.create({
             data: {
               name: `Institución de ${payload.given_name ?? email}`,
-              plan: "FREE",
               status: "active",
             },
           });
@@ -290,11 +288,11 @@ export class AuthService {
           status: user.status,
           globalRole: user.globalRole,
           activeInstitutionId: user.activeInstitutionId,
+          plan: user.plan,
         },
         institution: membership ? {
           id: membership.institution.id,
           name: membership.institution.name,
-          plan: membership.institution.plan,
           status: membership.institution.status,
         } : null,
         role: membership?.role ?? null,
@@ -333,6 +331,7 @@ export class AuthService {
         status: user.status,
         activeInstitutionId: user.activeInstitutionId,
         globalRole: user.globalRole,
+        plan: user.plan,
         activeRole,                     // "admin" | "professor" | null
         mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
@@ -341,7 +340,6 @@ export class AuthService {
       institutions: memberships.map((m) => ({
         id: m.institution.id,
         name: m.institution.name,
-        plan: m.institution.plan,
         status: m.institution.status,
         role: m.role,
       })),

@@ -26,6 +26,7 @@ model User {
   googleSub           String?           @unique
   status              UserStatus        @default(active)
   globalRole          GlobalRole        @default(USER)
+  plan                InstitutionPlan   @default(FREE)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   activeInstitutionId String?
@@ -43,7 +44,6 @@ model User {
 model Institution {
   id            String            @id @default(cuid())
   name          String
-  plan          InstitutionPlan   @default(FREE)
   status        InstitutionStatus @default(active)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -217,6 +217,17 @@ model ActivityLog {
   @@index([actorId])
   @@index([entityId])
   @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
 }
 
 enum AuthProvider {

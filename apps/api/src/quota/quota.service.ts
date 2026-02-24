@@ -8,14 +8,27 @@ export class QuotaService {
     constructor(private readonly prisma: PrismaService) { }
 
     async checkQuota(activeInstitutionId: string | null, resource: 'subjects' | 'topics' | 'questions' | 'institutions', userId?: string, parentId?: string) {
-        let plan = InstitutionPlan.FREE;
-        if (activeInstitutionId) {
-            const inst = await this.prisma.institution.findUnique({
-                where: { id: activeInstitutionId },
-                select: { plan: true },
+        if (!userId && !activeInstitutionId) throw new ForbiddenException('Se requiere identificación de usuario o institución.');
+
+        let effectiveUserId = userId;
+
+        // Si no tenemos userId pero sí institución, buscamos al dueño/admin de la institución
+        if (!effectiveUserId && activeInstitutionId) {
+            const membership = await this.prisma.userInstitution.findFirst({
+                where: { institutionId: activeInstitutionId, role: 'admin' },
+                select: { userId: true },
             });
-            if (inst) plan = inst.plan as InstitutionPlan;
+            effectiveUserId = membership?.userId;
         }
+
+        if (!effectiveUserId) throw new ForbiddenException('No se pudo determinar el usuario para validar cuotas.');
+
+        const user = await this.prisma.user.findUnique({
+            where: { id: effectiveUserId },
+            select: { plan: true },
+        });
+
+        const plan = (user?.plan || InstitutionPlan.FREE) as InstitutionPlan;
 
         const limits = TIER_LIMITS[plan];
 
@@ -57,11 +70,12 @@ export class QuotaService {
     }
 
     async canManageProfessors(institutionId: string) {
-        const institution = await this.prisma.institution.findUnique({
-            where: { id: institutionId },
-            select: { plan: true },
+        const adminMembership = await this.prisma.userInstitution.findFirst({
+            where: { institutionId, role: 'admin' },
+            include: { user: { select: { plan: true } } }
         });
-        if (!institution) return false;
-        return TIER_LIMITS[institution.plan as InstitutionPlan].canManageProfessors;
+
+        if (!adminMembership) return false;
+        return TIER_LIMITS[adminMembership.user.plan as InstitutionPlan].canManageProfessors;
     }
 }

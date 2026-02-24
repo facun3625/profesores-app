@@ -6,6 +6,7 @@ import { login } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { GoogleLogin } from "@react-oauth/google";
 import { api } from "@/lib/api";
+import Link from "next/link";
 
 
 export default function LoginPage() {
@@ -187,12 +188,12 @@ export default function LoginPage() {
                   </label>
                 </div>
 
-                <a
+                <Link
                   href="/forgot-password"
                   className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline whitespace-nowrap"
                 >
                   Olvidé mi contraseña
-                </a>
+                </Link>
               </div>
 
               {error && (

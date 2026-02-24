@@ -14,7 +14,7 @@ export class TopicsController {
 
   @Post()
   async create(@Req() req: any, @Body() dto: CreateTopicDto) {
-    await this.quotaService.checkQuota(req.activeInstitutionId, 'topics', dto.subjectId);
+    await this.quotaService.checkQuota(req.activeInstitutionId, 'topics', undefined, dto.subjectId);
     return this.topicsService.create(req.activeInstitutionId, dto);
   }
 

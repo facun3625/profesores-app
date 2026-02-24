@@ -17,11 +17,9 @@ type MeResponse = {
     activeInstitutionId?: string | null;
     activeRole?: string | null;
     mustChangePassword?: boolean;
+    plan?: string;
   };
-  activeInstitution?: { id: string; name: string; plan: string } | null;
-  activeInstitutionId?: string | null;
-  institution?: { id: string; name: string; plan: string } | null;
-  institutions?: Array<{ id: string; name: string; plan: string; role: string; status: string }> | null;
+  institutions?: Array<{ id: string; name: string; role: string; status: string }> | null;
 };
 
 // --- Helpers ---
@@ -56,7 +54,12 @@ function safeLSSet(key: string, value: string) {
 }
 
 function isPublicPath(pathname: string) {
-  return pathname.startsWith("/login") || pathname.startsWith("/register");
+  return (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password")
+  );
 }
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -177,13 +180,15 @@ function NavLink({
   icon: Icon,
   onClick,
   subItems,
+  color = "gray",
 }: {
   href?: string;
   label: string;
   active: boolean;
-  icon: React.ComponentType;
+  icon: React.ComponentType<{ className?: string }>;
   onClick?: () => void;
-  subItems?: Array<{ href: string; label: string; icon: React.ComponentType }>;
+  subItems?: Array<{ href: string; label: string; icon: React.ComponentType<{ className?: string }>; color?: string }>;
+  color?: "blue" | "purple" | "emerald" | "amber" | "gray" | "indigo";
 }) {
   const [open, setOpen] = useState(false);
 
@@ -198,7 +203,18 @@ function NavLink({
           )}
         >
           <div className="flex items-center gap-3">
-            <Icon />
+            <div className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg transition-colors border shadow-sm",
+              color === "blue" ? "bg-blue-50 text-blue-600 border-blue-100/50" :
+                color === "purple" ? "bg-purple-50 text-purple-600 border-purple-100/50" :
+                  color === "emerald" ? "bg-emerald-50 text-emerald-600 border-emerald-100/50" :
+                    color === "amber" ? "bg-amber-50 text-amber-600 border-amber-100/50" :
+                      color === "indigo" ? "bg-indigo-50 text-indigo-600 border-indigo-100/50" :
+                        "bg-gray-50 text-gray-600 border-gray-100/50",
+              "dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
+            )}>
+              <Icon className="h-4 w-4" />
+            </div>
             <span>{label}</span>
           </div>
           <div className={cn("transition-transform", open && "rotate-180")}>
@@ -221,7 +237,17 @@ function NavLink({
                     "text-gray-500 hover:bg-blue-50 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-blue-400"
                   )}
                 >
-                  <sub.icon />
+                  <div className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-md border",
+                    sub.color === "blue" ? "bg-blue-50/50 text-blue-600 border-blue-100/30" :
+                      sub.color === "purple" ? "bg-purple-50/50 text-purple-600 border-purple-100/30" :
+                        sub.color === "emerald" ? "bg-emerald-50/50 text-emerald-600 border-emerald-100/30" :
+                          sub.color === "amber" ? "bg-amber-50/50 text-amber-600 border-amber-100/30" :
+                            "bg-gray-50/50 text-gray-500 border-gray-100/30",
+                    "dark:bg-slate-800/50 dark:border-slate-700"
+                  )}>
+                    <sub.icon className="h-3.5 w-3.5" />
+                  </div>
                   <span>{sub.label}</span>
                 </Link>
               ))}
@@ -239,14 +265,32 @@ function NavLink({
         className={cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
           active
-            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 shadow-sm"
+            ? "bg-blue-50/50 dark:bg-blue-500/10 shadow-sm"
             : "text-gray-600 hover:bg-gray-50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
         )}
       >
-        <span className={cn("transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-slate-500")}>
-          <Icon />
-        </span>
-        <span className="dark:text-slate-300">{label}</span>
+        <div className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-lg transition-all border shadow-sm",
+          active ? (
+            color === "blue" ? "bg-blue-600 text-white border-blue-500" :
+              color === "purple" ? "bg-purple-600 text-white border-purple-500" :
+                color === "emerald" ? "bg-emerald-600 text-white border-emerald-500" :
+                  color === "amber" ? "bg-amber-600 text-white border-amber-500" :
+                    color === "indigo" ? "bg-indigo-600 text-white border-indigo-500" :
+                      "bg-blue-600 text-white border-blue-500"
+          ) : (
+            color === "blue" ? "bg-blue-50 text-blue-600 border-blue-100/50" :
+              color === "purple" ? "bg-purple-50 text-purple-600 border-purple-100/50" :
+                color === "emerald" ? "bg-emerald-50 text-emerald-600 border-emerald-100/50" :
+                  color === "amber" ? "bg-amber-50 text-amber-600 border-amber-100/50" :
+                    color === "indigo" ? "bg-indigo-50 text-indigo-600 border-indigo-100/50" :
+                      "bg-gray-50 text-gray-400 border-gray-100/50"
+          ),
+          "dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
+        )}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className={cn("font-semibold", active ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-slate-300")}>{label}</span>
       </Link>
     );
   }
@@ -329,11 +373,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const isAdmin = me?.user?.activeRole === "admin" || me?.user?.activeRole == null;
   const isSuperAdmin = me?.user?.globalRole === "ADMIN";
-  const activePlan = useMemo(() => {
-    if (!me?.user?.activeInstitutionId || !me?.institutions) return "FREE";
-    const active = me.institutions.find(i => i.id === me.user?.activeInstitutionId);
-    return active?.plan || "FREE";
-  }, [me?.user?.activeInstitutionId, me?.institutions]);
+  const activePlan = me?.user?.plan || "FREE";
 
   const activeInstitutionsCount = me?.institutions?.filter((i: any) => i.status !== "inactive").length ?? 0;
   const showInstitutionButton = activeInstitutionsCount > 1 && !pathname.startsWith("/institutions");
@@ -480,16 +520,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const navItems = useMemo<any[]>(() => {
     const base = [
-      { name: "Inicio", href: "/", icon: Icons.Home },
-      { name: "Instituciones", href: "/institutions", icon: Icons.Institutions },
-      { name: "Materias", href: "/subjects", icon: Icons.Subjects },
-      { name: "Exámenes", href: "/exams", icon: Icons.Exams },
+      { name: "Inicio", href: "/", icon: Icons.Home, color: "blue" },
+      { name: "Instituciones", href: "/institutions", icon: Icons.Institutions, color: "blue" },
+      { name: "Materias", href: "/subjects", icon: Icons.Subjects, color: "purple" },
+      { name: "Exámenes", href: "/exams", icon: Icons.Exams, color: "emerald" },
       {
         name: "Generar Exámenes",
         icon: Icons.Generate,
+        color: "indigo",
         subItems: [
-          { name: "Generador IA", href: "/exams/builder", icon: Icons.Sparkles },
-          { name: "Generador Manual", href: "/exams/manual", icon: Icons.Hammer },
+          { name: "Generador IA", href: "/exams/builder", icon: Icons.Sparkles, color: "indigo" },
+          { name: "Generador Manual", href: "/exams/manual", icon: Icons.Hammer, color: "gray" },
         ],
       },
     ];
@@ -498,13 +539,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [isSuperAdmin]);
 
   const adminItems = useMemo<any[]>(() => {
-    const base = [
-      { name: "Equipo", href: "/users", icon: Icons.Team },
-      { name: "Historial", href: "/activity-log", icon: Icons.History },
+    if (isSuperAdmin || activePlan === 'FREE') return [];
+    return [
+      { name: "Equipo", href: "/users", icon: Icons.Team, color: "indigo" },
+      { name: "Historial", href: "/activity-log", icon: Icons.History, color: "gray" },
     ];
-    if (isSuperAdmin) return [];
-    return base;
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, activePlan]);
 
   if (!ready) return null;
   if (publicPage) return <div className="min-h-screen bg-white">{children}</div>;
@@ -529,18 +569,25 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <Link href="/" className="flex items-center gap-2 group transition-transform active:scale-95">
               <span className="text-2xl font-medium text-white font-logo">profly</span>
             </Link>
-            <div className="hidden sm:flex items-center gap-2 border-l border-blue-500/50 pl-4">
-              <span className="text-xs font-bold uppercase tracking-widest text-blue-200/60">Institución</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white truncate max-w-[200px]">{activeInstitutionName}</span>
-                <span className={cn(
-                  "px-1.5 py-0.5 text-[10px] font-bold rounded border",
-                  activePlan === 'PREMIUM' ? "bg-amber-400 text-amber-950 border-amber-300" :
-                    activePlan === 'FULL' ? "bg-emerald-400 text-emerald-950 border-emerald-300" :
-                      "bg-blue-500 text-blue-100 border-blue-400"
-                )}>
-                  {activePlan}
-                </span>
+            <div className="hidden sm:flex items-center gap-6 border-l border-white/10 pl-6 ml-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-100/40 leading-none">Institución</span>
+                <span className="text-xs font-bold text-white tracking-tight truncate max-w-[200px] leading-none">{activeInstitutionName}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-100/40 leading-none">Suscripción</span>
+                <div className="flex items-center gap-1.5 leading-none">
+                  {activePlan === 'PREMIUM' && <div className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" />}
+                  {activePlan === 'FULL' && <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />}
+                  <span className={cn(
+                    "text-[10px] font-black uppercase tracking-widest",
+                    activePlan === 'PREMIUM' ? "text-amber-300/90" :
+                      activePlan === 'FULL' ? "text-emerald-300/90" :
+                        "text-blue-100/60"
+                  )}>
+                    {activePlan}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -632,6 +679,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   label={item.name}
                   active={item.href ? isActive(item.href) : (item.subItems?.some((s: any) => isActive(s.href)) ?? false)}
                   icon={item.icon}
+                  color={item.color}
                   subItems={item.subItems?.map((s: any) => ({ ...s, label: s.name }))}
                 />
               ))}
@@ -642,12 +690,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     href="/admin"
                     label="Sistema Maestro"
                     active={isActive("/admin")}
-                    icon={Icons.Institutions} // O crear uno de corona/shield
+                    icon={Icons.Institutions}
+                    color="indigo"
                   />
                 </div>
               )}
 
-              {isAdmin && (
+              {isAdmin && adminItems.length > 0 && (
                 <div className="my-6 border-t border-gray-100 dark:border-slate-800 pt-6">
                   <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">Administración</p>
                   <div className="mt-3 space-y-1">
@@ -658,6 +707,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                         label={item.name}
                         active={isActive(item.href)}
                         icon={item.icon}
+                        color={item.color}
                       />
                     ))}
                   </div>
@@ -692,7 +742,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   label={item.name}
                   active={item.href ? isActive(item.href) : (item.subItems?.some((s: any) => isActive(s.href)) ?? false)}
                   icon={item.icon}
-                  subItems={item.subItems?.map((s: any) => ({ ...s, label: s.name }))}
+                  color={item.color}
+                  subItems={item.subItems?.map((s: any) => ({ ...s, label: s.name, color: s.color }))}
                   onClick={() => setMobileSidebarOpen(false)}
                 />
               ))}

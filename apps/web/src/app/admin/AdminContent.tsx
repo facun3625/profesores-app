@@ -25,9 +25,11 @@ type InstitutionStats = {
     questionsCount: number;
     membersCount: number;
     admin: {
+        id: string;
         name: string;
         lastName: string;
         email: string;
+        plan: string;
     } | null;
 };
 
@@ -39,8 +41,9 @@ type UserStats = {
     lastName: string;
     status: string;
     globalRole: string;
+    plan: string;
     memberships: Array<{
-        institution: { id: string, name: string, plan: string };
+        institution: { id: string, name: string };
         role: string;
     }>;
 };
@@ -109,8 +112,8 @@ export function AdminContent() {
     });
 
     const updatePlan = useMutation({
-        mutationFn: ({ institutionId, plan }: { institutionId: string; plan: string }) =>
-            api(`/admin/institutions/${institutionId}/plan`, {
+        mutationFn: ({ userId, plan }: { userId: string; plan: string }) =>
+            api(`/admin/users/${userId}/plan`, {
                 method: "PATCH",
                 body: JSON.stringify({ plan }),
             }),
@@ -118,6 +121,8 @@ export function AdminContent() {
             queryClient.invalidateQueries({ queryKey: ["admin", "institutions"] });
             queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
             setUpdatingId(null);
+            // Notificar al layout para que refresque el plan en el header si el admin es el usuario actual
+            window.dispatchEvent(new CustomEvent("me:updated"));
         },
     });
 
@@ -316,7 +321,7 @@ export function AdminContent() {
                                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                                     {users?.filter(u => {
                                         if (planFilter === 'ALL') return true;
-                                        return u.memberships.some(m => m.institution.plan === planFilter);
+                                        return u.plan === planFilter;
                                     }).map((u: UserStats) => (
                                         <tr key={u.id} className="group transition-colors hover:bg-gray-50/50 dark:hover:bg-slate-800/30">
                                             <td className="px-8 py-5">
@@ -343,34 +348,32 @@ export function AdminContent() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">
-                                                {u.memberships.map((m: any, idx: number) => idx === 0 && (
-                                                    <div key={idx} className="flex gap-1">
-                                                        {[
-                                                            { id: 'FREE', color: 'blue', label: 'FREE' },
-                                                            { id: 'FULL', color: 'emerald', label: 'FULL' },
-                                                            { id: 'PREMIUM', color: 'amber', label: 'PREM' }
-                                                        ].map((p) => (
-                                                            <button
-                                                                key={p.id}
-                                                                disabled={updatingId === m.institution.id}
-                                                                onClick={() => {
-                                                                    setUpdatingId(m.institution.id);
-                                                                    updatePlan.mutate({ institutionId: m.institution.id, plan: p.id });
-                                                                }}
-                                                                className={cn(
-                                                                    "h-6 px-2 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all border",
-                                                                    m.institution.plan === p.id
-                                                                        ? p.color === 'blue' ? "bg-blue-600 text-white border-blue-700 shadow-sm" :
-                                                                            p.color === 'emerald' ? "bg-emerald-600 text-white border-emerald-700 shadow-sm" :
-                                                                                "bg-amber-500 text-white border-amber-600 shadow-sm"
-                                                                        : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700 dark:hover:bg-slate-700"
-                                                                )}
-                                                            >
-                                                                {p.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                ))}
+                                                <div className="flex gap-1">
+                                                    {[
+                                                        { id: 'FREE', color: 'blue', label: 'FREE' },
+                                                        { id: 'FULL', color: 'emerald', label: 'FULL' },
+                                                        { id: 'PREMIUM', color: 'amber', label: 'PREM' }
+                                                    ].map((p) => (
+                                                        <button
+                                                            key={p.id}
+                                                            disabled={updatingId === u.id}
+                                                            onClick={() => {
+                                                                setUpdatingId(u.id);
+                                                                updatePlan.mutate({ userId: u.id, plan: p.id });
+                                                            }}
+                                                            className={cn(
+                                                                "h-6 px-2 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all border",
+                                                                u.plan === p.id
+                                                                    ? p.color === 'blue' ? "bg-blue-600 text-white border-blue-700 shadow-sm" :
+                                                                        p.color === 'emerald' ? "bg-emerald-600 text-white border-emerald-700 shadow-sm" :
+                                                                            "bg-amber-500 text-white border-amber-600 shadow-sm"
+                                                                    : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700 dark:hover:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            {p.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </td>
                                             <td className="px-8 py-5">
                                                 <button

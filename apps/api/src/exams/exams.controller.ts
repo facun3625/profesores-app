@@ -93,15 +93,14 @@ export class ExamsController {
     const { exam, institutionName } =
       await this.examsService.getExamForExport(req.userId, id);
 
-    const safeName =
-      (exam.title || "exam")
-        .replace(/[^a-z0-9\-_ ]/gi, "")
-        .trim() || "exam";
+    const downloadName = String(exam.title || "examen")
+      .replace(/[^a-z0-9\-_ ]/gi, "")
+      .trim() || "examen";
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${safeName}.pdf"`,
+      `attachment; filename="${downloadName}.pdf"`,
     );
 
     // Parse options

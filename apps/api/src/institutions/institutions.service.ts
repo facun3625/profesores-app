@@ -12,7 +12,7 @@ export class InstitutionsService {
         where: { userId },
         select: {
           institution: {
-            select: { id: true, name: true, plan: true, status: true },
+            select: { id: true, name: true, status: true },
           },
         },
         distinct: ["institutionId"],
@@ -29,7 +29,6 @@ export class InstitutionsService {
           select: {
             id: true,
             name: true,
-            plan: true,
             status: true,
           },
         },
@@ -48,13 +47,11 @@ export class InstitutionsService {
     const institution = await this.prisma.institution.create({
       data: {
         name: name.trim(),
-        plan: "FREE",
         status: "active",
       },
       select: {
         id: true,
         name: true,
-        plan: true,
         status: true,
       },
     });
@@ -175,7 +172,6 @@ export class InstitutionsService {
       select: {
         id: true,
         name: true,
-        plan: true,
         status: true,
       },
     });
