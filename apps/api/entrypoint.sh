@@ -3,8 +3,8 @@
 echo "--- Debug: Listando archivos en apps/api ---"
 ls -R apps/api/dist || echo "No se encontró carpeta dist en apps/api"
 
-echo "Ejecutando migraciones de Prisma (usando v6 local)..."
-./node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+echo "Ejecutando migraciones de Prisma..."
+npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
 
 echo "Iniciando servidor NestJS..."
 # Intentar las dos rutas más comunes en monorepos
