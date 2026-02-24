@@ -13,7 +13,12 @@ async function bootstrap() {
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
     : ['http://localhost:3001'];
 
-  console.log('CORS: Orígenes permitidos:', allowedOrigins);
+  console.log('--- DIAGNÓSTICO DE INICIO ---');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('PORT:', process.env.PORT);
+  console.log('ALLOWED_ORIGINS:', allowedOrigins);
+  console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Configurado ✅' : 'FALTANTE ❌');
+  console.log('---------------------------');
 
   app.enableCors({
     origin: (origin, callback) => {

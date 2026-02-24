@@ -278,6 +278,8 @@ export class AuthService {
       const session = await this.createSession(user.id);
       const membership = user.memberships[0];
 
+      console.log(`[AuthService] Google Login exitoso para: ${email}`);
+
       return {
         accessToken: session.token,
         user: {
@@ -299,7 +301,11 @@ export class AuthService {
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
-      console.error("[AuthService] Google login error:", error);
+      console.error("[AuthService] Google login error detallado:", {
+        error: error.message,
+        stack: error.stack,
+        googleClientIdConfigured: process.env.GOOGLE_CLIENT_ID ? "Configurado (Largo: " + process.env.GOOGLE_CLIENT_ID.length + ")" : "NO CONFIGURADO",
+      });
       throw new UnauthorizedException("Falla en la autenticación con Google");
     }
   }
