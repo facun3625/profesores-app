@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 echo "--- Debug: Listando archivos en apps/api ---"
 ls -R apps/api/dist || echo "No se encontró carpeta dist en apps/api"
