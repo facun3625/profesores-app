@@ -238,6 +238,11 @@ export class ExamsService {
         [QuestionDifficulty.medium]: 0,
         [QuestionDifficulty.hard]: 0,
       },
+      [QuestionType.MULTI_TRUE_FALSE]: {
+        [QuestionDifficulty.easy]: 0,
+        [QuestionDifficulty.medium]: 0,
+        [QuestionDifficulty.hard]: 0,
+      },
     };
   }
 
@@ -269,6 +274,7 @@ export class ExamsService {
         TRUE_FALSE: dto.typeCounts?.TRUE_FALSE ?? 0,
         OPEN: dto.typeCounts?.OPEN ?? 0,
         FILL_IN: dto.typeCounts?.FILL_IN ?? 0,
+        MULTI_TRUE_FALSE: dto.typeCounts?.MULTI_TRUE_FALSE ?? 0,
       },
       difficulties: dto.difficulties as QuestionDifficulty[],
       splitEven: this.splitEven.bind(this),

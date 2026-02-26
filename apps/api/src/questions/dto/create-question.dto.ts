@@ -13,6 +13,7 @@ import {
 export enum QuestionType {
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
+  MULTI_TRUE_FALSE = 'MULTI_TRUE_FALSE',
   OPEN = 'OPEN',
   FILL_IN = 'FILL_IN',
 }

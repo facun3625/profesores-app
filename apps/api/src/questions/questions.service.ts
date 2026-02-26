@@ -95,6 +95,15 @@ export class QuestionsService {
         correctIndex = dto.correctIndex;
         break;
 
+      case 'MULTI_TRUE_FALSE' as any:
+        if (!dto.options || !Array.isArray(dto.options) || dto.options.length === 0) {
+          throw new BadRequestException('MULTI_TRUE_FALSE requires at least one sub-question');
+        }
+        // Validar estructura de sub-preguntas si es necesario, pero por ahora confiamos en el JSON
+        options = dto.options;
+        correctIndex = null; // No hay un solo correctIndex compartido
+        break;
+
       case QuestionType.OPEN:
       case QuestionType.FILL_IN:
         options = null;
@@ -290,6 +299,11 @@ export class QuestionsService {
         throw new BadRequestException('TRUE_FALSE correctIndex must be 0 or 1');
       }
       options = ['Verdadero', 'Falso'];
+    } else if (type === 'MULTI_TRUE_FALSE' as any) {
+      if (!options || !Array.isArray(options) || options.length === 0) {
+        throw new BadRequestException('MULTI_TRUE_FALSE requires at least one sub-question');
+      }
+      correctIndex = null;
     } else if (type === QuestionType.OPEN || type === QuestionType.FILL_IN) {
       options = null;
       correctIndex = null;
@@ -299,7 +313,7 @@ export class QuestionsService {
       where: { id },
       data: {
         statement: dto.statement,
-        type: type,
+        type: type as any,
         difficulty: dto.difficulty,
         options: options ?? Prisma.JsonNull,
         correctIndex: correctIndex,
@@ -347,5 +361,41 @@ export class QuestionsService {
     });
 
     return { ok: true };
+  }
+
+  async bulkMove(userId: string, dto: import('./dto/bulk-move-questions.dto').BulkMoveQuestionsDto) {
+    const institutionId = await this.getActiveInstitutionId(userId);
+
+    const targetTopic = await this.prisma.topic.findFirst({
+      where: { id: dto.targetTopicId, institutionId },
+      select: { id: true, subjectId: true },
+    });
+
+    if (!targetTopic) {
+      throw new BadRequestException('Target topic not found or does not belong to institution');
+    }
+
+    // Validar acceso a la materia destino si es profesor
+    await this.checkSubjectAccess(userId, institutionId, targetTopic.subjectId);
+
+    // Actualizar todas las preguntas seleccionadas
+    const result = await this.prisma.question.updateMany({
+      where: {
+        id: { in: dto.questionIds },
+        institutionId,
+      },
+      data: {
+        topicId: dto.targetTopicId,
+        subjectId: targetTopic.subjectId, // Asegurar que la materia coincida con la del tema destino
+      },
+    });
+
+    await this.activityLog.log(userId, 'UPDATE', 'question', 'bulk', {
+      count: result.count,
+      targetTopicId: dto.targetTopicId,
+      questionIds: dto.questionIds,
+    });
+
+    return { count: result.count };
   }
 }

@@ -270,6 +270,7 @@ enum LogAction {
 enum QuestionType {
   MULTIPLE_CHOICE
   TRUE_FALSE
+  MULTI_TRUE_FALSE
   OPEN
   FILL_IN
 }

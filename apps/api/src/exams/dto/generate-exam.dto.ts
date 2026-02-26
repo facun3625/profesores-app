@@ -14,6 +14,7 @@ import { Type } from 'class-transformer';
 export enum QuestionType {
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
+  MULTI_TRUE_FALSE = 'MULTI_TRUE_FALSE',
   OPEN = 'OPEN',
   FILL_IN = 'FILL_IN',
 }
@@ -41,6 +42,11 @@ export class TypeCountsDto {
   @IsInt()
   @Min(0)
   FILL_IN?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  MULTI_TRUE_FALSE?: number;
 }
 
 export class GenerateExamDto {

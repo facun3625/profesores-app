@@ -3,6 +3,7 @@ import { QuestionsService } from "./questions.service";
 import { CreateQuestionDto } from "./dto/create-question.dto";
 import { UpdateQuestionDto } from "./dto/update-question.dto";
 import { ListQuestionsDto } from "./dto/list-questions.dto";
+import { BulkMoveQuestionsDto } from "./dto/bulk-move-questions.dto";
 import { AuthGuard } from "../auth/guards/auth.guard";
 import { QuotaService } from "../quota/quota.service";
 
@@ -20,6 +21,11 @@ export class QuestionsController {
     return this.questionsService.create(req.userId, dto);
   }
 
+  @Patch("bulk-move")
+  async bulkMove(@Req() req: any, @Body() dto: BulkMoveQuestionsDto) {
+    return this.questionsService.bulkMove(req.userId, dto);
+  }
+
   @Patch(":id")
   update(
     @Req() req: any,
@@ -30,9 +36,10 @@ export class QuestionsController {
   }
 
   @Delete(":id")
-  remove(@Req() req: any, @Param("id") id: string) {
+  async delete(@Param("id") id: string, @Req() req: any) {
     return this.questionsService.delete(id, req.userId);
   }
+
 
   @Get()
   list(@Req() req: any, @Query() query: ListQuestionsDto) {

@@ -92,6 +92,7 @@ export interface Topic {
 export enum QuestionType {
     MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
     TRUE_FALSE = 'TRUE_FALSE',
+    MULTI_TRUE_FALSE = 'MULTI_TRUE_FALSE',
     OPEN = 'OPEN',
 }
 
@@ -114,6 +115,13 @@ export interface Question {
     difficulty: QuestionDifficulty;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface MultiTrueFalseSubItem {
+    statement: string;
+    isCorrect: boolean;
+    requiresJustification: boolean;
+    openLines?: number;
 }
 
 // ============================================

@@ -43,6 +43,7 @@ export function buildInitialPlan(params: {
     TRUE_FALSE: number;
     OPEN: number;
     FILL_IN: number;
+    MULTI_TRUE_FALSE: number;
   };
   difficulties: QuestionDifficulty[];
   splitEven: (total: number, parts: number) => number[];
@@ -66,6 +67,11 @@ export function buildInitialPlan(params: {
       [QuestionDifficulty.hard]: 0,
     },
     [QuestionType.FILL_IN]: {
+      [QuestionDifficulty.easy]: 0,
+      [QuestionDifficulty.medium]: 0,
+      [QuestionDifficulty.hard]: 0,
+    },
+    [QuestionType.MULTI_TRUE_FALSE]: {
       [QuestionDifficulty.easy]: 0,
       [QuestionDifficulty.medium]: 0,
       [QuestionDifficulty.hard]: 0,
