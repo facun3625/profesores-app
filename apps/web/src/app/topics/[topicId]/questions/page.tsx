@@ -248,7 +248,7 @@ export default function TopicQuestionsPage() {
   const [searchText, setSearchText] = useState("");
 
   const [statement, setStatement] = useState("");
-  const [type, setType] = useState<QType>("TRUE_FALSE");
+  const [type, setType] = useState<QType | "">("");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [optionsText, setOptionsText] = useState(
     "Opción A\nOpción B\nOpción C\nOpción D"
@@ -418,6 +418,7 @@ export default function TopicQuestionsPage() {
   function validateCreate(): string | null {
     if (!subjectId) return "Falta subjectId (entrar desde Temas).";
     if (!topicId) return "Falta topicId.";
+    if (!type) return "Seleccioná el tipo de pregunta.";
     if (!statement.trim()) return "Escribí el enunciado.";
 
     if (type === "MULTIPLE_CHOICE") {
@@ -494,6 +495,7 @@ export default function TopicQuestionsPage() {
       setOpenLines(4);
       setRequiresJustification(false);
       setEditingQuestionId(null); // Limpiar
+      setType(""); // Reset to empty for step-by-step
 
       if (type === "MULTIPLE_CHOICE")
         setOptionsText("Opción A\nOpción B\nOpción C\nOpción D");
@@ -562,7 +564,7 @@ export default function TopicQuestionsPage() {
     });
   }, [questions, filterType, filterDifficulty, searchText]);
 
-  const canCreate = statement.trim().length > 0 && !loading;
+  const canCreate = !!type && statement.trim().length > 0 && !loading;
 
   function ensureCardFullyVisible(el: HTMLElement) {
     const rect = el.getBoundingClientRect();
@@ -868,6 +870,7 @@ export default function TopicQuestionsPage() {
                   if (next === "FILL_IN") { setOptionsText(""); setRequiresJustification(false); }
                 }}
               >
+                <option value="" disabled>Seleccionar tipo...</option>
                 <option value="MULTIPLE_CHOICE">Opción múltiple</option>
                 <option value="TRUE_FALSE">Verdadero / Falso (único)</option>
                 <option value="MULTI_TRUE_FALSE">Múltiple Verdadero / Falso</option>
@@ -891,112 +894,243 @@ export default function TopicQuestionsPage() {
             </label>
           </div>
 
-          <label className="mt-4 grid gap-2">
-            <span className="text-sm font-semibold text-gray-900">Enunciado</span>
-            <textarea
-              value={statement}
-              onChange={(e) => setStatement(e.target.value)}
-              className="min-h-[96px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
-          </label>
-
-          {type === "MULTIPLE_CHOICE" ? (
-            <>
-              <label className="mt-4 grid gap-2">
-                <span className="text-sm font-semibold text-gray-900">
-                  Opciones (una por línea)
-                </span>
-                <textarea
-                  value={optionsText}
-                  onChange={(e) => setOptionsText(e.target.value)}
-                  className="min-h-[110px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </label>
-
-              <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="text-sm font-semibold text-gray-900">
-                  Respuesta correcta
-                </div>
-                <div className="mt-3 grid gap-2">
-                  {options && options.length > 0 ? (
-                    options.map((opt, idx) => (
-                      <label
-                        key={idx}
-                        className={cn(
-                          "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 transition hover:bg-gray-50",
-                          correctIndex === idx
-                            ? "border-blue-200 bg-blue-50"
-                            : "border-gray-200 bg-white"
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="correctIndex"
-                          checked={correctIndex === idx}
-                          onChange={() => setCorrectIndex(idx)}
-                          className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">
-                          <span className="font-semibold text-gray-900 mr-1">
-                            {String.fromCharCode(65 + idx)})
-                          </span>
-                          {opt}
-                        </span>
-                      </label>
-                    ))
-                  ) : (
-                    <div className="text-sm text-gray-500 italic">
-                      Escribí las opciones arriba para poder seleccionar la correcta acá.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
+          {type ? (
+            <label className="mt-4 grid gap-2">
+              <span className="text-sm font-semibold text-gray-900">Enunciado</span>
+              <textarea
+                value={statement}
+                placeholder="Escribí el enunciado de la pregunta aquí..."
+                onChange={(e) => setStatement(e.target.value)}
+                className="min-h-[96px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+            </label>
           ) : null}
 
-          {type === "TRUE_FALSE" ? (
-            <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="text-sm font-semibold text-gray-900">
-                Respuesta correcta
-              </div>
+          {type && statement.trim() ? (
+            <>
+              {type === "MULTIPLE_CHOICE" ? (
+                <>
+                  <label className="mt-4 grid gap-2">
+                    <span className="text-sm font-semibold text-gray-900">
+                      Opciones (una por línea)
+                    </span>
+                    <textarea
+                      value={optionsText}
+                      onChange={(e) => setOptionsText(e.target.value)}
+                      className="min-h-[110px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </label>
 
-              <div className="mt-3 grid gap-2 text-sm text-gray-700">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={correctIndex === 0}
-                    onChange={() => setCorrectIndex(0)}
-                  />
-                  Verdadero
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={correctIndex === 1}
-                    onChange={() => setCorrectIndex(1)}
-                  />
-                  Falso
-                </label>
-              </div>
+                  <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="text-sm font-semibold text-gray-900">
+                      Respuesta correcta
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      {options && options.length > 0 ? (
+                        options.map((opt, idx) => (
+                          <label
+                            key={idx}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 transition hover:bg-gray-50",
+                              correctIndex === idx
+                                ? "border-blue-200 bg-blue-50"
+                                : "border-gray-200 bg-white"
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name="correctIndex"
+                              checked={correctIndex === idx}
+                              onChange={() => setCorrectIndex(idx)}
+                              className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              <span className="font-semibold text-gray-900 mr-1">
+                                {String.fromCharCode(65 + idx)})
+                              </span>
+                              {opt}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <div className="text-sm text-gray-500 italic">
+                          Escribí las opciones arriba para poder seleccionar la correcta acá.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : null}
 
-              <div className="mt-4 border-t border-gray-100 pt-4">
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={requiresJustification}
-                    onChange={(e) => setRequiresJustification(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">
-                    Requiere justificación escrita
-                  </span>
-                </label>
+              {type === "TRUE_FALSE" ? (
+                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-semibold text-gray-900">
+                    Respuesta correcta
+                  </div>
 
-                {requiresJustification ? (
+                  <div className="mt-3 grid gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        checked={correctIndex === 0}
+                        onChange={() => setCorrectIndex(0)}
+                      />
+                      Verdadero
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        checked={correctIndex === 1}
+                        onChange={() => setCorrectIndex(1)}
+                      />
+                      Falso
+                    </label>
+                  </div>
+
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={requiresJustification}
+                        onChange={(e) => setRequiresJustification(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Requiere justificación escrita
+                      </span>
+                    </label>
+
+                    {requiresJustification ? (
+                      <div className="mt-3">
+                        <label className="grid gap-2">
+                          <span className="text-sm text-gray-700">
+                            Renglones para la justificación
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              min={1}
+                              max={50}
+                              value={openLines}
+                              onChange={(e) =>
+                                setOpenLines(Math.max(1, Math.min(50, Number(e.target.value))))
+                              }
+                              className="w-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <span className="text-sm text-gray-500">renglones (default: 4)</span>
+                          </div>
+                        </label>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {type === ("MULTI_TRUE_FALSE" as any) ? (
+                <div className="mt-4 space-y-4">
+                  <div className="text-sm font-semibold text-gray-900">Enunciados Verdadero / Falso</div>
+                  {multiTfOptions.map((opt, idx) => (
+                    <div key={idx} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-blue-600 uppercase">Item #{idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => setMultiTfOptions(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-red-500 hover:text-red-700 text-xs font-medium"
+                        >
+                          Eliminar item
+                        </button>
+                      </div>
+                      <textarea
+                        placeholder="Escribí el sub-enunciado aquí..."
+                        value={opt.statement}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const text = e.clipboardData.getData("text/plain");
+                          const next = [...multiTfOptions];
+                          next[idx].statement = text;
+                          setMultiTfOptions(next);
+                        }}
+                        onChange={(e) => {
+                          const next = [...multiTfOptions];
+                          next[idx].statement = e.target.value;
+                          setMultiTfOptions(next);
+                        }}
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <div className="flex flex-wrap items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={opt.isCorrect}
+                            onChange={() => {
+                              const next = [...multiTfOptions];
+                              next[idx].isCorrect = true;
+                              setMultiTfOptions(next);
+                            }}
+                          /> Verdadero
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={!opt.isCorrect}
+                            onChange={() => {
+                              const next = [...multiTfOptions];
+                              next[idx].isCorrect = false;
+                              setMultiTfOptions(next);
+                            }}
+                          /> Falso
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer ml-auto">
+                          <input
+                            type="checkbox"
+                            checked={opt.requiresJustification}
+                            onChange={(e) => {
+                              const next = [...multiTfOptions];
+                              next[idx].requiresJustification = e.target.checked;
+                              setMultiTfOptions(next);
+                            }}
+                          /> Requiere justificación
+                        </label>
+                      </div>
+                      {opt.requiresJustification && (
+                        <div className="mt-2 flex items-center gap-3 border-t border-gray-50 pt-2">
+                          <span className="text-xs font-medium text-gray-500">Renglones para justificación:</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={opt.openLines}
+                            onChange={(e) => {
+                              const next = [...multiTfOptions];
+                              next[idx].openLines = Math.max(1, Math.min(50, Number(e.target.value)));
+                              setMultiTfOptions(next);
+                            }}
+                            className="w-16 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setMultiTfOptions(prev => [...prev, { statement: "", isCorrect: true, requiresJustification: false, openLines: 4 }])}
+                    className="w-full rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                  >
+                    + Añadir otro enunciado V/F
+                  </button>
+                </div>
+              ) : null}
+
+              {type === "OPEN" ? (
+                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-semibold text-gray-900">
+                    Espacio para la respuesta
+                  </div>
                   <div className="mt-3">
                     <label className="grid gap-2">
                       <span className="text-sm text-gray-700">
-                        Renglones para la justificación
+                        Cantidad de renglones en el examen impreso
                       </span>
                       <div className="flex items-center gap-3">
                         <input
@@ -1013,169 +1147,60 @@ export default function TopicQuestionsPage() {
                       </div>
                     </label>
                   </div>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          {type === ("MULTI_TRUE_FALSE" as any) ? (
-            <div className="mt-4 space-y-4">
-              <div className="text-sm font-semibold text-gray-900">Enunciados Verdadero / Falso</div>
-              {multiTfOptions.map((opt, idx) => (
-                <div key={idx} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-blue-600 uppercase">Item #{idx + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => setMultiTfOptions(prev => prev.filter((_, i) => i !== idx))}
-                      className="text-red-500 hover:text-red-700 text-xs font-medium"
-                    >
-                      Eliminar item
-                    </button>
-                  </div>
-                  <textarea
-                    placeholder="Escribí el sub-enunciado aquí..."
-                    value={opt.statement}
-                    onPaste={(e) => {
-                      e.preventDefault();
-                      const text = e.clipboardData.getData("text/plain");
-                      const next = [...multiTfOptions];
-                      next[idx].statement = text;
-                      setMultiTfOptions(next);
-                    }}
-                    onChange={(e) => {
-                      const next = [...multiTfOptions];
-                      next[idx].statement = e.target.value;
-                      setMultiTfOptions(next);
-                    }}
-                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <div className="flex flex-wrap items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={opt.isCorrect}
-                        onChange={() => {
-                          const next = [...multiTfOptions];
-                          next[idx].isCorrect = true;
-                          setMultiTfOptions(next);
-                        }}
-                      /> Verdadero
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={!opt.isCorrect}
-                        onChange={() => {
-                          const next = [...multiTfOptions];
-                          next[idx].isCorrect = false;
-                          setMultiTfOptions(next);
-                        }}
-                      /> Falso
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer ml-auto">
-                      <input
-                        type="checkbox"
-                        checked={opt.requiresJustification}
-                        onChange={(e) => {
-                          const next = [...multiTfOptions];
-                          next[idx].requiresJustification = e.target.checked;
-                          setMultiTfOptions(next);
-                        }}
-                      /> Requiere justificación
-                    </label>
-                  </div>
-                  {opt.requiresJustification && (
-                    <div className="mt-2 flex items-center gap-3 border-t border-gray-50 pt-2">
-                      <span className="text-xs font-medium text-gray-500">Renglones para justificación:</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={50}
-                        value={opt.openLines}
-                        onChange={(e) => {
-                          const next = [...multiTfOptions];
-                          next[idx].openLines = Math.max(1, Math.min(50, Number(e.target.value)));
-                          setMultiTfOptions(next);
-                        }}
-                        className="w-16 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                      />
-                    </div>
-                  )}
                 </div>
-              ))}
+              ) : null}
+
+              <label className="mt-4 grid gap-2">
+                <span className="text-sm font-semibold text-gray-900">
+                  Respuesta modelo (opcional)
+                </span>
+                <textarea
+                  value={modelAnswer}
+                  onChange={(e) => setModelAnswer(e.target.value)}
+                  className="min-h-[88px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </label>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={createQuestion}
+                  disabled={!canCreate || loading}
+                  className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {loading ? "Guardando..." : editingQuestionId ? "Guardar cambios" : "Crear"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setError("");
+                    setEditingQuestionId(null);
+                    setView("summary");
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setMultiTfOptions(prev => [...prev, { statement: "", isCorrect: true, requiresJustification: false, openLines: 4 }])}
-                className="w-full rounded-xl border-2 border-dashed border-gray-200 py-3 text-sm font-medium text-gray-500 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                disabled={loading}
+                onClick={() => {
+                  setError("");
+                  setEditingQuestionId(null);
+                  setView("summary");
+                }}
+                className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
               >
-                + Añadir otro enunciado V/F
+                Cancelar
               </button>
             </div>
-          ) : null}
-
-          {type === "OPEN" ? (
-            <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="text-sm font-semibold text-gray-900">
-                Espacio para la respuesta
-              </div>
-              <div className="mt-3">
-                <label className="grid gap-2">
-                  <span className="text-sm text-gray-700">
-                    Cantidad de renglones en el examen impreso
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={openLines}
-                      onChange={(e) =>
-                        setOpenLines(Math.max(1, Math.min(50, Number(e.target.value))))
-                      }
-                      className="w-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                    <span className="text-sm text-gray-500">renglones (default: 4)</span>
-                  </div>
-                </label>
-              </div>
-            </div>
-          ) : null}
-
-          <label className="mt-4 grid gap-2">
-            <span className="text-sm font-semibold text-gray-900">
-              Respuesta modelo (opcional)
-            </span>
-            <textarea
-              value={modelAnswer}
-              onChange={(e) => setModelAnswer(e.target.value)}
-              className="min-h-[88px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
-          </label>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={createQuestion}
-              disabled={!canCreate || loading}
-              className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
-            >
-              {loading ? "Guardando..." : editingQuestionId ? "Guardar cambios" : "Crear"}
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => {
-                setError("");
-                setEditingQuestionId(null);
-                setView("summary");
-              }}
-              className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-          </div>
+          )}
         </section>
       ) : null}
 
@@ -1245,34 +1270,34 @@ export default function TopicQuestionsPage() {
             </div>
 
             {selectedIds.size > 0 && (
-              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 shadow-sm">
-                <div className="text-sm font-semibold text-blue-700">
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 shadow-sm">
+                <div className="text-sm font-semibold text-gray-900">
                   {selectedIds.size} seleccionadas
                 </div>
-                <div className="h-4 w-px bg-blue-200 hidden sm:block" />
+                <div className="h-4 w-px bg-gray-200 hidden sm:block" />
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-blue-600">Mover a:</span>
-                  <select
+                  <span className="text-sm text-gray-600">Mover a:</span>
+                  <SelectPretty
                     value={targetTopicId}
                     onChange={(e) => setTargetTopicId(e.target.value)}
-                    className="h-8 rounded-md border border-blue-200 bg-white px-2 text-xs outline-none focus:border-blue-500"
+                    className="min-w-[180px]"
                   >
                     <option value="">Seleccionar tema...</option>
                     {topicsInSubject.map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
-                  </select>
+                  </SelectPretty>
                   <button
                     onClick={bulkMove}
                     disabled={!targetTopicId || isMoving}
-                    className="h-8 rounded-md bg-blue-600 px-3 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+                    className="h-9 rounded-md bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
                   >
                     {isMoving ? "Moviendo..." : "Mover ahora"}
                   </button>
                 </div>
                 <button
                   onClick={() => setSelectedIds(new Set())}
-                  className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-800"
+                  className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-800"
                 >
                   Deseleccionar todas
                 </button>
