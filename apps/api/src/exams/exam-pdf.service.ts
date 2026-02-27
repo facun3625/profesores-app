@@ -78,7 +78,12 @@ export class ExamPdfService {
         doc.font(selectedFont.normal);
       }
 
-      doc.fontSize(pdfOptions.questionSize).text(`${n}) ${q.statement}`, {
+      let statement = q.statement;
+      if (q.type === QuestionType.FILL_IN) {
+        statement = statement.replace(/\[\[.*?\]\]/g, '________________');
+      }
+
+      doc.fontSize(pdfOptions.questionSize).text(`${n}) ${statement}`, {
         align: 'left',
         lineGap: (pdfOptions.lineSpacing - 1.0) * pdfOptions.questionSize,
       });
@@ -91,16 +96,22 @@ export class ExamPdfService {
         this.renderOptions(doc, opts, pdfOptions);
       } else if (q.type === QuestionType.TRUE_FALSE) {
         this.renderOptions(doc, ['Verdadero', 'Falso'], pdfOptions);
-      } else if (q.type === QuestionType.OPEN) {
-        doc.moveDown(0.5);
-        // líneas para responder
-        for (let i = 0; i < 4; i++) {
-          doc
-            .moveTo(doc.page.margins.left, doc.y + 10)
-            .lineTo(doc.page.width - doc.page.margins.right, doc.y + 10)
-            .stroke();
-          doc.moveDown(0.9);
+      } else if (q.type === QuestionType.MULTI_TRUE_FALSE) {
+        const subStatements = Array.isArray(q.options) ? (q.options as any[]) : [];
+        this.renderMultiTrueFalse(doc, subStatements, pdfOptions);
+      } else if (q.type === QuestionType.FILL_IN || q.type === QuestionType.OPEN) {
+        if (q.type === QuestionType.OPEN) {
+          doc.moveDown(0.5);
+          this.renderLines(doc, q.openLines || 4);
         }
+      }
+
+      // Justificación
+      if (q.requiresJustification) {
+        doc.moveDown(0.4);
+        doc.fontSize(pdfOptions.answerSize - 1).font(selectedFont.bold).text('Justificación:', { indent: 18 });
+        doc.font(selectedFont.normal);
+        this.renderLines(doc, q.openLines || 2, 18);
       }
 
       doc.moveDown(0.7);
@@ -141,5 +152,45 @@ export class ExamPdfService {
         lineGap: (pdfOptions.lineSpacing - 1.0) * pdfOptions.answerSize,
       });
     });
+  }
+
+  private renderMultiTrueFalse(doc: PDFKit.PDFDocument, items: any[], pdfOptions: Required<PdfOptions>) {
+    doc.moveDown(0.4);
+    items.forEach((item, i) => {
+      const text = typeof item === 'string' ? item : item.statement || JSON.stringify(item);
+      const startY = doc.y;
+
+      doc.fontSize(pdfOptions.answerSize).text(`${i + 1}. ${text}`, {
+        indent: 18,
+        width: doc.page.width - doc.page.margins.left - doc.page.margins.right - 100,
+      });
+
+      const endY = doc.y;
+
+      // Render ( V / F ) at the STARTING Y
+      doc.y = startY;
+      doc.text('( V / F )', { align: 'right' });
+
+      // Ensure global Y is at the bottom of the sub-statement
+      doc.y = Math.max(doc.y, endY);
+      doc.moveDown(0.2);
+    });
+  }
+
+  private renderLines(doc: PDFKit.PDFDocument, count: number, indent: number = 0) {
+    const startX = doc.page.margins.left + indent;
+    const endX = doc.page.width - doc.page.margins.right;
+
+    doc.lineWidth(0.3).strokeColor('#bbbbbb'); // Slightly visible but fine
+
+    for (let i = 0; i < count; i++) {
+      doc.moveDown(1.0);
+      doc
+        .moveTo(startX, doc.y)
+        .lineTo(endX, doc.y)
+        .stroke();
+    }
+
+    doc.strokeColor('#000000').lineWidth(1.0); // Reset
   }
 }

@@ -83,6 +83,7 @@ export function buildInitialPlan(params: {
     { type: QuestionType.TRUE_FALSE, count: typeCounts.TRUE_FALSE },
     { type: QuestionType.OPEN, count: typeCounts.OPEN },
     { type: QuestionType.FILL_IN, count: typeCounts.FILL_IN },
+    { type: QuestionType.MULTI_TRUE_FALSE, count: typeCounts.MULTI_TRUE_FALSE },
   ];
 
   for (const e of entries) {

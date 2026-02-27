@@ -305,7 +305,8 @@ export class ExamsService {
       (dto.typeCounts.MULTIPLE_CHOICE ?? 0) +
       (dto.typeCounts.TRUE_FALSE ?? 0) +
       (dto.typeCounts.OPEN ?? 0) +
-      (dto.typeCounts.FILL_IN ?? 0);
+      (dto.typeCounts.FILL_IN ?? 0) +
+      (dto.typeCounts.MULTI_TRUE_FALSE ?? 0);
 
     if (sumTypes !== dto.totalQuestions) {
       throw new BadRequestException("typeCounts sum must equal totalQuestions");
@@ -657,6 +658,8 @@ export class ExamsService {
         correctIndex: true,
         topicId: true,
         subjectId: true,
+        requiresJustification: true,
+        openLines: true,
       },
     });
 

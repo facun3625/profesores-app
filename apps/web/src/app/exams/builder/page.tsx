@@ -13,7 +13,7 @@ type Subject = { id: string; name: string };
 type Topic = { id: string; name: string; subjectId: string };
 
 type Difficulty = "easy" | "medium" | "hard";
-type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN" | "FILL_IN";
+type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "MULTI_TRUE_FALSE" | "OPEN" | "FILL_IN";
 
 type Question = {
   id: string;
@@ -21,6 +21,8 @@ type Question = {
   difficulty: Difficulty;
   statement: string;
   options?: string[] | null;
+  requiresJustification?: boolean;
+  openLines?: number | null;
 };
 
 type PreviewQuestionsResponse = {
@@ -46,6 +48,7 @@ type StockBucket = {
 function labelType(t: QType) {
   if (t === "MULTIPLE_CHOICE") return "Opción múltiple";
   if (t === "TRUE_FALSE") return "Verdadero / Falso";
+  if (t === "MULTI_TRUE_FALSE") return "Múltiple Verdadero / Falso";
   if (t === "FILL_IN") return "Completar";
   return "A desarrollar";
 }
@@ -137,10 +140,11 @@ export default function Page() {
 
   const [mc, setMc] = useState(0);
   const [tf, setTf] = useState(0);
+  const [mtf, setMtf] = useState(0);
   const [op, setOp] = useState(0);
   const [fi, setFi] = useState(0);
 
-  const totalQuestions = useMemo(() => mc + tf + op + fi, [mc, tf, op, fi]);
+  const totalQuestions = useMemo(() => mc + tf + mtf + op + fi, [mc, tf, mtf, op, fi]);
 
   const [difficulties, setDifficulties] = useState<Difficulty[]>([
     "easy",
@@ -222,7 +226,7 @@ export default function Page() {
         const all = responses.flatMap(extractQuestions);
         const filtered = all.filter((q) => difficulties.includes(q.difficulty));
 
-        const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN", "FILL_IN"];
+        const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "MULTI_TRUE_FALSE", "OPEN", "FILL_IN"];
         const diffs: Difficulty[] = ["easy", "medium", "hard"];
 
         const buckets: StockBucket[] = [];
@@ -247,7 +251,7 @@ export default function Page() {
   const stockByType = useMemo(() => {
     if (!stock) return null;
 
-    const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN", "FILL_IN"];
+    const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "MULTI_TRUE_FALSE", "OPEN", "FILL_IN"];
     const diffs: Difficulty[] = ["easy", "medium", "hard"];
 
     return types.map((t) => {
@@ -319,6 +323,26 @@ export default function Page() {
       }
     }
 
+    if (mtf > 0) {
+      const mtfStock = stockByType.find(s => s.type === "MULTI_TRUE_FALSE");
+      if (mtfStock) {
+        const available = difficulties.reduce((sum, d) => sum + mtfStock.byDiff[d], 0);
+        if (available < mtf) {
+          issues.push(`Múltiple V/F: necesitás ${mtf}, solo hay ${available} en las dificultades seleccionadas`);
+
+          const missing = (["easy", "medium", "hard"] as Difficulty[])
+            .filter(d => !difficulties.includes(d) && mtfStock.byDiff[d] > 0)
+            .map(d => `${d === "easy" ? "Fácil" : d === "medium" ? "Medio" : "Difícil"} (${mtfStock.byDiff[d]} disponibles)`);
+
+          if (missing.length > 0) {
+            suggestions.push(`Agregá estas dificultades para Múltiple V/F: ${missing.join(", ")}`);
+          }
+        } else if (available === mtf) {
+          warnings.push(`Múltiple V/F: usarás todas las ${mtf} preguntas disponibles`);
+        }
+      }
+    }
+
     if (op > 0) {
       const opStock = stockByType.find(s => s.type === "OPEN");
       if (opStock) {
@@ -375,6 +399,7 @@ export default function Page() {
   const typeCounts = {
     MULTIPLE_CHOICE: mc,
     TRUE_FALSE: tf,
+    MULTI_TRUE_FALSE: mtf,
     OPEN: op,
     FILL_IN: fi,
   };
@@ -487,7 +512,8 @@ export default function Page() {
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `${safeName}.pdf`;
+      const downloadName = `${safeName(title)}.pdf`;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -510,6 +536,7 @@ export default function Page() {
     setDescription("");
     setMc(0);
     setTf(0);
+    setMtf(0);
     setOp(0);
     setFi(0);
     setDifficulties(["easy", "medium", "hard"]);
@@ -745,6 +772,29 @@ export default function Page() {
               />
             </div>
 
+            {/* Múltiple Verdadero / Falso */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-slate-500">Múltiple Verdadero / Falso</label>
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                  {stockByType?.find(s => s.type === "MULTI_TRUE_FALSE")?.total || 0} disponibles
+                </span>
+              </div>
+              <input
+                type="number"
+                min="0"
+                max={stockByType?.find(s => s.type === "MULTI_TRUE_FALSE")?.total || 0}
+                value={mtf}
+                onChange={(e) => {
+                  const max = stockByType?.find(s => s.type === "MULTI_TRUE_FALSE")?.total || 0;
+                  const val = Math.min(Math.max(0, +e.target.value), max);
+                  setMtf(val);
+                }}
+                className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="0"
+              />
+            </div>
+
             {/* Open */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -800,6 +850,7 @@ export default function Page() {
               <div className="mt-2 text-xs text-blue-700 space-y-1">
                 {mc > 0 && <div>• {mc} Opción múltiple</div>}
                 {tf > 0 && <div>• {tf} Verdadero/Falso</div>}
+                {mtf > 0 && <div>• {mtf} Múltiple V/F</div>}
                 {op > 0 && <div>• {op} A desarrollar</div>}
                 {fi > 0 && <div>• {fi} Completar</div>}
               </div>
@@ -971,6 +1022,21 @@ export default function Page() {
                     <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">
                       {labelType(q.type)} · {q.difficulty === "easy" ? "Fácil" : q.difficulty === "medium" ? "Medio" : "Difícil"}
                     </p>
+                    {q.type === "MULTI_TRUE_FALSE" && Array.isArray(q.options) && (
+                      <ul className="mt-2 space-y-1 pl-4">
+                        {(q.options as any[]).map((opt, i) => (
+                          <li key={i} className="text-xs text-gray-600 dark:text-slate-400">
+                            {i + 1}. {typeof opt === 'string' ? opt : opt.statement}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {q.requiresJustification && (
+                      <div className="mt-2 flex items-center gap-2 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full w-fit">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        Requiere justificación ({q.openLines || 2} renglones)
+                      </div>
+                    )}
                   </div>
                 </li>
               ))}
