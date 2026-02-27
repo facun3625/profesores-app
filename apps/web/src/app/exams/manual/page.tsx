@@ -15,7 +15,7 @@ type Subject = { id: string; name: string };
 type Topic = { id: string; name: string; subjectId: string };
 
 type Difficulty = "easy" | "medium" | "hard";
-type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN";
+type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "OPEN" | "FILL_IN" | "MULTI_TRUE_FALSE";
 
 type Question = {
   id: string;
@@ -102,11 +102,14 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   return debounced;
 }
 
-function labelType(t?: QType) {
+function labelType(t?: string) {
   if (!t) return "—";
   if (t === "MULTIPLE_CHOICE") return "Multiple choice";
   if (t === "TRUE_FALSE") return "Verdadero / Falso";
-  return "De desarrollo";
+  if (t === "MULTI_TRUE_FALSE") return "Múltiple V/F";
+  if (t === "FILL_IN") return "Completar";
+  if (t === "OPEN") return "De desarrollo";
+  return t;
 }
 
 function labelDifficulty(d?: Difficulty) {
@@ -630,6 +633,8 @@ export default function Page() {
                 <option value="ALL">Todos</option>
                 <option value="MULTIPLE_CHOICE">Multiple choice</option>
                 <option value="TRUE_FALSE">Verdadero / Falso</option>
+                <option value="MULTI_TRUE_FALSE">Múltiple V/F</option>
+                <option value="FILL_IN">Completar</option>
                 <option value="OPEN">De desarrollo</option>
               </SelectPretty>
             </label>
