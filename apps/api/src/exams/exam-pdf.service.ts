@@ -102,7 +102,10 @@ export class ExamPdfService {
         this.renderOptions(doc, opts, pdfOptions, selectedFont, q.correctIndex);
       } else if (q.type === QuestionType.TRUE_FALSE) {
         const correct = typeof q.modelAnswer === 'string' ? q.modelAnswer.toLowerCase() : null;
-        const correctIdx = correct === 'verdadero' ? 0 : (correct === 'falso' ? 1 : null);
+        let correctIdx = (correct === 'verdadero' || correct === 'v') ? 0 : ((correct === 'falso' || correct === 'f') ? 1 : null);
+        if (correctIdx === null && q.correctIndex !== null) {
+          correctIdx = q.correctIndex;
+        }
         this.renderOptions(doc, ['Verdadero', 'Falso'], pdfOptions, selectedFont, correctIdx);
       } else if (q.type === QuestionType.MULTI_TRUE_FALSE) {
         const subStatements = Array.isArray(q.options) ? (q.options as any[]) : [];
@@ -196,7 +199,14 @@ export class ExamPdfService {
       const text = typeof item === 'string' ? item : item.statement || JSON.stringify(item);
       const startY = doc.y;
 
-      const correctAnswer = pdfOptions.showAnswers && correctAnswers[i] ? correctAnswers[i].trim().toUpperCase() : null;
+      let answerText: string | null = null;
+      if (pdfOptions.showAnswers) {
+        if (correctAnswers[i]) {
+          answerText = correctAnswers[i].trim().toUpperCase();
+        } else if (typeof item === 'object' && item !== null && 'isCorrect' in item) {
+          answerText = item.isCorrect ? 'V' : 'F';
+        }
+      }
 
       doc.fontSize(pdfOptions.answerSize).text(`${i + 1}. ${text}`, {
         indent: 18,
@@ -207,16 +217,15 @@ export class ExamPdfService {
 
       // Render ( V / F ) or correct marker
       doc.y = startY;
-      const marker = correctAnswer ? `[ ${correctAnswer} ]` : '( V / F )';
 
-      if (correctAnswer) {
+      if (answerText) {
         doc.font(selectedFont.bold);
-      }
-
-      doc.text(marker, { align: 'right' });
-
-      if (correctAnswer) {
+        // Map common answers to V / F for consistency
+        const displayAnswer = (answerText.startsWith('V') || answerText === 'TRUE') ? 'V' : 'F';
+        doc.text(`[ ${displayAnswer} ]`, { align: 'right' });
         doc.font(selectedFont.normal);
+      } else {
+        doc.text('( V / F )', { align: 'right' });
       }
 
       // Ensure global Y is at the bottom of the sub-statement
