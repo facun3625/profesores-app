@@ -8,6 +8,7 @@ export type PdfOptions = {
     questionSize: 9 | 10 | 11 | 12 | 14;
     answerSize: 9 | 10 | 11 | 12 | 14;
     lineSpacing: 1.0 | 1.5;
+    showAnswers: boolean;
 };
 
 type PdfCustomizeModalProps = {
@@ -27,6 +28,7 @@ export default function PdfCustomizeModal({
         questionSize: 12,
         answerSize: 11,
         lineSpacing: 1.0,
+        showAnswers: false,
     });
 
     if (!isOpen) return null;
@@ -139,6 +141,24 @@ export default function PdfCustomizeModal({
                             <option value="1.5">1.5</option>
                         </select>
                     </label>
+
+                    {/* Mostrar respuestas */}
+                    <div className="pt-2">
+                        <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={options.showAnswers}
+                                onChange={(e) =>
+                                    setOptions({ ...options, showAnswers: e.target.checked })
+                                }
+                                className="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <div>
+                                <span className="block text-sm font-semibold text-blue-900 dark:text-blue-300">Incluir respuestas correctas</span>
+                                <span className="block text-[11px] text-blue-700/70 dark:text-blue-400/70">Resalta las opciones correctas y respuestas modelo</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
                 <div className="flex gap-3">

@@ -491,6 +491,7 @@ export default function Page() {
           questionSize: String(options.questionSize),
           answerSize: String(options.answerSize),
           lineSpacing: String(options.lineSpacing),
+          showAnswers: String(options.showAnswers ?? false),
         });
         url = `${url}?${params.toString()}`;
       }
@@ -846,6 +847,21 @@ export default function Page() {
                       title="Descargar PDF con formato estándar"
                     >
                       PDF Estándar
+                    </button>
+
+                    <button
+                      onClick={() => downloadPdf(e.id, e.title, {
+                        boldStatement: false,
+                        fontFamily: 'Calibri',
+                        questionSize: 12,
+                        answerSize: 11,
+                        lineSpacing: 1.0,
+                        showAnswers: true
+                      })}
+                      className="inline-flex h-9 items-center rounded-md border border-green-100 bg-green-50/50 dark:bg-green-900/10 px-3 text-sm font-medium text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                      title="Descargar PDF con las respuestas correctas marcadas"
+                    >
+                      PDF Respuestas
                     </button>
 
                     <button

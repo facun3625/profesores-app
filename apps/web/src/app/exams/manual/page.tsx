@@ -421,6 +421,7 @@ export default function Page() {
           questionSize: String(options.questionSize),
           answerSize: String(options.answerSize),
           lineSpacing: String(options.lineSpacing),
+          showAnswers: String(options.showAnswers),
         });
         url = `${url}?${params.toString()}`;
       }

@@ -89,6 +89,7 @@ export class ExamsController {
     @Query("questionSize") questionSize?: string,
     @Query("answerSize") answerSize?: string,
     @Query("lineSpacing") lineSpacing?: string,
+    @Query("showAnswers") showAnswers?: string,
   ) {
     const { exam, institutionName } =
       await this.examsService.getExamForExport(req.userId, id);
@@ -110,6 +111,7 @@ export class ExamsController {
       questionSize: questionSize ? parseInt(questionSize, 10) : 12,
       answerSize: answerSize ? parseInt(answerSize, 10) : 11,
       lineSpacing: lineSpacing ? parseFloat(lineSpacing) : 1.0,
+      showAnswers: showAnswers === "true",
     };
 
     const doc = this.examPdfService.buildExamPdfStream({
