@@ -99,15 +99,15 @@ export class ExamPdfService {
 
       if (q.type === QuestionType.MULTIPLE_CHOICE) {
         const opts = Array.isArray(q.options) ? (q.options as any[]) : [];
-        this.renderOptions(doc, opts, pdfOptions, q.correctIndex);
+        this.renderOptions(doc, opts, pdfOptions, selectedFont, q.correctIndex);
       } else if (q.type === QuestionType.TRUE_FALSE) {
         const correct = typeof q.modelAnswer === 'string' ? q.modelAnswer.toLowerCase() : null;
         const correctIdx = correct === 'verdadero' ? 0 : (correct === 'falso' ? 1 : null);
-        this.renderOptions(doc, ['Verdadero', 'Falso'], pdfOptions, correctIdx);
+        this.renderOptions(doc, ['Verdadero', 'Falso'], pdfOptions, selectedFont, correctIdx);
       } else if (q.type === QuestionType.MULTI_TRUE_FALSE) {
         const subStatements = Array.isArray(q.options) ? (q.options as any[]) : [];
         const correctAnswers = typeof q.modelAnswer === 'string' ? q.modelAnswer.split(',') : [];
-        this.renderMultiTrueFalse(doc, subStatements, pdfOptions, correctAnswers);
+        this.renderMultiTrueFalse(doc, subStatements, pdfOptions, selectedFont, correctAnswers);
       } else if (q.type === QuestionType.FILL_IN || q.type === QuestionType.OPEN) {
         if (q.type === QuestionType.OPEN) {
           doc.moveDown(0.5);
@@ -154,7 +154,13 @@ export class ExamPdfService {
     return doc;
   }
 
-  private renderOptions(doc: PDFKit.PDFDocument, options: any[], pdfOptions: Required<PdfOptions>, correctIndex?: number | null) {
+  private renderOptions(
+    doc: PDFKit.PDFDocument,
+    options: any[],
+    pdfOptions: Required<PdfOptions>,
+    selectedFont: { normal: string; bold: string },
+    correctIndex?: number | null,
+  ) {
     const letters = 'abcdefghijklmnopqrstuvwxyz';
     doc.moveDown(0.4);
 
@@ -164,7 +170,7 @@ export class ExamPdfService {
       const text = typeof opt === 'string' ? opt : JSON.stringify(opt);
 
       if (isCorrect) {
-        doc.font(`${pdfOptions.fontFamily}-Bold`);
+        doc.font(selectedFont.bold);
       }
 
       doc.fontSize(pdfOptions.answerSize).text(`${label} ${text}${isCorrect ? ' ✓' : ''}`, {
@@ -173,12 +179,18 @@ export class ExamPdfService {
       });
 
       if (isCorrect) {
-        doc.font(pdfOptions.fontFamily);
+        doc.font(selectedFont.normal);
       }
     });
   }
 
-  private renderMultiTrueFalse(doc: PDFKit.PDFDocument, items: any[], pdfOptions: Required<PdfOptions>, correctAnswers: string[] = []) {
+  private renderMultiTrueFalse(
+    doc: PDFKit.PDFDocument,
+    items: any[],
+    pdfOptions: Required<PdfOptions>,
+    selectedFont: { normal: string; bold: string },
+    correctAnswers: string[] = [],
+  ) {
     doc.moveDown(0.4);
     items.forEach((item, i) => {
       const text = typeof item === 'string' ? item : item.statement || JSON.stringify(item);
@@ -198,13 +210,13 @@ export class ExamPdfService {
       const marker = correctAnswer ? `[ ${correctAnswer} ]` : '( V / F )';
 
       if (correctAnswer) {
-        doc.font(`${pdfOptions.fontFamily}-Bold`);
+        doc.font(selectedFont.bold);
       }
 
       doc.text(marker, { align: 'right' });
 
       if (correctAnswer) {
-        doc.font(pdfOptions.fontFamily);
+        doc.font(selectedFont.normal);
       }
 
       // Ensure global Y is at the bottom of the sub-statement
