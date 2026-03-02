@@ -141,6 +141,7 @@ model Exam {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   status        EntityStatus   @default(active)
+  headerFields  Json?
   institution   Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   createdBy     User?          @relation("ExamAuthor", fields: [createdById], references: [id], onDelete: Cascade)
   items         ExamQuestion[]

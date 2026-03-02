@@ -876,8 +876,16 @@ export default function Page() {
                     </button>
 
                     <a
+                      href={`/exams/manual?id=${e.id}&mode=edit`}
+                      className="inline-flex h-9 items-center rounded-md border border-blue-200 bg-blue-50/30 px-3 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+                      title="Editar título, descripción o preguntas del examen"
+                    >
+                      Editar
+                    </a>
+
+                    <a
                       href={`/exams/manual?from=${e.id}&mode=duplicate`}
-                      className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50"
+                      className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
                     >
                       Duplicar
                     </a>

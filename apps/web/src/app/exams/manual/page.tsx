@@ -43,6 +43,7 @@ type Exam = {
 
   items?: ExamItem[] | null;
   questions?: Question[] | null;
+  headerFields?: string[] | null;
 };
 
 /* =====================
@@ -127,6 +128,7 @@ function resolveFromExam(exam: Exam): {
   subjectId?: string;
   topicIds: string[];
   questionIds: string[];
+  headerFields?: string[] | null;
 } {
   let subjectId = exam.subjectId ?? undefined;
   const topicIds: string[] = [];
@@ -160,7 +162,11 @@ function resolveFromExam(exam: Exam): {
   }
 
   if (exam.topicId) topicIds.push(exam.topicId);
-  return { subjectId, topicIds, questionIds };
+  return { subjectId, topicIds, questionIds, headerFields: exam.headerFields };
+}
+
+async function tryUpdateExam(id: string, payload: any) {
+  return api<any>(`/exams/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
 async function tryCreateExam(payload: any) {
@@ -195,7 +201,10 @@ export default function Page() {
 
   const from = sp.get("from");
   const mode = sp.get("mode");
+  const editId = sp.get("id");
+
   const isDuplicate = !!from && mode === "duplicate";
+  const isEdit = !!editId && mode === "edit";
 
   const [error, setError] = useState("");
 
@@ -205,8 +214,9 @@ export default function Page() {
   const [subjectId, setSubjectId] = useState("");
   const [topicIds, setTopicIds] = useState<string[]>([]);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState("Nuevo examen");
   const [description, setDescription] = useState("");
+  const [headerFieldsText, setHeaderFieldsText] = useState("");
 
   const [bankLoading, setBankLoading] = useState(false);
   const [bank, setBank] = useState<Question[]>([]);
@@ -218,6 +228,7 @@ export default function Page() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const [confirmSubjectChange, setConfirmSubjectChange] = useState<{
     isOpen: boolean;
@@ -236,20 +247,25 @@ export default function Page() {
       .catch((e: any) => setError(e?.message ?? "Error cargando materias"));
   }, []);
 
-  /* Load exam if duplicating */
+  /* Load exam if duplicating or editing */
   useEffect(() => {
-    if (!from) return;
+    const targetId = isEdit ? editId : from;
+    if (!targetId) return;
 
     (async () => {
       setError("");
       setCreatedExamId(null);
-
       try {
-        const res = await api<any>(`/exams/${from}`);
-        const exam = (res?.exam ?? res) as Exam;
+        const full = await api<any>(`/exams/${targetId}`);
+        const exam = (full?.exam ?? full) as Exam;
 
         const baseTitle = exam.title ?? "Examen";
-        setTitle(isDuplicate ? `${baseTitle} (copia)` : baseTitle);
+        if (isDuplicate) {
+          setTitle(`${baseTitle} (copia)`);
+        } else {
+          setTitle(baseTitle);
+        }
+
         setDescription(exam.description ?? "");
 
         const parsed = resolveFromExam(exam);
@@ -257,11 +273,21 @@ export default function Page() {
         if (parsed.subjectId) setSubjectId(parsed.subjectId);
         if (parsed.topicIds.length) setTopicIds(parsed.topicIds);
         if (parsed.questionIds.length) setSelectedIds(parsed.questionIds);
+
+        if (parsed.headerFields && Array.isArray(parsed.headerFields)) {
+          setHeaderFieldsText(parsed.headerFields.join("\n"));
+        } else {
+          setHeaderFieldsText("");
+        }
+
+        if (isEdit) {
+          setCreatedExamId(editId);
+        }
       } catch (e: any) {
-        setError(e?.message ?? "Error cargando examen para duplicar");
+        setError(e?.message ?? "Error cargando examen base");
       }
     })();
-  }, [from, isDuplicate]);
+  }, [from, editId, isEdit, isDuplicate]);
 
   /* Load topics when subject changes */
   useEffect(() => {
@@ -336,7 +362,8 @@ export default function Page() {
   }, [selectedIds, bank]);
 
   function touch() {
-    if (createdExamId) setCreatedExamId(null);
+    if (createdExamId && !isEdit) setCreatedExamId(null);
+    setHasChanges(true);
   }
 
   function toggleTopic(id: string) {
@@ -393,15 +420,23 @@ export default function Page() {
         title: title.trim(),
         description: description.trim() || undefined,
         questionIds: selectedIds,
+        headerFields: headerFieldsText.split("\n").map(s => s.trim()).filter(Boolean),
       };
 
-      const created = await tryCreateExam(payload);
-      setCreatedExamId(created.id);
-      toast.success(isDuplicate ? "Examen duplicado" : "Examen creado");
+      if (isEdit && editId) {
+        await tryUpdateExam(editId, payload);
+        toast.success("Cambios guardados correctamente");
+        // No reseteamos createdExamId, se mantiene el del editId
+      } else {
+        const created = await tryCreateExam(payload);
+        setCreatedExamId(created.id);
+        toast.success(isDuplicate ? "Examen duplicado" : "Examen creado");
+      }
+      setHasChanges(false);
     } catch (e: any) {
-      setError(e?.message ?? "Error creando examen");
-      setCreatedExamId(null);
-      toast.error(e?.message ?? "Error creando examen");
+      const action = isEdit ? "actualizando" : "creando";
+      setError(e?.message ?? `Error ${action} examen`);
+      toast.error(e?.message ?? `Error ${action} examen`);
     } finally {
       setSaving(false);
     }
@@ -448,10 +483,10 @@ export default function Page() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-            {isDuplicate ? "Duplicar examen" : "Generador Manual"}
+            {isEdit ? "Editar examen" : (isDuplicate ? "Duplicar examen" : "Generador Manual")}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
-            Seleccioná preguntas manualmente desde tu banco.
+            {isEdit ? "Modificá el título, descripción o selección de preguntas." : "Seleccioná preguntas manualmente desde tu banco."}
           </p>
         </div>
 
@@ -465,10 +500,10 @@ export default function Page() {
             </a>
             <button
               onClick={submit}
-              disabled={saving || !title.trim() || !subjectId}
-              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              disabled={saving || !title.trim() || !subjectId || (isEdit && !hasChanges)}
+              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition"
             >
-              {saving ? "Procesando..." : isDuplicate ? "Duplicar" : "Crear"}
+              {saving ? "Guardando..." : (isEdit ? "Guardar cambios" : (isDuplicate ? "Duplicar examen" : "Crear examen"))}
             </button>
           </div>
         </div>
@@ -577,6 +612,20 @@ export default function Page() {
                 </option>
               ))}
             </SelectPretty>
+          </label>
+
+          <label className="grid gap-2 md:col-span-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Campos de encabezado (uno por línea, ej: Docente:, Alumno:)</span>
+            <textarea
+              value={headerFieldsText}
+              onChange={(e) => {
+                touch();
+                setHeaderFieldsText(e.target.value);
+              }}
+              rows={2}
+              className="rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              placeholder="Docente:&#10;Alumno:&#10;Fecha:"
+            />
           </label>
         </div>
       </section>

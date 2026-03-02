@@ -137,6 +137,7 @@ export default function Page() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [headerFieldsText, setHeaderFieldsText] = useState("");
 
   const [mc, setMc] = useState(0);
   const [tf, setTf] = useState(0);
@@ -468,6 +469,7 @@ export default function Page() {
       typeCounts,
       difficulties,
       shuffle: true,
+      headerFields: headerFieldsText.split("\n").map(s => s.trim()).filter(Boolean),
     };
 
     setLoading(true);
@@ -540,6 +542,7 @@ export default function Page() {
     setMtf(0);
     setOp(0);
     setFi(0);
+    setHeaderFieldsText("");
     setDifficulties(["easy", "medium", "hard"]);
     setPreviewQuestions(null);
     setResult(null);
@@ -666,6 +669,17 @@ export default function Page() {
                   ))}
                 </SelectPretty>
               </div>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700 dark:text-slate-500">Campos de encabezado (opcional, uno por línea)</span>
+              <textarea
+                value={headerFieldsText}
+                onChange={(e) => setHeaderFieldsText(e.target.value)}
+                rows={2}
+                className="mt-2 block w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Ej: Docente:&#10;Alumno:&#10;Fecha:"
+              />
             </label>
           </div>
 

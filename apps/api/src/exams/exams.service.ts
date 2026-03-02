@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateExamDto } from "./dto/create-exam.dto";
+import { UpdateExamDto } from "./dto/update-exam.dto";
 import { GenerateExamDto } from "./dto/generate-exam.dto";
 import { Prisma, QuestionDifficulty, QuestionType, LogAction } from "@prisma/client";
 import * as crypto from "crypto";
@@ -56,6 +57,7 @@ export class ExamsService {
         createdById: userId ?? null,
         title: dto.title,
         description: dto.description,
+        headerFields: dto.headerFields || undefined,
         items: {
           create: dto.questionIds.map((questionId, index) => ({
             questionId,
@@ -113,6 +115,64 @@ export class ExamsService {
     if (!exam) throw new ForbiddenException("Exam not found for active institution");
 
     return exam;
+  }
+
+  async update(institutionIdRaw: string, examId: string, dto: UpdateExamDto, userId?: string) {
+    const institutionId = this.requireInstitutionId(institutionIdRaw);
+
+    const exam = await this.prisma.exam.findFirst({
+      where: { id: examId, institutionId },
+    });
+
+    if (!exam) throw new ForbiddenException("Exam not found for active institution");
+
+    const data: Prisma.ExamUpdateInput = {
+      title: dto.title,
+      description: dto.description,
+      headerFields: dto.headerFields || undefined,
+    };
+
+    if (dto.questionIds) {
+      if (dto.questionIds.length === 0) {
+        throw new BadRequestException("questionIds must not be empty");
+      }
+
+      const count = await this.prisma.question.count({
+        where: { id: { in: dto.questionIds }, institutionId },
+      });
+
+      if (count !== dto.questionIds.length) {
+        throw new ForbiddenException(
+          "One or more questions do not belong to active institution",
+        );
+      }
+
+      data.items = {
+        deleteMany: {},
+        create: dto.questionIds.map((questionId, index) => ({
+          questionId,
+          order: index + 1,
+        })),
+      };
+    }
+
+    const updated = await this.prisma.exam.update({
+      where: { id: examId },
+      data,
+      include: {
+        items: {
+          orderBy: { order: "asc" },
+          include: { question: true },
+        },
+      },
+    });
+
+    await this.activityLog.log(userId ?? "system", "UPDATE", "exam", examId, {
+      title: dto.title || exam.title,
+      questionCount: dto.questionIds?.length,
+    });
+
+    return updated;
   }
 
   async remove(institutionIdRaw: string, examId: string) {

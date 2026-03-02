@@ -11,4 +11,8 @@ export class CreateExamDto {
 
   @IsArray()
   questionIds: string[];
+
+  @IsArray()
+  @IsOptional()
+  headerFields?: string[];
 }

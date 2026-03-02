@@ -59,7 +59,24 @@ export class ExamPdfService {
       doc.moveDown(0.4);
       doc.fontSize(11).text(exam.description, { align: 'center' });
     }
-    doc.moveDown(1);
+    doc.moveDown(0.8);
+
+    // Custom Header Fields
+    if (exam.headerFields && Array.isArray(exam.headerFields)) {
+      const fields = exam.headerFields as string[];
+      if (fields.length > 0) {
+        doc.font(selectedFont.normal).fontSize(10);
+        fields.forEach(field => {
+          if (field.trim()) {
+            doc.text(`${field.trim()}: ________________________________________________`, {
+              lineGap: 5
+            });
+          }
+        });
+        doc.moveDown(0.5);
+      }
+    }
+
     doc
       .moveTo(doc.page.margins.left, doc.y)
       .lineTo(doc.page.width - doc.page.margins.right, doc.y)

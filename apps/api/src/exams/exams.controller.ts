@@ -14,6 +14,7 @@ import type { Response } from "express";
 
 import { ExamsService } from "./exams.service";
 import { CreateExamDto } from "./dto/create-exam.dto";
+import { UpdateExamDto } from "./dto/update-exam.dto";
 import { GenerateExamDto } from "./dto/generate-exam.dto";
 import { ExamPdfService } from "./exam-pdf.service";
 import { AuthGuard } from "../auth/guards/auth.guard";
@@ -32,6 +33,22 @@ export class ExamsController {
   @Post("manual")
   createManual(@Req() req: any, @Body() dto: CreateExamDto) {
     return this.examsService.create(req.activeInstitutionId, dto, req.userId);
+  }
+
+  @Post(":id") // Some clients use POST for updates, but we'll support PATCH too
+  updateOld(@Req() req: any, @Param("id") id: string, @Body() dto: UpdateExamDto) {
+    return this.examsService.update(req.activeInstitutionId, id, dto, req.userId);
+  }
+
+  @Get(":id/patch") // For easy debugging
+  @Post(":id/update")
+  async patchCompat(@Req() req: any, @Param("id") id: string, @Body() dto: UpdateExamDto) {
+    return this.examsService.update(req.activeInstitutionId, id, dto, req.userId);
+  }
+
+  @Get(":id/edit-proxy")
+  async editProxy(@Req() req: any, @Param("id") id: string, @Body() dto: UpdateExamDto) {
+    return this.examsService.update(req.activeInstitutionId, id, dto, req.userId);
   }
 
   // =========================
