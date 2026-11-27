@@ -106,6 +106,23 @@ export class ExamsService {
     return out;
   }
 
+  private async validateCourse(institutionId: string, courseId?: string | null) {
+    if (!courseId) return;
+    const course = await this.prisma.course.findFirst({
+      where: { id: courseId, institutionId },
+      select: { id: true },
+    });
+    if (!course) throw new BadRequestException("El curso no pertenece a la institución");
+  }
+
+  private parseExamDate(raw?: string | null) {
+    if (raw === undefined) return undefined;
+    if (raw === null || raw === "") return null;
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) throw new BadRequestException("Fecha de examen inválida");
+    return d;
+  }
+
   private cleanHeaderFields(fields?: string[] | null) {
     if (!fields) return undefined;
     return fields.map((f) => String(f).trim()).filter(Boolean).slice(0, 12);
@@ -115,11 +132,14 @@ export class ExamsService {
     const institutionId = this.requireInstitutionId(actor.institutionId);
     const questionIds = await this.validateQuestionIds(actor, dto.questionIds ?? []);
     const points = this.cleanPoints(dto.points);
+    await this.validateCourse(institutionId, dto.courseId);
 
     const exam = await this.prisma.exam.create({
       data: {
         institutionId,
         createdById: actor.userId,
+        courseId: dto.courseId || null,
+        examDate: this.parseExamDate(dto.examDate) ?? null,
         title: dto.title.trim(),
         description: dto.description,
         headerFields: this.cleanHeaderFields(dto.headerFields),
@@ -148,9 +168,9 @@ export class ExamsService {
     return exam;
   }
 
-  async list(actor: Actor) {
+  async list(actor: Actor, courseId?: string) {
     return this.prisma.exam.findMany({
-      where: { ...this.examScope(actor), status: "active" },
+      where: { ...this.examScope(actor), status: "active", ...(courseId ? { courseId } : {}) },
       orderBy: { createdAt: "desc" },
       include: {
         items: {
@@ -158,6 +178,7 @@ export class ExamsService {
           include: { question: true },
         },
         signature: true,
+        course: { select: { id: true, name: true } },
         createdBy: { select: { id: true, name: true, lastName: true } },
       },
     });
@@ -182,10 +203,18 @@ export class ExamsService {
   async update(actor: Actor, examId: string, dto: UpdateExamDto) {
     const exam = await this.findExamOrThrow(actor, examId);
 
+    await this.validateCourse(exam.institutionId, dto.courseId);
     const data: Prisma.ExamUpdateInput = {
       title: dto.title?.trim() || undefined,
       description: dto.description,
       headerFields: this.cleanHeaderFields(dto.headerFields),
+      examDate: this.parseExamDate(dto.examDate),
+      course:
+        dto.courseId === undefined
+          ? undefined
+          : dto.courseId
+            ? { connect: { id: dto.courseId } }
+            : { disconnect: true },
     };
 
     const points = this.cleanPoints(dto.points);
@@ -384,16 +413,34 @@ export class ExamsService {
     };
   }
 
+  /** IDs de preguntas ya usadas en exámenes activos de un curso. */
+  async questionIdsUsedInCourse(institutionId: string, courseId: string): Promise<string[]> {
+    const rows = await this.prisma.examQuestion.findMany({
+      where: { exam: { institutionId, courseId, status: "active" } },
+      select: { questionId: true },
+      distinct: ["questionId"],
+    });
+    return rows.map((r) => r.questionId);
+  }
+
+  /** Preguntas a excluir de la generación (si el docente pidió no repetir con el curso). */
+  private async excludedFor(institutionId: string, dto: GenerateExamDto): Promise<string[]> {
+    if (!dto.courseId || !dto.avoidUsedInCourse) return [];
+    return this.questionIdsUsedInCourse(institutionId, dto.courseId);
+  }
+
   private async getStockPlan(
     institutionId: string,
     topicIds: string[],
+    excludeIds: string[] = [],
   ): Promise<StockPlan> {
     const grouped = await this.prisma.question.groupBy({
       by: ["type", "difficulty"],
       where: {
         institutionId,
         topicId: { in: topicIds },
-        status: 'active' // Solo usar preguntas activas para generar nuevos exámenes
+        status: 'active', // Solo usar preguntas activas para generar nuevos exámenes
+        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
       },
       _count: { _all: true },
     });
@@ -465,7 +512,8 @@ export class ExamsService {
     topicIds: string[],
     dto: GenerateExamDto,
   ): Promise<string[]> {
-    const stockPlan = await this.getStockPlan(institutionId, topicIds);
+    const excludeIds = await this.excludedFor(institutionId, dto);
+    const stockPlan = await this.getStockPlan(institutionId, topicIds, excludeIds);
     const { isPossible, shortage, buckets } = this.buildPlanWithFallback(dto, stockPlan);
 
     if (!isPossible) {
@@ -486,6 +534,7 @@ export class ExamsService {
           type: d.type,
           difficulty: d.difficulty,
           status: 'active', // Solo preguntas activas
+          ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
         },
         select: { id: true },
       });
@@ -547,6 +596,7 @@ export class ExamsService {
 
     this.validateGenerateDto(dto);
 
+    await this.validateCourse(institutionId, dto.courseId);
     const topicIds = await this.resolveTopicIds(actor, dto);
     const MAX_ATTEMPTS = 30;
     let lastCollidedSignature: string | null = null;
@@ -561,6 +611,8 @@ export class ExamsService {
             data: {
               institutionId,
               createdById: actor.userId,
+              courseId: dto.courseId || null,
+              examDate: this.parseExamDate(dto.examDate) ?? null,
               title: dto.title.trim(),
               description: dto.description,
               headerFields: this.cleanHeaderFields(dto.headerFields),
@@ -673,7 +725,11 @@ export class ExamsService {
     this.validateGenerateDto(dto);
 
     const topicIds = await this.resolveTopicIds(actor, dto);
-    const stockPlan = await this.getStockPlan(institutionId, topicIds);
+    const stockPlan = await this.getStockPlan(
+      institutionId,
+      topicIds,
+      await this.excludedFor(institutionId, dto),
+    );
 
     const { initialPlan, finalPlan, movements, shortage, isPossible, buckets } =
       this.buildPlanWithFallback(dto, stockPlan);

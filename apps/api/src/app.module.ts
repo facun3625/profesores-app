@@ -10,8 +10,9 @@ import { UsersModule } from './users/users.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
 import { QuotaModule } from './quota/quota.module';
 import { AdminModule } from './admin/admin.module';
+import { CoursesModule } from './courses/courses.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, InstitutionsModule, SubjectsModule, TopicsModule, QuestionsModule, ExamsModule, UsersModule, ActivityLogModule, QuotaModule, AdminModule],
+  imports: [PrismaModule, AuthModule, InstitutionsModule, SubjectsModule, TopicsModule, QuestionsModule, ExamsModule, UsersModule, ActivityLogModule, QuotaModule, AdminModule, CoursesModule],
 })
 export class AppModule { }

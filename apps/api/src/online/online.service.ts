@@ -36,6 +36,7 @@ export class OnlineService {
             autoScore: true,
             maxScore: true,
             pendingManual: true,
+            source: true,
             createdAt: true,
             grading: true,
             answers: true,

@@ -1,4 +1,4 @@
-import { ArrayMinSize, IsArray, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { ArrayMinSize, IsArray, IsDateString, IsNotEmpty, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
 
 export class CreateExamDto {
   @IsString()
@@ -23,4 +23,16 @@ export class CreateExamDto {
   @IsOptional()
   @IsObject()
   points?: Record<string, number | null>;
+
+  /** Curso/división al que se toma el examen ("" o null = sin curso). */
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null && v !== '')
+  @IsString()
+  courseId?: string | null;
+
+  /** Fecha en que se toma el examen (ISO). */
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null && v !== '')
+  @IsDateString()
+  examDate?: string | null;
 }

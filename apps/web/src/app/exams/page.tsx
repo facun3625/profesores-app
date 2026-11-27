@@ -5,6 +5,7 @@ import { api, apiBlob } from "@/lib/api";
 import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
 import PdfCustomizeModal, { ExportFormat, PdfOptions } from "@/components/PdfCustomizeModal";
 import OnlineExamModal from "@/components/OnlineExamModal";
+import { Course, courseLabel, fetchCourses } from "@/lib/courses";
 import ConfirmModal from "@/components/ConfirmModal";
 import { toast } from "sonner";
 
@@ -42,6 +43,8 @@ type Exam = {
   items?: ExamItem[] | null;
   questions?: Question[] | null;
   createdBy?: { id: string; name: string; lastName: string } | null;
+  course?: { id: string; name: string } | null;
+  examDate?: string | null;
 };
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -366,6 +369,15 @@ export default function Page() {
   const [q, setQ] = useState("");
   const dq = useDebouncedValue(q, 250);
   const [sort, setSort] = useState<"newest" | "oldest" | "az">("newest");
+  const [courses, setCourses] = useState<Course[]>([]);
+  // Filtro por curso (también llega desde /courses con ?courseId=)
+  const [courseFilter, setCourseFilter] = useState<string>("");
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("courseId");
+    if (fromUrl) setCourseFilter(fromUrl);
+    fetchCourses(true).then(setCourses).catch(() => setCourses([]));
+  }, []);
 
   const [openExamId, setOpenExamId] = useState<string | null>(null);
   const [openExamQuestions, setOpenExamQuestions] = useState<Question[]>([]);
@@ -571,6 +583,8 @@ export default function Page() {
   const filtered = useMemo(() => {
     let list = [...exams];
 
+    if (courseFilter) list = list.filter((e) => e.course?.id === courseFilter);
+
     if (subjectId || topicId) {
       list = list.filter((e) => {
         const r = resolveSubjectTopicIds(e);
@@ -601,7 +615,7 @@ export default function Page() {
     }
 
     return list;
-  }, [exams, subjectId, topicId, dq, sort]);
+  }, [exams, subjectId, topicId, dq, sort, courseFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const clampedPage = Math.max(1, Math.min(page, totalPages));
@@ -756,13 +770,30 @@ export default function Page() {
             </div>
           </label>
 
-          {(q.trim() || subjectId || topicId) && (
+          {courses.length > 0 && (
+            <label className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500">Curso</span>
+              <div className="min-w-[200px]">
+                <SelectPretty value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
+                  <option value="">Todos</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {courseLabel(c)}
+                    </option>
+                  ))}
+                </SelectPretty>
+              </div>
+            </label>
+          )}
+
+          {(q.trim() || subjectId || topicId || courseFilter) && (
             <button
               type="button"
               onClick={() => {
                 setQ("");
                 setSubjectId("");
                 setTopicId("");
+                setCourseFilter("");
                 setSort("newest");
               }}
               className="text-sm font-medium text-gray-700 hover:underline"
@@ -803,6 +834,8 @@ export default function Page() {
                       <h2 className="truncate text-base font-semibold text-gray-900">
                         {e.title ?? "Sin título"}
                       </h2>
+                      {e.course && <Pill tone="blue">{e.course.name}</Pill>}
+                      {e.examDate && <Pill tone="gray">Toma: {formatDate(e.examDate)}</Pill>}
                       {subjectName && <Pill tone="gray">{subjectName}</Pill>}
                       {topicName && <Pill tone="gray">{topicName}</Pill>}
                       {e.createdAt ? (

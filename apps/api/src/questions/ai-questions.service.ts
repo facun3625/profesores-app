@@ -127,6 +127,7 @@ export class AiQuestionsService {
       'Generás preguntas basadas EXCLUSIVAMENTE en el material provisto: no inventes datos que no estén en el apunte.',
       'Cada pregunta debe entenderse sola (sin "según el texto" ni referencias a páginas) y tener una única respuesta defendible.',
       'Completá todos los campos del esquema; usá "" , [] o -1 en los campos que no correspondan al tipo.',
+      'Si hay fórmulas, escribilas en LaTeX entre signos $ (ej: $x^2$, $\\frac{1}{2}$, $\\sqrt{2}$).',
     ].join('\n');
 
     const userText = [

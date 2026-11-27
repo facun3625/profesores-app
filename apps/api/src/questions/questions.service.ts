@@ -279,13 +279,35 @@ export class QuestionsService {
         take: limit,
         include: {
           createdBy: { select: { id: true, name: true, lastName: true } },
+          _count: { select: { examItems: { where: { exam: { status: 'active' } } } } },
         },
       }),
     ]);
 
+    // Uso: en cuántos exámenes salió y si ya se usó con el curso pedido
+    let usedInCourse = new Set<string>();
+    if (query.courseId && data.length) {
+      const rows = await this.prisma.examQuestion.findMany({
+        where: {
+          questionId: { in: data.map((q) => q.id) },
+          exam: { institutionId, courseId: query.courseId, status: 'active' },
+        },
+        select: { questionId: true },
+        distinct: ['questionId'],
+      });
+      usedInCourse = new Set(rows.map((r) => r.questionId));
+    }
+
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
-    return { data, meta: { page, limit, total, totalPages } };
+    return {
+      data: data.map(({ _count, ...q }) => ({
+        ...q,
+        usedInExams: _count.examItems,
+        ...(query.courseId ? { usedInCourse: usedInCourse.has(q.id) } : {}),
+      })),
+      meta: { page, limit, total, totalPages },
+    };
   }
 
   async stats(userId: string, subjectIds?: string[], topicIds?: string[]) {

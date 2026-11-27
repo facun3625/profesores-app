@@ -1,5 +1,7 @@
 import {
   IsArray,
+  IsBoolean,
+  IsDateString,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -88,4 +90,17 @@ export class GenerateExamDto {
   @IsArray()
   @IsString({ each: true })
   headerFields?: string[];
+
+  @IsOptional()
+  @IsString()
+  courseId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  examDate?: string;
+
+  /** No usar preguntas que ya salieron en exámenes de este curso. */
+  @IsOptional()
+  @IsBoolean()
+  avoidUsedInCourse?: boolean;
 }

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Exam, ExamQuestion, Question, QuestionType } from '@prisma/client';
 import { fitInside, imageSize } from '../common/image-size';
+import { renderQuestionLatex } from '../common/latex';
 
 export type ExamWithItems = Exam & {
   items: Array<ExamQuestion & { question: Question }>;
@@ -59,7 +60,7 @@ const STANDARD_FONTS: Record<string, { normal: string; bold: string }> = {
   'Times New Roman': { normal: 'Times-Roman', bold: 'Times-Bold' },
 };
 
-function findFontsDir(): string | null {
+export function findFontsDir(): string | null {
   const candidates = [
     path.resolve(__dirname, '..', '..', 'assets', 'fonts'), // dist/exams -> apps/api/assets
     path.resolve(__dirname, '..', '..', '..', 'assets', 'fonts'), // dist/src/exams
@@ -113,7 +114,7 @@ export const MAX_VERSIONS = VERSION_LABELS.length;
  *   (se recalcula correctIndex para que la clave siga siendo correcta).
  */
 export function buildExamVersion<
-  T extends { order: number; question: Question },
+  T extends { order: number; question: Omit<Question, 'image'> },
 >(examId: string, items: T[], versionIndex: number): T[] {
   const sorted = [...items].sort((a, b) => a.order - b.order);
   if (versionIndex === 0) return sorted;
@@ -322,7 +323,10 @@ export class ExamPdfService {
       doc.moveDown(1);
 
       // ===== Cuerpo =====
-      const items = buildExamVersion(exam.id, exam.items, v);
+      const items = buildExamVersion(exam.id, exam.items, v).map((it) => ({
+        ...it,
+        question: renderQuestionLatex(it.question),
+      }));
 
       items.forEach((item, idx) => {
         const q = item.question;

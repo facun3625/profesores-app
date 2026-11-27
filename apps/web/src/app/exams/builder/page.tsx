@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { renderLatex } from "@/lib/latex";
 import { api, apiBlob } from "@/lib/api";
 import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
+import { Course, courseLabel, fetchCourses } from "@/lib/courses";
+import { fetchAllQuestions } from "@/lib/questions";
 import { toast } from "sonner";
 import PdfCustomizeModal, { ExportFormat, PdfOptions } from "@/components/PdfCustomizeModal";
 
@@ -139,6 +142,14 @@ export default function Page() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [headerFieldsText, setHeaderFieldsText] = useState("");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseId, setCourseId] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [avoidUsedInCourse, setAvoidUsedInCourse] = useState(true);
+
+  useEffect(() => {
+    fetchCourses().then(setCourses).catch(() => setCourses([]));
+  }, []);
 
   const [mc, setMc] = useState(0);
   const [tf, setTf] = useState(0);
@@ -219,14 +230,18 @@ export default function Page() {
 
     Promise.all(
       topicIds.map((topicId) =>
-        api<any>(
-          `/questions?subjectId=${subjectId}&topicId=${topicId}&page=1&limit=1000`
-        )
+        fetchAllQuestions<Question & { usedInCourse?: boolean }>({
+          subjectId,
+          topicId,
+          courseId: courseId || undefined,
+        })
       )
     )
       .then((responses) => {
-        const all = responses.flatMap(extractQuestions);
-        const filtered = all.filter((q) => difficulties.includes(q.difficulty));
+        const all = responses.flat();
+        const filtered = all.filter(
+          (q) => difficulties.includes(q.difficulty) && !(avoidUsedInCourse && q.usedInCourse)
+        );
 
         const types: QType[] = ["MULTIPLE_CHOICE", "TRUE_FALSE", "MULTI_TRUE_FALSE", "OPEN", "FILL_IN"];
         const diffs: Difficulty[] = ["easy", "medium", "hard"];
@@ -248,7 +263,7 @@ export default function Page() {
         setStock(buckets);
       })
       .catch(() => setStock(null));
-  }, [subjectId, topicIds, difficulties]);
+  }, [subjectId, topicIds, difficulties, courseId, avoidUsedInCourse]);
 
   const stockByType = useMemo(() => {
     if (!stock) return null;
@@ -431,6 +446,8 @@ export default function Page() {
       typeCounts,
       difficulties,
       shuffle: true,
+      courseId: courseId || undefined,
+      avoidUsedInCourse: courseId ? avoidUsedInCourse : undefined,
     };
 
     setLoading(true);
@@ -471,6 +488,9 @@ export default function Page() {
       difficulties,
       shuffle: true,
       headerFields: headerFieldsText.split("\n").map(s => s.trim()).filter(Boolean),
+      courseId: courseId || undefined,
+      examDate: examDate || undefined,
+      avoidUsedInCourse: courseId ? avoidUsedInCourse : undefined,
     };
 
     setLoading(true);
@@ -661,6 +681,43 @@ export default function Page() {
                 </SelectPretty>
               </div>
             </label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-500">Curso (opcional)</span>
+                <select
+                  value={courseId}
+                  onChange={(e) => setCourseId(e.target.value)}
+                  className="mt-2 block h-11 w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-gray-900 dark:text-white"
+                >
+                  <option value="">— Sin curso —</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {courseLabel(c)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-500">Fecha del examen (opcional)</span>
+                <input
+                  type="date"
+                  value={examDate}
+                  onChange={(e) => setExamDate(e.target.value)}
+                  className="mt-2 block h-11 w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-gray-900 dark:text-white"
+                />
+              </label>
+            </div>
+            {courseId && (
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={avoidUsedInCourse}
+                  onChange={(e) => setAvoidUsedInCourse(e.target.checked)}
+                />
+                No repetir preguntas que ya le tomé a este curso
+              </label>
+            )}
 
             <label className="block">
               <span className="text-sm font-medium text-gray-700 dark:text-slate-500">Campos de encabezado (opcional, uno por línea)</span>
@@ -1024,7 +1081,7 @@ export default function Page() {
                 <li key={q.id} className="flex gap-3 rounded-lg border border-gray-200 dark:border-slate-800 p-3">
                   <span className="font-semibold text-gray-500 dark:text-slate-500">{idx + 1}.</span>
                   <div>
-                    <p className="text-sm text-gray-900 dark:text-white">{q.statement}</p>
+                    <p className="text-sm text-gray-900 dark:text-white">{renderLatex(q.statement)}</p>
                     <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">
                       {labelType(q.type)} · {q.difficulty === "easy" ? "Fácil" : q.difficulty === "medium" ? "Medio" : "Difícil"}
                     </p>
