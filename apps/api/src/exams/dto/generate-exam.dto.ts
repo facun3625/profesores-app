@@ -82,4 +82,10 @@ export class GenerateExamDto {
   @IsArray()
   @IsEnum(QuestionDifficulty, { each: true })
   difficulties: QuestionDifficulty[];
+
+  // Campos del encabezado (Nombre, Curso, Fecha...)
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  headerFields?: string[];
 }

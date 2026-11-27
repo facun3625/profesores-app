@@ -6,10 +6,18 @@ import { LogAction } from '@prisma/client';
 export class ActivityLogService {
     constructor(private readonly prisma: PrismaService) { }
 
+    /**
+     * Registrar actividad nunca debe hacer fallar la operación principal
+     * (ej: archivar un examen). Si falla, solo se informa en consola.
+     */
     async log(actorId: string, action: LogAction, entity: string, entityId: string, detail?: object) {
-        await this.prisma.activityLog.create({
-            data: { actorId, action, entity, entityId, detail: detail as any },
-        });
+        try {
+            await this.prisma.activityLog.create({
+                data: { actorId, action, entity, entityId, detail: detail as any },
+            });
+        } catch (err: any) {
+            console.error(`[ActivityLog] No se pudo registrar ${action} ${entity}/${entityId}:`, err?.message);
+        }
     }
 
     async list(adminId: string, activeInstitutionId: string, filters?: {

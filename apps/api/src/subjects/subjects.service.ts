@@ -38,6 +38,17 @@ export class SubjectsService {
       throw new ForbiddenException('No target institution selected');
     }
 
+    // Si se pide otra institución, hay que ser miembro de ella y usar el rol que se tiene ahí
+    if (institutionId && institutionId !== activeInstitutionId) {
+      if (!userId) throw new ForbiddenException('No tenés acceso a esta institución');
+      const membership = await this.prisma.userInstitution.findUnique({
+        where: { userId_institutionId: { userId, institutionId } },
+        select: { role: true },
+      });
+      if (!membership) throw new ForbiddenException('No tenés acceso a esta institución');
+      role = membership.role;
+    }
+
     // Profesores: solo sus materias asignadas en esta institución
     if (role === "professor" && userId) {
       const access = await this.prisma.userSubject.findMany({
@@ -84,7 +95,21 @@ export class SubjectsService {
 
     if (!subject) throw new NotFoundException("Subject not found");
 
-    // Borrado físico con cascada habilitada en el esquema Prisma
+    // El borrado es físico y en cascada: si hay exámenes activos que usan preguntas
+    // de esta materia, se perderían preguntas de esos exámenes sin aviso.
+    const examsUsingSubject = await this.prisma.exam.count({
+      where: {
+        institutionId: activeInstitutionId,
+        status: 'active',
+        items: { some: { question: { subjectId: id } } },
+      },
+    });
+    if (examsUsingSubject > 0) {
+      throw new ConflictException(
+        `No se puede borrar: hay ${examsUsingSubject} examen(es) activos con preguntas de esta materia. Archivá esos exámenes primero.`,
+      );
+    }
+
     return this.prisma.subject.delete({
       where: { id },
     });

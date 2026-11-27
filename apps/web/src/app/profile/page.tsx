@@ -15,6 +15,8 @@ type MeResponse = {
     province?: string | null;
     country?: string | null;
     activeInstitutionId?: string | null;
+    hasPassword?: boolean;
+    mustChangePassword?: boolean;
   };
 };
 
@@ -155,6 +157,7 @@ export default function ProfilePage() {
     country: "",
   });
   const [savingField, setSavingField] = useState<FieldKey | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -266,14 +269,21 @@ export default function ProfilePage() {
     }
   }
 
+  // Si la cuenta ya tiene contraseña (no solo Google), hay que confirmar la actual
+  const needsCurrentPassword = me?.user?.hasPassword !== false;
+
   async function updatePassword(e: React.FormEvent) {
     e.preventDefault();
     if (!newPassword || !confirmPassword) {
       setErr("Ambos campos son obligatorios.");
       return;
     }
-    if (newPassword.length < 6) {
-      setErr("La contraseña debe tener al menos 6 caracteres.");
+    if (newPassword.length < 8) {
+      setErr("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+    if (needsCurrentPassword && !currentPassword) {
+      setErr("Ingresá tu contraseña actual.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -290,9 +300,16 @@ export default function ProfilePage() {
         method: "PATCH",
         body: JSON.stringify({
           password: newPassword,
+          currentPassword: currentPassword || undefined,
         }),
       });
 
+      setMe((prev) =>
+        prev?.user ? { ...prev, user: { ...prev.user, hasPassword: true, mustChangePassword: false } } : prev
+      );
+      // Refrescar datos del usuario en el layout (quita el aviso de "cambiá tu contraseña")
+      window.dispatchEvent(new Event("active-institution-changed"));
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setPasswordSuccess(true);
@@ -449,8 +466,15 @@ export default function ProfilePage() {
             <div>
               <div className="text-sm font-semibold text-gray-900 dark:text-white">Seguridad y Acceso</div>
               <div className="mt-1 text-sm text-gray-600 dark:text-slate-400">
-                Cambio de contraseña.
+                {needsCurrentPassword
+                  ? "Cambio de contraseña. Al cambiarla se cierran tus otras sesiones abiertas."
+                  : "Tu cuenta usa Google. Podés definir una contraseña para entrar también con email."}
               </div>
+              {me?.user?.mustChangePassword && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                  Tu contraseña fue asignada por un administrador. Por seguridad, cambiala ahora.
+                </div>
+              )}
             </div>
             <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -461,6 +485,20 @@ export default function ProfilePage() {
           </div>
 
           <form onSubmit={updatePassword} className="mt-5 grid gap-4 max-w-md">
+            {needsCurrentPassword && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-500 dark:text-slate-500">Contraseña Actual</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className="h-10 w-full rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 px-4 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                  placeholder="Tu contraseña actual"
+                />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-500 dark:text-slate-500">Nueva Contraseña</label>
               <input
@@ -469,7 +507,7 @@ export default function ProfilePage() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
                 className="h-10 w-full rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 px-4 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
               />
             </div>
 

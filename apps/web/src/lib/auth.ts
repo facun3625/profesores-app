@@ -6,7 +6,7 @@ function setAccessToken(token: string) {
   localStorage.setItem("accessToken", token);
 
   // cookie (para middleware/server)
-  document.cookie = `accessToken=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7
+  document.cookie = `accessToken=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 14
     }`;
 }
 

@@ -124,7 +124,7 @@ model Question {
   institution            Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   subject                Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   topic                  Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  createdBy              User?              @relation("QuestionAuthor", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy              User?              @relation("QuestionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([institutionId])
   @@index([subjectId])
@@ -141,8 +141,9 @@ model Exam {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   status        EntityStatus   @default(active)
+  headerFields  Json?
   institution   Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  createdBy     User?          @relation("ExamAuthor", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy     User?          @relation("ExamAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   items         ExamQuestion[]
   signature     ExamSignature?
 
@@ -155,6 +156,7 @@ model ExamQuestion {
   examId     String
   questionId String
   order      Int
+  points     Float?
   exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 

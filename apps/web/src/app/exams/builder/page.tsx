@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
+import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
 import { toast } from "sonner";
 import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
 
@@ -137,6 +138,7 @@ export default function Page() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [headerFieldsText, setHeaderFieldsText] = useState("");
 
   const [mc, setMc] = useState(0);
   const [tf, setTf] = useState(0);
@@ -468,6 +470,7 @@ export default function Page() {
       typeCounts,
       difficulties,
       shuffle: true,
+      headerFields: headerFieldsText.split("\n").map(s => s.trim()).filter(Boolean),
     };
 
     setLoading(true);
@@ -496,24 +499,14 @@ export default function Page() {
     try {
       // Construir query params si hay opciones
       let url = result.exportPdfUrl;
-      if (options) {
-        const params = new URLSearchParams({
-          boldStatement: String(options.boldStatement),
-          fontFamily: options.fontFamily,
-          questionSize: String(options.questionSize),
-          answerSize: String(options.answerSize),
-          lineSpacing: String(options.lineSpacing),
-          showAnswers: String(options.showAnswers),
-        });
-        url = `${url}?${params.toString()}`;
-      }
+      url = `${url}${pdfQuery(options)}`;
 
       const blob = await apiBlob(url);
 
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      const downloadName = `${safeName(title)}.pdf`;
+      const downloadName = `${safeName(title)}${pdfFileSuffix(options)}.pdf`;
       a.download = downloadName;
       document.body.appendChild(a);
       a.click();
@@ -540,6 +533,7 @@ export default function Page() {
     setMtf(0);
     setOp(0);
     setFi(0);
+    setHeaderFieldsText("");
     setDifficulties(["easy", "medium", "hard"]);
     setPreviewQuestions(null);
     setResult(null);
@@ -556,7 +550,7 @@ export default function Page() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-            Generador IA
+            Generador Automático
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
             Creá exámenes automáticamente desde tu banco de preguntas.
@@ -666,6 +660,17 @@ export default function Page() {
                   ))}
                 </SelectPretty>
               </div>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700 dark:text-slate-500">Campos de encabezado (opcional, uno por línea)</span>
+              <textarea
+                value={headerFieldsText}
+                onChange={(e) => setHeaderFieldsText(e.target.value)}
+                rows={2}
+                className="mt-2 block w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Ej: Docente:&#10;Alumno:&#10;Fecha:"
+              />
             </label>
           </div>
 

@@ -43,44 +43,37 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("User inactive");
     }
 
-    // 1) Determinar institución activa
+    // 1) Determinar institución activa y validar que siga siendo miembro.
+    //    Si no tiene una, o ya no pertenece a ella (ej: el admin le quitó el acceso),
+    //    se elige automáticamente la primera membership disponible.
     let activeInstitutionId = user.activeInstitutionId;
+    let membership = activeInstitutionId
+      ? await this.prisma.userInstitution.findUnique({
+        where: {
+          userId_institutionId: {
+            userId: user.id,
+            institutionId: activeInstitutionId,
+          },
+        },
+      })
+      : null;
 
-    // 2) Si no hay institución activa, elegimos automáticamente la primera membership
-    if (!activeInstitutionId) {
-      const firstMembership = await this.prisma.userInstitution.findFirst({
+    if (!membership) {
+      membership = await this.prisma.userInstitution.findFirst({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
       });
 
-      if (!firstMembership) {
+      if (!membership) {
         throw new ForbiddenException("User has no institution membership");
       }
 
-      activeInstitutionId = firstMembership.institutionId;
-
-      // Persistimos en DB
+      activeInstitutionId = membership.institutionId;
       await this.prisma.user.update({
         where: { id: user.id },
         data: { activeInstitutionId },
       });
-
-      // Y también lo reflejamos en memoria para lo que sigue del request
       user.activeInstitutionId = activeInstitutionId;
-    }
-
-    // 3) Validar que realmente sea miembro de la institución activa
-    const membership = await this.prisma.userInstitution.findUnique({
-      where: {
-        userId_institutionId: {
-          userId: user.id,
-          institutionId: activeInstitutionId,
-        },
-      },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException("User not member of active institution");
     }
 
     // 4) Inyectar datos útiles en req

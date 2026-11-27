@@ -9,6 +9,8 @@ export type PdfOptions = {
     answerSize: 9 | 10 | 11 | 12 | 14;
     lineSpacing: 1.0 | 1.5;
     showAnswers: boolean;
+    /** Cantidad de versiones (Tema A, B, C...) con preguntas y opciones mezcladas */
+    versions?: number;
 };
 
 type PdfCustomizeModalProps = {
@@ -29,6 +31,7 @@ export default function PdfCustomizeModal({
         answerSize: 11,
         lineSpacing: 1.0,
         showAnswers: false,
+        versions: 1,
     });
 
     if (!isOpen) return null;
@@ -142,6 +145,31 @@ export default function PdfCustomizeModal({
                         </select>
                     </label>
 
+                    {/* Versiones */}
+                    <label className="block">
+                        <span className="text-sm font-medium text-gray-700 dark:text-slate-500">
+                            Cantidad de temas (versiones)
+                        </span>
+                        <select
+                            value={options.versions ?? 1}
+                            onChange={(e) =>
+                                setOptions({ ...options, versions: +e.target.value })
+                            }
+                            className="mt-2 block w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        >
+                            <option value="1">1 — examen único</option>
+                            <option value="2">2 — Temas A y B</option>
+                            <option value="3">3 — Temas A, B y C</option>
+                            <option value="4">4 — Temas A a D</option>
+                            <option value="5">5 — Temas A a E</option>
+                        </select>
+                        {(options.versions ?? 1) > 1 && (
+                            <span className="mt-1.5 block text-[11px] text-gray-500 dark:text-slate-500">
+                                Cada tema mezcla el orden de las preguntas y de las opciones. Se descarga un solo PDF con todos los temas; marcá &quot;Incluir respuestas&quot; para bajar la clave de cada tema.
+                            </span>
+                        )}
+                    </label>
+
                     {/* Mostrar respuestas */}
                     <div className="pt-2">
                         <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
@@ -155,7 +183,7 @@ export default function PdfCustomizeModal({
                             />
                             <div>
                                 <span className="block text-sm font-semibold text-blue-900 dark:text-blue-300">Incluir respuestas correctas</span>
-                                <span className="block text-[11px] text-blue-700/70 dark:text-blue-400/70">Resalta las opciones correctas y respuestas modelo</span>
+                                <span className="block text-[11px] text-blue-700/70 dark:text-blue-400/70">Resalta las opciones correctas, respuestas modelo y agrega una grilla rápida de corrección</span>
                             </div>
                         </label>
                     </div>

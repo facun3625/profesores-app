@@ -223,8 +223,8 @@ export default function Home() {
         <div className="grid gap-6 md:grid-cols-2">
           <ActionCard
             primary
-            title="Generador IA de Exámenes"
-            desc="Ahorra horas de trabajo. Deja que nuestra IA seleccione y organice las mejores preguntas según tus necesidades."
+            title="Generador Automático de Exámenes"
+            desc="Ahorra horas de trabajo. Elegí materia, cantidad y dificultad: el sistema arma el examen con tu banco de preguntas."
             href="/exams/builder"
             icon={DashIcons.Sparkles}
           />
