@@ -37,7 +37,7 @@ export class AuthService {
   private membershipInclude() {
     return {
       memberships: {
-        include: { institution: true },
+        include: { institution: { select: { id: true, name: true, status: true } } },
         orderBy: { createdAt: "asc" as const },
       },
     } satisfies Prisma.UserInclude;
@@ -309,7 +309,7 @@ export class AuthService {
 
     const memberships = await this.prisma.userInstitution.findMany({
       where: { userId },
-      include: { institution: true },
+      include: { institution: { select: { id: true, name: true, status: true } } },
       orderBy: { createdAt: "asc" },
     });
 

@@ -3,12 +3,13 @@ import PDFDocument = require('pdfkit');
 import * as fs from 'fs';
 import * as path from 'path';
 import { Exam, ExamQuestion, Question, QuestionType } from '@prisma/client';
+import { fitInside, imageSize } from '../common/image-size';
 
-type ExamWithItems = Exam & {
+export type ExamWithItems = Exam & {
   items: Array<ExamQuestion & { question: Question }>;
 };
 
-type PdfOptions = {
+export type PdfOptions = {
   boldStatement?: boolean;
   fontFamily?: string;
   questionSize?: number;
@@ -26,7 +27,7 @@ type FontPair = {
   mark?: string;
 };
 
-type MultiTfItem = {
+export type MultiTfItem = {
   statement?: string;
   isCorrect?: boolean;
   requiresJustification?: boolean;
@@ -100,7 +101,7 @@ function seededShuffle<T>(arr: T[], rand: () => number): T[] {
 
 export const VERSION_LABELS = 'ABCDEFGHIJ';
 
-function formatPoints(n: number) {
+export function formatPoints(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
 }
 export const MAX_VERSIONS = VERSION_LABELS.length;
@@ -186,8 +187,9 @@ export class ExamPdfService {
     institutionName: string;
     exam: ExamWithItems;
     options?: PdfOptions;
+    logo?: { data: Buffer; mimeType: string } | null;
   }): PDFKit.PDFDocument {
-    const { institutionName, exam, options } = params;
+    const { institutionName, exam, options, logo } = params;
 
     const opts: Required<PdfOptions> = {
       boldStatement: options?.boldStatement ?? false,
@@ -229,6 +231,26 @@ export class ExamPdfService {
       });
 
       // ===== Encabezado =====
+
+      if (logo) {
+
+        try {
+
+          const size = imageSize(logo.data);
+
+          const box = size ? fitInside(size.width, size.height, 140, 60) : { width: 140, height: 60 };
+
+          doc.image(logo.data, (doc.page.width - box.width) / 2, doc.y, { fit: [box.width, box.height] });
+
+          doc.y += box.height + 8;
+
+        } catch (err: any) {
+
+          this.logger.warn(`No se pudo dibujar el logo: ${err?.message}`);
+
+        }
+
+      }
       doc
         .font(font.bold)
         .fontSize(14)
@@ -347,6 +369,22 @@ export class ExamPdfService {
           });
 
         doc.font(font.normal);
+
+        // Imagen de la pregunta (gráfico, mapa, figura)
+        const qImage = (q as { image?: Uint8Array | null }).image;
+        if (qImage && qImage.length > 0) {
+          try {
+            const buf = Buffer.from(qImage);
+            const size = imageSize(buf);
+            const box = size ? fitInside(size.width, size.height, 320, 200) : { width: 320, height: 200 };
+            if (doc.y + box.height + 10 > bottomLimit()) doc.addPage();
+            doc.image(buf, doc.page.margins.left + 18, doc.y + 4, { fit: [box.width, box.height] });
+            doc.y += box.height + 8;
+            doc.x = doc.page.margins.left;
+          } catch (err: any) {
+            this.logger.warn(`No se pudo dibujar la imagen de la pregunta ${q.id}: ${err?.message}`);
+          }
+        }
 
         if (q.type === QuestionType.MULTIPLE_CHOICE) {
           const options = Array.isArray(q.options)

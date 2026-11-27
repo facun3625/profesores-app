@@ -7,7 +7,7 @@ import { InstitutionPlan, TIER_LIMITS } from '../common/configs/tier-limits.conf
 export class QuotaService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async checkQuota(activeInstitutionId: string | null, resource: 'subjects' | 'topics' | 'questions' | 'institutions', userId?: string, parentId?: string) {
+    async checkQuota(activeInstitutionId: string | null, resource: 'subjects' | 'topics' | 'questions' | 'institutions', userId?: string, parentId?: string, adding: number = 1) {
         if (!userId && !activeInstitutionId) throw new ForbiddenException('Se requiere identificación de usuario o institución.');
 
         let effectiveUserId = userId;
@@ -63,8 +63,13 @@ export class QuotaService {
         if (resource === 'questions') {
             if (!parentId) throw new ForbiddenException('Se requiere topicId para validar preguntas.');
             const count = await this.prisma.question.count({ where: { topicId: parentId, status: 'active' } });
-            if (count >= limits.maxQuestionsPerTopic) {
-                throw new ForbiddenException(`Límite de preguntas por tema alcanzado (${limits.maxQuestionsPerTopic}). Tu plan actual es ${plan}.`);
+            if (count + adding > limits.maxQuestionsPerTopic) {
+                const free = Math.max(0, limits.maxQuestionsPerTopic - count);
+                throw new ForbiddenException(
+                    adding > 1
+                        ? `Superás el límite de preguntas por tema (${limits.maxQuestionsPerTopic}, quedan ${free} lugares). Tu plan actual es ${plan}.`
+                        : `Límite de preguntas por tema alcanzado (${limits.maxQuestionsPerTopic}). Tu plan actual es ${plan}.`,
+                );
             }
         }
     }

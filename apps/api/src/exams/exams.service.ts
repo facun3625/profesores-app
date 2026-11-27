@@ -750,16 +750,30 @@ export class ExamsService {
   }
 
   async getExamForExport(actor: Actor, examId: string) {
-    const exam = await this.getById(actor, examId);
+    // Para exportar sí hacen falta las imágenes de las preguntas
+    const exam = await this.prisma.exam.findFirst({
+      where: { id: examId, ...this.examScope(actor) },
+      include: {
+        items: {
+          orderBy: { order: "asc" },
+          include: { question: { omit: { image: false } } },
+        },
+      },
+    });
+    if (!exam) throw new NotFoundException("Examen no encontrado");
 
     const institution = await this.prisma.institution.findUnique({
       where: { id: exam.institutionId },
-      select: { name: true },
+      select: { name: true, logo: true, logoMimeType: true },
     });
 
     return {
       exam,
       institutionName: institution?.name ?? "Institución",
+      logo:
+        institution?.logo && institution.logoMimeType
+          ? { data: Buffer.from(institution.logo), mimeType: institution.logoMimeType }
+          : null,
     };
   }
 }

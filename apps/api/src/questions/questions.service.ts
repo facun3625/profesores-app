@@ -2,7 +2,9 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
+import { decodeImage } from '../common/image-upload';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
@@ -60,6 +62,121 @@ export class QuestionsService {
     }
   }
 
+  /** Valida y normaliza options/correctIndex según el tipo de pregunta. */
+  buildTypedFields(dto: {
+    type: string;
+    options?: unknown[] | null;
+    correctIndex?: number | null;
+  }): { options: any; correctIndex: number | null } {
+    switch (dto.type) {
+      case QuestionType.MULTIPLE_CHOICE: {
+        const opts = (dto.options ?? []).map((o) => String(o ?? '').trim()).filter(Boolean);
+        if (opts.length < 2) {
+          throw new BadRequestException('MULTIPLE_CHOICE requires at least 2 options');
+        }
+        if (
+          dto.correctIndex === undefined ||
+          dto.correctIndex === null ||
+          dto.correctIndex < 0 ||
+          dto.correctIndex >= opts.length
+        ) {
+          throw new BadRequestException('Invalid correctIndex for MULTIPLE_CHOICE');
+        }
+        return { options: opts, correctIndex: dto.correctIndex };
+      }
+
+      case QuestionType.TRUE_FALSE:
+        if (dto.correctIndex !== 0 && dto.correctIndex !== 1) {
+          throw new BadRequestException('TRUE_FALSE correctIndex must be 0 or 1');
+        }
+        return { options: ['Verdadero', 'Falso'], correctIndex: dto.correctIndex };
+
+      case QuestionType.MULTI_TRUE_FALSE:
+        this.validateMultiTf(dto.options);
+        return { options: dto.options, correctIndex: null };
+
+      case QuestionType.OPEN:
+      case QuestionType.FILL_IN:
+        return { options: null, correctIndex: null };
+
+      default:
+        throw new BadRequestException('Invalid question type');
+    }
+  }
+
+  /**
+   * Alta masiva (importación Excel/CSV o preguntas generadas con IA).
+   * Todo o nada: si alguna fila es inválida no se crea ninguna y se devuelven los errores por fila.
+   */
+  async importMany(
+    userId: string,
+    dto: {
+      subjectId: string;
+      topicId: string;
+      questions: Array<Omit<CreateQuestionDto, 'subjectId' | 'topicId'>>;
+      source?: string;
+    },
+  ) {
+    const institutionId = await this.getActiveInstitutionId(userId);
+
+    const topic = await this.prisma.topic.findFirst({
+      where: { id: dto.topicId, subjectId: dto.subjectId, institutionId },
+      select: { id: true },
+    });
+    if (!topic) {
+      throw new ForbiddenException('Topic does not belong to subject/institution');
+    }
+    await this.checkSubjectAccess(userId, institutionId, dto.subjectId);
+
+    const errors: Array<{ row: number; message: string }> = [];
+    const data: Prisma.QuestionCreateManyInput[] = [];
+
+    dto.questions.forEach((q, i) => {
+      try {
+        if (!q.statement?.trim()) throw new BadRequestException('Falta el enunciado');
+        if (q.type === QuestionType.FILL_IN && !/\[\[.+?\]\]/.test(q.statement)) {
+          throw new BadRequestException('Completar: marcá las respuestas entre [[ ]]');
+        }
+        const { options, correctIndex } = this.buildTypedFields(q);
+        data.push({
+          institutionId,
+          subjectId: dto.subjectId,
+          topicId: dto.topicId,
+          createdById: userId,
+          statement: q.statement.trim(),
+          type: q.type as QuestionType,
+          difficulty: (q.difficulty as QuestionDifficulty) ?? QuestionDifficulty.medium,
+          options: options ?? Prisma.JsonNull,
+          correctIndex,
+          modelAnswer: q.modelAnswer?.trim() || null,
+          openLines: q.openLines ?? null,
+          requiresJustification: q.requiresJustification ?? false,
+        });
+      } catch (err: any) {
+        const msg = err?.response?.message ?? err?.message ?? 'Fila inválida';
+        errors.push({ row: i + 1, message: Array.isArray(msg) ? msg.join(', ') : String(msg) });
+      }
+    });
+
+    if (errors.length > 0) {
+      throw new BadRequestException({
+        message: `Hay ${errors.length} fila(s) con errores. No se importó ninguna pregunta.`,
+        rowErrors: errors,
+      });
+    }
+
+    const result = await this.prisma.question.createMany({ data });
+
+    await this.activityLog.log(userId, 'CREATE', 'question', 'bulk', {
+      subjectId: dto.subjectId,
+      topicId: dto.topicId,
+      count: result.count,
+      source: dto.source ?? 'import',
+    });
+
+    return { count: result.count };
+  }
+
   async create(userId: string, dto: CreateQuestionDto) {
     const institutionId = await this.getActiveInstitutionId(userId);
 
@@ -81,48 +198,7 @@ export class QuestionsService {
       throw new ForbiddenException('Topic does not belong to subject/institution');
     }
 
-    let options: any = undefined;
-    let correctIndex: number | null = null;
-
-    switch (dto.type) {
-      case QuestionType.MULTIPLE_CHOICE:
-        if (!dto.options || dto.options.length < 2) {
-          throw new BadRequestException('MULTIPLE_CHOICE requires at least 2 options');
-        }
-        if (
-          dto.correctIndex === undefined ||
-          dto.correctIndex < 0 ||
-          dto.correctIndex >= dto.options.length
-        ) {
-          throw new BadRequestException('Invalid correctIndex for MULTIPLE_CHOICE');
-        }
-        options = dto.options;
-        correctIndex = dto.correctIndex;
-        break;
-
-      case QuestionType.TRUE_FALSE:
-        if (dto.correctIndex !== 0 && dto.correctIndex !== 1) {
-          throw new BadRequestException('TRUE_FALSE correctIndex must be 0 or 1');
-        }
-        options = ['Verdadero', 'Falso'];
-        correctIndex = dto.correctIndex;
-        break;
-
-      case 'MULTI_TRUE_FALSE' as any:
-        this.validateMultiTf(dto.options);
-        options = dto.options;
-        correctIndex = null; // No hay un solo correctIndex compartido
-        break;
-
-      case QuestionType.OPEN:
-      case QuestionType.FILL_IN:
-        options = null;
-        correctIndex = null;
-        break;
-
-      default:
-        throw new BadRequestException('Invalid question type');
-    }
+    const { options, correctIndex } = this.buildTypedFields(dto);
 
     const question = await this.prisma.question.create({
       data: {
@@ -423,5 +499,50 @@ export class QuestionsService {
     });
 
     return { count: result.count };
+  }
+
+  // =========================
+  // IMAGEN DE LA PREGUNTA
+  // =========================
+  private async findEditableQuestion(userId: string, id: string) {
+    const institutionId = await this.getActiveInstitutionId(userId);
+    const question = await this.prisma.question.findFirst({
+      where: { id, institutionId },
+      select: { id: true, subjectId: true },
+    });
+    if (!question) throw new BadRequestException('Question not found');
+    await this.checkSubjectAccess(userId, institutionId, question.subjectId);
+    return question;
+  }
+
+  async setImage(userId: string, id: string, base64: string, mimeType: string) {
+    await this.findEditableQuestion(userId, id);
+    const bytes = decodeImage(base64, mimeType, 1024 * 1024);
+    await this.prisma.question.update({
+      where: { id },
+      data: { image: bytes, imageMimeType: mimeType },
+      select: { id: true },
+    });
+    return { ok: true };
+  }
+
+  async removeImage(userId: string, id: string) {
+    await this.findEditableQuestion(userId, id);
+    await this.prisma.question.update({
+      where: { id },
+      data: { image: null, imageMimeType: null },
+      select: { id: true },
+    });
+    return { ok: true };
+  }
+
+  async getImage(userId: string, id: string) {
+    await this.findEditableQuestion(userId, id);
+    const q = await this.prisma.question.findUnique({
+      where: { id },
+      select: { image: true, imageMimeType: true },
+    });
+    if (!q?.image || !q.imageMimeType) throw new NotFoundException('La pregunta no tiene imagen');
+    return { data: Buffer.from(q.image), mimeType: q.imageMimeType };
   }
 }

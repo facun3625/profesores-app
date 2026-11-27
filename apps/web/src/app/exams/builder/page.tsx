@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
 import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
 import { toast } from "sonner";
-import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
+import PdfCustomizeModal, { ExportFormat, PdfOptions } from "@/components/PdfCustomizeModal";
 
 /* =====================
    Types
@@ -492,21 +492,21 @@ export default function Page() {
     }
   }
 
-  async function downloadPdf(options?: PdfOptions) {
+  async function downloadPdf(options?: PdfOptions, format: ExportFormat = "pdf") {
     setError("");
     if (!result) return;
 
     try {
       // Construir query params si hay opciones
       let url = result.exportPdfUrl;
-      url = `${url}${pdfQuery(options)}`;
+      url = `${url.replace(/\/pdf$/, `/${format}`)}${pdfQuery(options)}`;
 
       const blob = await apiBlob(url);
 
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      const downloadName = `${safeName(title)}${pdfFileSuffix(options)}.pdf`;
+      const downloadName = `${safeName(title)}${pdfFileSuffix(options)}.${format}`;
       a.download = downloadName;
       document.body.appendChild(a);
       a.click();
@@ -1120,7 +1120,7 @@ export default function Page() {
       <PdfCustomizeModal
         isOpen={showCustomizeModal}
         onClose={() => setShowCustomizeModal(false)}
-        onDownload={(options) => downloadPdf(options)}
+        onDownload={(options, format) => downloadPdf(options, format)}
       />
     </div>
   );
