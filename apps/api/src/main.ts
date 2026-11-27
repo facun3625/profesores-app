@@ -2,6 +2,7 @@ import "dotenv/config";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { Logger, ValidationPipe } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 
 /** Agrega la variante con/sin "www." de cada origen permitido. */
 function expandOrigins(origins: string[]) {
@@ -24,7 +25,9 @@ function expandOrigins(origins: string[]) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Límite del body: logos e imágenes en base64 y PDFs de apuntes para la IA (máx ~10 MB)
+  app.useBodyParser("json", { limit: "15mb" });
   const logger = new Logger("Bootstrap");
 
   app.setGlobalPrefix("api");

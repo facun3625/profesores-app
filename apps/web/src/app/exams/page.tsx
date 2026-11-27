@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
 import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
-import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
+import PdfCustomizeModal, { ExportFormat, PdfOptions } from "@/components/PdfCustomizeModal";
+import OnlineExamModal from "@/components/OnlineExamModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import { toast } from "sonner";
 
@@ -377,6 +378,7 @@ export default function Page() {
 
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
   const [selectedExamForDownload, setSelectedExamForDownload] = useState<Exam | null>(null);
+  const [onlineExam, setOnlineExam] = useState<Exam | null>(null);
 
   const [confirmDelete, setConfirmDelete] = useState<{
     isOpen: boolean;
@@ -480,18 +482,18 @@ export default function Page() {
     loadExams();
   }, []);
 
-  async function downloadPdf(examId: string, title?: string | null, options?: PdfOptions) {
+  async function downloadPdf(examId: string, title?: string | null, options?: PdfOptions, format: ExportFormat = "pdf") {
     setError("");
     try {
       // Construir query params si hay opciones
       let url = `/exams/${examId}/export/pdf`;
-      url = `${url}${pdfQuery(options)}`;
+      url = `${url.replace(/\/pdf$/, `/${format}`)}${pdfQuery(options)}`;
 
       const blob = await apiBlob(url);
       const urlBlob = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = urlBlob;
-      a.download = `${safeName(String(title ?? "exam"))}${pdfFileSuffix(options)}.pdf`;
+      a.download = `${safeName(String(title ?? "exam"))}${pdfFileSuffix(options)}.${format}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -863,7 +865,15 @@ export default function Page() {
                       className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                       title="Personalizar formato del PDF"
                     >
-                      Personalizar PDF
+                      Personalizar / Word
+                    </button>
+
+                    <button
+                      onClick={() => setOnlineExam(e)}
+                      className="inline-flex h-9 items-center rounded-md border border-indigo-200 bg-indigo-50/40 px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition-colors"
+                      title="Publicar el examen para responder online y ver las entregas"
+                    >
+                      Online
                     </button>
 
                     <a
@@ -971,15 +981,24 @@ export default function Page() {
         totalItems={filtered.length}
       />
 
+      {onlineExam && (
+        <OnlineExamModal
+          isOpen
+          onClose={() => setOnlineExam(null)}
+          examId={onlineExam.id}
+          examTitle={onlineExam.title}
+        />
+      )}
+
       <PdfCustomizeModal
         isOpen={showCustomizeModal}
         onClose={() => {
           setShowCustomizeModal(false);
           setSelectedExamForDownload(null);
         }}
-        onDownload={(options) => {
+        onDownload={(options, format) => {
           if (selectedExamForDownload) {
-            downloadPdf(selectedExamForDownload.id, selectedExamForDownload.title, options);
+            downloadPdf(selectedExamForDownload.id, selectedExamForDownload.title, options, format);
           }
         }}
       />

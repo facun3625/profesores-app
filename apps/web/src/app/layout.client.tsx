@@ -58,7 +58,8 @@ function isPublicPath(pathname: string) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password")
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/e/") // examen online para alumnos (sin login)
   );
 }
 

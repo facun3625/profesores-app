@@ -82,6 +82,7 @@ export class AdminController {
     @Get('institutions')
     async getInstitutionsWithStats() {
         const institutions = await this.prisma.institution.findMany({
+            omit: { logo: true },
             include: {
                 _count: {
                     select: {
@@ -147,6 +148,7 @@ export class AdminController {
         return this.prisma.institution.update({
             where: { id },
             data: { status: body.status as any },
+            select: { id: true, name: true, status: true },
         });
     }
 
@@ -183,6 +185,7 @@ export class AdminController {
     async deleteInstitution(@Param('id') id: string) {
         return this.prisma.institution.delete({
             where: { id },
+            select: { id: true, name: true },
         });
     }
 }

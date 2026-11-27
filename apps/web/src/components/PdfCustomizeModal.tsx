@@ -13,10 +13,12 @@ export type PdfOptions = {
     versions?: number;
 };
 
+export type ExportFormat = "pdf" | "docx";
+
 type PdfCustomizeModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    onDownload: (options: PdfOptions) => void;
+    onDownload: (options: PdfOptions, format?: ExportFormat) => void;
 };
 
 export default function PdfCustomizeModal({
@@ -36,8 +38,8 @@ export default function PdfCustomizeModal({
 
     if (!isOpen) return null;
 
-    function handleDownload() {
-        onDownload(options);
+    function handleDownload(format: ExportFormat = "pdf") {
+        onDownload(options, format);
         onClose();
     }
 
@@ -45,7 +47,7 @@ export default function PdfCustomizeModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Personalizar formato del PDF
+                    Personalizar formato del examen
                 </h2>
 
                 <div className="space-y-4 mb-6">
@@ -197,7 +199,14 @@ export default function PdfCustomizeModal({
                         Cancelar
                     </button>
                     <button
-                        onClick={handleDownload}
+                        onClick={() => handleDownload("docx")}
+                        title="Documento de Word editable"
+                        className="flex-1 rounded-lg border border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-700 transition"
+                    >
+                        Descargar Word
+                    </button>
+                    <button
+                        onClick={() => handleDownload("pdf")}
                         className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
                     >
                         Descargar PDF

@@ -1,9 +1,14 @@
 #!/bin/bash
 
 # Script para configurar el entorno de PRODUCCIÓN en profly.com.ar 🚀
-# Uso: chmod +x setup_prod_env.sh && ./setup_prod_env.sh
+# Uso: RESEND_API_KEY=re_xxx [ANTHROPIC_API_KEY=sk-ant-xxx] ./setup_prod_env.sh
+# Las claves NO se guardan en el repo: se pasan como variables de entorno al correr el script.
 
 ENV_FILE=".env"
+
+if [ -z "$RESEND_API_KEY" ]; then
+  echo "⚠️  RESEND_API_KEY vacía: la recuperación de contraseña por mail no va a funcionar."
+fi
 
 echo "📝 Generando archivo $ENV_FILE para producción..."
 
@@ -28,8 +33,11 @@ GOOGLE_CLIENT_ID=602128228660-c5f0epn6c1j20mavq44h9m364r9s6n1v.apps.googleuserco
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=602128228660-c5f0epn6c1j20mavq44h9m364r9s6n1v.apps.googleusercontent.com
 
 # 4. Email (Resend)
-RESEND_API_KEY=re_JGFCAmiU_NWx24dgc3gKMGf1xjMFi7bv5
+RESEND_API_KEY=${RESEND_API_KEY:-}
 FRONTEND_URL=https://profly.com.ar
+
+# 5. IA (generar preguntas desde apuntes). Vacío = función deshabilitada.
+ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
 EOF
 
 echo "✅ Archivo $ENV_FILE generado con éxito."

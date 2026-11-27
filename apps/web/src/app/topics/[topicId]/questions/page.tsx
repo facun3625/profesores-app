@@ -5,6 +5,9 @@ import { useParams, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import ConfirmModal from "@/components/ConfirmModal";
+import ImportQuestionsModal from "@/components/ImportQuestionsModal";
+import AiQuestionsModal from "@/components/AiQuestionsModal";
+import ImageAttachment from "@/components/ImageAttachment";
 
 type Difficulty = "easy" | "medium" | "hard";
 type QType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "MULTI_TRUE_FALSE" | "OPEN" | "FILL_IN";
@@ -24,6 +27,7 @@ type Question = {
   options?: Array<string | MultiTfOption> | null;
   correctIndex?: number | null;
   modelAnswer?: string | null;
+  imageMimeType?: string | null;
   openLines?: number | null;
   requiresJustification?: boolean;
   createdAt?: string | null;
@@ -256,6 +260,15 @@ export default function TopicQuestionsPage() {
   const [correctIndex, setCorrectIndex] = useState<number>(0);
   const [modelAnswer, setModelAnswer] = useState("");
   const [openLines, setOpenLines] = useState<number>(4);
+  const [showImport, setShowImport] = useState(false);
+  const [showAi, setShowAi] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+
+  useEffect(() => {
+    api<{ enabled: boolean }>("/questions/ai/status")
+      .then((r) => setAiEnabled(Boolean(r?.enabled)))
+      .catch(() => setAiEnabled(false));
+  }, []);
   const [requiresJustification, setRequiresJustification] = useState<boolean>(false);
 
   // Estados para MULTI_TRUE_FALSE
@@ -758,6 +771,22 @@ export default function TopicQuestionsPage() {
           </div>
 
           <div className="flex items-center justify-between gap-3 sm:justify-end">
+            {aiEnabled && (
+              <button
+                type="button"
+                onClick={() => setShowAi(true)}
+                className="h-9 rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white hover:bg-indigo-700"
+              >
+                ✨ Generar con IA
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowImport(true)}
+              className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Importar Excel/CSV
+            </button>
             <span className="text-sm text-gray-600">Total de Preguntas</span>
             <span className="inline-flex h-9 items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
               {stats.total}
@@ -1511,6 +1540,20 @@ export default function TopicQuestionsPage() {
                                   </div>
                                 </div>
                               ) : null}
+
+                              <div className="mt-4">
+                                <span className="text-sm font-semibold text-gray-900">Imagen</span>
+                                <ImageAttachment
+                                  endpoint={`/questions/${q.id}/image`}
+                                  hasImage={Boolean(q.imageMimeType)}
+                                  canEdit
+                                  maxBytes={1024 * 1024}
+                                  addLabel="Agregar imagen (gráfico, mapa, figura)"
+                                  changeLabel="Cambiar imagen"
+                                  successMessage="Imagen guardada. Se imprime debajo del enunciado."
+                                  previewClassName="h-24 max-w-[240px]"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1523,6 +1566,29 @@ export default function TopicQuestionsPage() {
           </section>
         </>
       ) : null}
+
+      <AiQuestionsModal
+        isOpen={showAi}
+        onClose={() => setShowAi(false)}
+        subjectId={subjectId}
+        topicId={topicId}
+        topicName={topicInfo?.name}
+        onSaved={() => {
+          load();
+          setView("list");
+        }}
+      />
+
+      <ImportQuestionsModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        subjectId={subjectId}
+        topicId={topicId}
+        onImported={() => {
+          load();
+          setView("list");
+        }}
+      />
 
       <ConfirmModal
         isOpen={confirmDelete.isOpen}

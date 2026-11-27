@@ -6,11 +6,14 @@ import { useIsAdmin } from "@/lib/hooks";
 import { toast } from "sonner";
 import Link from "next/link";
 import ConfirmModal from "@/components/ConfirmModal";
+import InstitutionLogo from "@/components/InstitutionLogo";
 
 type Institution = {
   id: string;
   name: string;
   status: "active" | "inactive";
+  role?: "admin" | "professor";
+  hasLogo?: boolean;
 };
 
 type MeAny =
@@ -396,6 +399,11 @@ export default function InstitutionsPage() {
                       {isActive ? <Badge tone="green">Activa</Badge> : null}
                     </div>
 
+                    <InstitutionLogo
+                      institutionId={inst.id}
+                      hasLogo={inst.hasLogo}
+                      canEdit={(inst.role ?? (isAdmin ? "admin" : "professor")) === "admin"}
+                    />
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">

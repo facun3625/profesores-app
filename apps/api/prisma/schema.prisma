@@ -45,6 +45,8 @@ model Institution {
   id            String            @id @default(cuid())
   name          String
   status        InstitutionStatus @default(active)
+  logo          Bytes?
+  logoMimeType  String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   exams         Exam[]
@@ -120,6 +122,8 @@ model Question {
   difficulty             QuestionDifficulty @default(medium)
   modelAnswer            String?
   status                 EntityStatus       @default(active)
+  image                  Bytes?
+  imageMimeType          String?
   examItems              ExamQuestion[]
   institution            Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   subject                Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
@@ -146,6 +150,7 @@ model Exam {
   createdBy     User?          @relation("ExamAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   items         ExamQuestion[]
   signature     ExamSignature?
+  online        OnlineExam?
 
   @@index([institutionId])
   @@index([createdById])
@@ -176,6 +181,35 @@ model ExamSignature {
 
   @@unique([institutionId, signature], name: "institutionId_signature")
   @@index([institutionId])
+}
+
+/// Examen publicado para responder online por link (sin cuenta de alumno)
+model OnlineExam {
+  id            String             @id @default(cuid())
+  examId        String             @unique
+  token         String             @unique
+  isOpen        Boolean            @default(true)
+  showScore     Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  exam          Exam               @relation(fields: [examId], references: [id], onDelete: Cascade)
+  submissions   OnlineSubmission[]
+}
+
+model OnlineSubmission {
+  id            String     @id @default(cuid())
+  onlineExamId  String
+  studentName   String
+  answers       Json
+  /// Detalle por pregunta: { questionId, earned, max, auto }
+  grading       Json
+  autoScore     Float
+  maxScore      Float
+  pendingManual Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  onlineExam    OnlineExam @relation(fields: [onlineExamId], references: [id], onDelete: Cascade)
+
+  @@index([onlineExamId])
 }
 
 model Session {

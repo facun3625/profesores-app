@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
-import { IsString } from "class-validator";
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Put, Req, Res, UseGuards } from "@nestjs/common";
+import type { Response } from "express";
+import { IsIn, IsString, MaxLength } from "class-validator";
 import { InstitutionsService } from "./institutions.service";
 import { AuthGuard } from "../auth/guards/auth.guard";
 import { QuotaService } from "../quota/quota.service";
@@ -17,6 +18,15 @@ class SetActiveInstitutionDto {
 class UpdateInstitutionDto {
   @IsString()
   name!: string;
+}
+
+class LogoDto {
+  @IsString()
+  @MaxLength(800_000) // ~500 KB en base64
+  data!: string;
+
+  @IsIn(["image/png", "image/jpeg"])
+  mimeType!: string;
 }
 
 class UpdateStatusDto {
@@ -77,6 +87,24 @@ export class InstitutionsController {
       throw new ForbiddenException("Solo los administradores pueden cambiar el estado");
     }
     return this.institutionsService.setStatus(req.userId, id, dto.status);
+  }
+
+  @Get(":id/logo")
+  async getLogo(@Req() req: any, @Param("id") id: string, @Res() res: Response) {
+    const logo = await this.institutionsService.getLogo(req.userId, id);
+    res.setHeader("Content-Type", logo.mimeType);
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.send(logo.data);
+  }
+
+  @Put(":id/logo")
+  setLogo(@Req() req: any, @Param("id") id: string, @Body() dto: LogoDto) {
+    return this.institutionsService.setLogo(req.userId, id, dto.data, dto.mimeType);
+  }
+
+  @Delete(":id/logo")
+  removeLogo(@Req() req: any, @Param("id") id: string) {
+    return this.institutionsService.removeLogo(req.userId, id);
   }
 
   @Delete(":id")

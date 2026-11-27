@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { decodeImage } from "../common/image-upload";
 
 @Injectable()
 export class InstitutionsService {
@@ -30,15 +31,17 @@ export class InstitutionsService {
             id: true,
             name: true,
             status: true,
+            logoMimeType: true,
           },
         },
       },
       orderBy: { createdAt: "asc" },
     });
 
-    return memberships.map((m) => ({
-      ...m.institution,
-      role: m.role,
+    return memberships.map(({ institution: { logoMimeType, ...inst }, role }) => ({
+      ...inst,
+      hasLogo: Boolean(logoMimeType),
+      role,
     }));
   }
 
@@ -175,5 +178,58 @@ export class InstitutionsService {
         status: true,
       },
     });
+  }
+
+  // =========================
+  // LOGO
+  // =========================
+  private static readonly LOGO_MAX_BYTES = 500 * 1024;
+
+  async setLogo(userId: string, institutionId: string, base64: string, mimeType: string) {
+    await this.requireAdminOf(userId, institutionId);
+
+    const bytes = decodeImage(base64, mimeType, InstitutionsService.LOGO_MAX_BYTES);
+
+    await this.prisma.institution.update({
+      where: { id: institutionId },
+      data: { logo: bytes, logoMimeType: mimeType },
+      select: { id: true },
+    });
+    return { ok: true };
+  }
+
+  async removeLogo(userId: string, institutionId: string) {
+    await this.requireAdminOf(userId, institutionId);
+    await this.prisma.institution.update({
+      where: { id: institutionId },
+      data: { logo: null, logoMimeType: null },
+      select: { id: true },
+    });
+    return { ok: true };
+  }
+
+  async getLogo(userId: string, institutionId: string) {
+    const membership = await this.prisma.userInstitution.findUnique({
+      where: { userId_institutionId: { userId, institutionId } },
+      select: { id: true },
+    });
+    if (!membership) throw new ForbiddenException("You don't have access to this institution");
+
+    const inst = await this.prisma.institution.findUnique({
+      where: { id: institutionId },
+      select: { logo: true, logoMimeType: true },
+    });
+    if (!inst?.logo || !inst.logoMimeType) throw new NotFoundException("La institución no tiene logo");
+    return { data: Buffer.from(inst.logo), mimeType: inst.logoMimeType };
+  }
+
+  private async requireAdminOf(userId: string, institutionId: string) {
+    const membership = await this.prisma.userInstitution.findUnique({
+      where: { userId_institutionId: { userId, institutionId } },
+      select: { role: true },
+    });
+    if (!membership || membership.role !== "admin") {
+      throw new ForbiddenException("Solo los administradores pueden cambiar el logo");
+    }
   }
 }
