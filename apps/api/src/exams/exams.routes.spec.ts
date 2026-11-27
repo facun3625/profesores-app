@@ -5,6 +5,7 @@ import { ExamsController } from './exams.controller';
 import { ExamsService } from './exams.service';
 import { ExamPdfService } from './exam-pdf.service';
 import { ExamDocxService } from './exam-docx.service';
+import { ExamAnswerSheetService } from './exam-answer-sheet.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
 
 /**
@@ -33,6 +34,7 @@ describe('ExamsController routing', () => {
         { provide: ExamsService, useValue: service },
         { provide: ExamPdfService, useValue: {} },
         { provide: ExamDocxService, useValue: {} },
+        { provide: ExamAnswerSheetService, useValue: {} },
       ],
     })
       .overrideGuard(AuthGuard)

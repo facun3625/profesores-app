@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { renderLatex } from "@/lib/latex";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, apiBlob } from "@/lib/api";
 
 type Grading = { questionId: string; earned: number; max: number; auto: boolean; manual?: boolean };
 type Answer = { choice?: number; items?: Array<boolean | null>; blanks?: string[]; text?: string };
@@ -13,6 +14,7 @@ type Submission = {
   autoScore: number;
   maxScore: number;
   pendingManual: boolean;
+  source?: "online" | "paper";
   createdAt: string;
   grading: Grading[];
   answers: Record<string, Answer>;
@@ -31,8 +33,10 @@ function fmt(n: number) {
   return String(Math.round(n * 100) / 100).replace(".", ",");
 }
 
-function describeAnswer(q: ExamQuestion | undefined, a: Answer | undefined): string {
-  if (!a) return "(sin responder)";
+function describeAnswer(q: ExamQuestion | undefined, a: Answer | undefined, paper = false): string {
+  if (!a) return paper && (q?.type === "OPEN" || q?.type === "FILL_IN") ? "(en la hoja del examen)" : "(sin responder)";
+  // En papel las opciones están en el orden del tema impreso: se muestra la letra marcada
+  if (paper && q?.type === "MULTIPLE_CHOICE" && a.choice !== undefined) return `marcó ${"ABCDEFGH"[a.choice]}`;
   if (q?.type === "MULTIPLE_CHOICE" && a.choice !== undefined) {
     const opts = Array.isArray(q.options) ? (q.options as string[]) : [];
     return `${"abcdefgh"[a.choice]}) ${opts[a.choice] ?? ""}`;
@@ -60,15 +64,22 @@ export default function OnlineExamModal({
   const [loading, setLoading] = useState(false);
   const [openSub, setOpenSub] = useState<string | null>(null);
   const [manual, setManual] = useState<Record<string, string>>({});
+  const [paperEnabled, setPaperEnabled] = useState(false);
+  const [sheetVersions, setSheetVersions] = useState(1);
+  const [grading, setGrading] = useState(false);
+  const [lastPaper, setLastPaper] = useState<
+    { studentName: string; autoScore: number; maxScore: number; version: string; notes: string } | null
+  >(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [status, exam] = await Promise.all([
-        api<{ online: Online | null }>(`/exams/${examId}/online`),
+        api<{ online: Online | null; paperGradingEnabled?: boolean }>(`/exams/${examId}/online`),
         api<{ items: Array<{ question: ExamQuestion }> }>(`/exams/${examId}`),
       ]);
       setOnline(status.online);
+      setPaperEnabled(Boolean(status.paperGradingEnabled));
       setQuestions(exam.items.map((it) => it.question));
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "No se pudo cargar");
@@ -85,6 +96,50 @@ export default function OnlineExamModal({
   const link = online && typeof window !== "undefined" ? `${window.location.origin}/e/${online.token}` : "";
 
   if (!isOpen) return null;
+
+  async function downloadSheet() {
+    try {
+      const blob = await apiBlob(`/exams/${examId}/export/answer-sheet?versions=${sheetVersions}`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Hoja de respuestas - ${examTitle ?? "examen"}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "No se pudo descargar la hoja");
+    }
+  }
+
+  async function gradePhotos(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setGrading(true);
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`${file.name}: la foto pesa más de 10 MB`);
+          continue;
+        }
+        const data = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => reject(new Error("No se pudo leer la foto"));
+          r.readAsDataURL(file);
+        });
+        const res = await api<{ studentName: string; autoScore: number; maxScore: number; version: string; notes: string }>(
+          `/exams/${examId}/online/paper`,
+          { method: "POST", body: JSON.stringify({ image: data, mimeType: file.type || "image/jpeg" }) }
+        );
+        setLastPaper(res);
+        toast.success(`${res.studentName} (Tema ${res.version}): ${fmt(res.autoScore)} / ${fmt(res.maxScore)}`);
+      }
+      load();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "No se pudo corregir la foto");
+    } finally {
+      setGrading(false);
+    }
+  }
 
   async function publish() {
     try {
@@ -171,6 +226,61 @@ export default function OnlineExamModal({
           </button>
         </div>
 
+        <div className="mt-4 rounded-xl border border-gray-200 p-4 text-sm dark:border-slate-800">
+          <div className="font-semibold text-gray-900 dark:text-white">Examen en papel</div>
+          <p className="mt-1 text-gray-600 dark:text-slate-400">
+            Imprimí la hoja de respuestas con burbujas. Después sacale una foto a cada hoja completada y la app la corrige
+            sola (usa la clave del tema que figura en la hoja).
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <select
+              value={sheetVersions}
+              onChange={(e) => setSheetVersions(Number(e.target.value))}
+              className="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            >
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  {n === 1 ? "1 tema" : `${n} temas`}
+                </option>
+              ))}
+            </select>
+            <button type="button" className={btn} onClick={downloadSheet}>
+              Descargar hoja de respuestas
+            </button>
+            {paperEnabled ? (
+              <label className={`${btn} inline-flex cursor-pointer items-center ${grading ? "opacity-60" : ""}`}>
+                {grading ? "Corrigiendo…" : "📷 Corregir con foto"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  multiple
+                  disabled={grading}
+                  className="hidden"
+                  onChange={(e) => {
+                    gradePhotos(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            ) : (
+              <span className="text-xs text-gray-500">La corrección con foto requiere la IA habilitada en el servidor.</span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-gray-500 dark:text-slate-500">
+            Usá la misma cantidad de temas que al descargar el examen. Las preguntas abiertas y de completar se corrigen a mano.
+          </p>
+          {lastPaper && (
+            <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-gray-700 dark:bg-slate-800 dark:text-slate-300">
+              Última hoja: <b>{lastPaper.studentName}</b> · Tema {lastPaper.version} ·{" "}
+              <b>
+                {fmt(lastPaper.autoScore)} / {fmt(lastPaper.maxScore)}
+              </b>
+              {lastPaper.notes ? <div className="mt-1 text-xs text-amber-700">Atención: {lastPaper.notes}</div> : null}
+            </div>
+          )}
+        </div>
+
         {loading && !online ? (
           <div className="mt-6 text-sm text-gray-500">Cargando…</div>
         ) : !online ? (
@@ -253,7 +363,14 @@ export default function OnlineExamModal({
                         onClick={() => setOpenSub(openSub === s.id ? null : s.id)}
                         className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
                       >
-                        <span className="font-medium text-gray-900 dark:text-white">{s.studentName}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {s.studentName}
+                          {s.source === "paper" && (
+                            <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-600 dark:bg-slate-800 dark:text-slate-400">
+                              papel
+                            </span>
+                          )}
+                        </span>
                         <span className="flex items-center gap-2 text-sm">
                           {s.pendingManual && (
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
@@ -279,10 +396,10 @@ export default function OnlineExamModal({
                                 <li key={g.questionId} className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
                                     <div className="text-gray-800 dark:text-slate-200">
-                                      {i + 1}) {q?.statement?.replace(/\[\[.*?\]\]/g, "____") ?? "(pregunta)"}
+                                      {i + 1}) {q?.statement ? renderLatex(q.statement.replace(/\[\[.*?\]\]/g, "____")) : "(pregunta)"}
                                     </div>
                                     <div className="text-gray-500 dark:text-slate-400">
-                                      Respuesta: {describeAnswer(q, s.answers?.[g.questionId])}
+                                      Respuesta: {describeAnswer(q, s.answers?.[g.questionId], s.source === "paper")}
                                     </div>
                                   </div>
                                   <div className="flex shrink-0 items-center gap-1">

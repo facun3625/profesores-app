@@ -1,4 +1,5 @@
 import { Question as FullQuestion, QuestionType } from '@prisma/client';
+import { renderQuestionLatex } from '../common/latex';
 
 /** La corrección no necesita la imagen (que se omite por defecto). */
 type Question = Omit<FullQuestion, 'image'>;
@@ -104,7 +105,8 @@ function round2(n: number) {
  * Versión de la pregunta que ve el alumno: SIN respuestas correctas
  * (sin correctIndex, sin modelAnswer, sin isCorrect y sin el texto de los huecos).
  */
-export function publicQuestion(q: Question) {
+export function publicQuestion(raw: Question) {
+  const q = renderQuestionLatex(raw); // fórmulas $...$ a Unicode
   const base = {
     id: q.id,
     type: q.type,

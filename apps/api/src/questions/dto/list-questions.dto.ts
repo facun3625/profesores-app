@@ -26,10 +26,15 @@ export class ListQuestionsDto {
   difficulty?: QuestionDifficulty;
 
   @IsOptional()
-  @IsIn([QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE, QuestionType.OPEN])
+  @IsIn(Object.values(QuestionType))
   type?: QuestionType;
 
   @IsOptional()
   @IsString()
   q?: string;
+
+  /** Si viene, cada pregunta indica si ya se usó en un examen de ese curso. */
+  @IsOptional()
+  @IsString()
+  courseId?: string;
 }

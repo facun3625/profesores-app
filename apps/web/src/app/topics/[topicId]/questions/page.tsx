@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { renderLatex } from "@/lib/latex";
 import { useParams, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ type Question = {
   correctIndex?: number | null;
   modelAnswer?: string | null;
   imageMimeType?: string | null;
+  usedInExams?: number;
   openLines?: number | null;
   requiresJustification?: boolean;
   createdAt?: string | null;
@@ -931,6 +933,15 @@ export default function TopicQuestionsPage() {
                 onChange={(e) => setStatement(e.target.value)}
                 className="min-h-[96px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
+              <span className="text-xs text-gray-500">
+                Fórmulas: escribilas entre signos $, por ejemplo $x^2 + \frac{1}{2}$ o $\sqrt{2}$, $\alpha \leq \beta$.
+              </span>
+              {renderLatex(statement) !== statement ? (
+                <div className="rounded-md border border-blue-100 bg-blue-50/50 px-3 py-2 text-sm text-gray-800">
+                  <span className="mr-1 text-xs font-semibold text-blue-700">Vista previa:</span>
+                  {renderLatex(statement)}
+                </div>
+              ) : null}
             </label>
           ) : null}
 
@@ -976,7 +987,7 @@ export default function TopicQuestionsPage() {
                               <span className="font-semibold text-gray-900 mr-1">
                                 {String.fromCharCode(65 + idx)})
                               </span>
-                              {opt}
+                              {renderLatex(opt)}
                             </span>
                           </label>
                         ))
@@ -1365,10 +1376,15 @@ export default function TopicQuestionsPage() {
                             </div>
 
                             <div className="mt-1 text-sm font-semibold text-gray-900">
-                              {highlight(q.statement, searchText)}
+                              {highlight(renderLatex(q.statement), searchText)}
                             </div>
 
                             <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {q.usedInExams ? (
+                                <Badge tone="gray">
+                                  Usada en {q.usedInExams} examen{q.usedInExams === 1 ? "" : "es"}
+                                </Badge>
+                              ) : null}
                               <Badge tone="gray">{labelType(q.type)}</Badge>
                               <Badge tone="gray">
                                 {labelDifficulty(q.difficulty)}
@@ -1469,7 +1485,7 @@ export default function TopicQuestionsPage() {
                                           </span>
                                           <div className="flex-1">
                                             <div className="text-sm font-medium text-gray-800">
-                                              {statement}
+                                              {renderLatex(statement)}
                                             </div>
                                             {!isString && (opt as MultiTfOption).requiresJustification && (
                                               <div className="mt-1">

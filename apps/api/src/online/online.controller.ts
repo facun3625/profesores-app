@@ -15,6 +15,7 @@ import { IsBoolean, IsObject, IsOptional, IsString, MaxLength, MinLength } from 
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
 import { OnlineService } from './online.service';
+import { PaperGradingService } from './paper-grading.service';
 
 class UpdateOnlineDto {
   @IsOptional()
@@ -29,6 +30,15 @@ class UpdateOnlineDto {
 class GradeDto {
   @IsObject()
   points!: Record<string, number>;
+}
+
+class PaperPhotoDto {
+  @IsString()
+  @MaxLength(14_000_000) // ~10 MB en base64
+  image!: string;
+
+  @IsString()
+  mimeType!: string;
 }
 
 class SubmitDto {
@@ -47,13 +57,23 @@ function actorFrom(req: any) {
 
 /** Gestión del examen online (docente). */
 @Controller('exams/:examId/online')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RateLimitGuard)
 export class OnlineController {
-  constructor(private readonly online: OnlineService) { }
+  constructor(
+    private readonly online: OnlineService,
+    private readonly paper: PaperGradingService,
+  ) { }
 
   @Get()
-  status(@Req() req: any, @Param('examId') examId: string) {
-    return this.online.getStatus(actorFrom(req), examId);
+  async status(@Req() req: any, @Param('examId') examId: string) {
+    return { ...(await this.online.getStatus(actorFrom(req), examId)), paperGradingEnabled: this.paper.isEnabled() };
+  }
+
+  /** Corregir una hoja de respuestas en papel a partir de una foto. */
+  @Post('paper')
+  @RateLimit(120, 60 * 60 * 1000)
+  gradePaper(@Req() req: any, @Param('examId') examId: string, @Body() dto: PaperPhotoDto) {
+    return this.paper.gradePhoto(actorFrom(req), examId, dto.image, dto.mimeType);
   }
 
   @Post()

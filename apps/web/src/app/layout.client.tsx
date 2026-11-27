@@ -127,6 +127,14 @@ const Icons = {
       <path d="M12 3l1.912 5.813L21 10.75l-5.813 1.912L12 21l-1.912-5.813L3 13.25l5.813-1.912L12 3z" />
     </svg>
   ),
+  Courses: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
   Hammer: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
       <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -525,6 +533,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       { name: "Instituciones", href: "/institutions", icon: Icons.Institutions, color: "blue" },
       { name: "Materias", href: "/subjects", icon: Icons.Subjects, color: "purple" },
       { name: "Exámenes", href: "/exams", icon: Icons.Exams, color: "emerald" },
+      { name: "Cursos", href: "/courses", icon: Icons.Courses, color: "amber" },
       {
         name: "Generar Exámenes",
         icon: Icons.Generate,

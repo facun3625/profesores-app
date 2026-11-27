@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { renderLatex } from "@/lib/latex";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import {
@@ -60,7 +61,7 @@ export function QuestionReviewList({
                       {DIFF_LABEL[r.question.difficulty]}
                     </span>
                   </div>
-                  <div className="text-gray-900 dark:text-white">{r.question.statement}</div>
+                  <div className="text-gray-900 dark:text-white">{renderLatex(r.question.statement)}</div>
                   {r.question.type === "MULTIPLE_CHOICE" && Array.isArray(r.question.options) && (
                     <ul className="mt-1 text-xs text-gray-600 dark:text-slate-400">
                       {(r.question.options as string[]).map((o, idx) => (
@@ -68,7 +69,7 @@ export function QuestionReviewList({
                           key={idx}
                           className={idx === r.question!.correctIndex ? "font-semibold text-emerald-700 dark:text-emerald-400" : ""}
                         >
-                          {"abcdef"[idx]}) {o} {idx === r.question!.correctIndex ? "✓" : ""}
+                          {"abcdef"[idx]}) {renderLatex(o)} {idx === r.question!.correctIndex ? "✓" : ""}
                         </li>
                       ))}
                     </ul>
@@ -82,7 +83,7 @@ export function QuestionReviewList({
                     <ul className="mt-1 text-xs text-gray-600 dark:text-slate-400">
                       {(r.question.options as Array<{ statement: string; isCorrect: boolean }>).map((o, idx) => (
                         <li key={idx}>
-                          {idx + 1}. {o.statement}{" "}
+                          {idx + 1}. {renderLatex(o.statement)}{" "}
                           <span className="font-semibold text-emerald-700 dark:text-emerald-400">[{o.isCorrect ? "V" : "F"}]</span>
                         </li>
                       ))}

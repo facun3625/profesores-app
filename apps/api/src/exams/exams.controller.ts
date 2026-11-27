@@ -19,6 +19,7 @@ import { UpdateExamDto } from "./dto/update-exam.dto";
 import { GenerateExamDto } from "./dto/generate-exam.dto";
 import { ExamPdfService, MAX_VERSIONS } from "./exam-pdf.service";
 import { ExamDocxService } from "./exam-docx.service";
+import { ExamAnswerSheetService } from "./exam-answer-sheet.service";
 import { AuthGuard } from "../auth/guards/auth.guard";
 
 function actorFrom(req: any): Actor {
@@ -87,6 +88,7 @@ export class ExamsController {
     private readonly examsService: ExamsService,
     private readonly examPdfService: ExamPdfService,
     private readonly examDocxService: ExamDocxService,
+    private readonly answerSheetService: ExamAnswerSheetService,
   ) { }
 
   // =========================
@@ -127,8 +129,8 @@ export class ExamsController {
   // READ
   // =========================
   @Get()
-  list(@Req() req: any) {
-    return this.examsService.list(actorFrom(req));
+  list(@Req() req: any, @Query("courseId") courseId?: string) {
+    return this.examsService.list(actorFrom(req), courseId || undefined);
   }
 
   @Get(":id")
@@ -199,6 +201,27 @@ export class ExamsController {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     );
     res.send(buffer);
+  }
+
+  /** Hoja de respuestas con burbujas (una por tema) para corregir con foto. */
+  @Get(":id/export/answer-sheet")
+  async exportAnswerSheet(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Res({ passthrough: false }) res: Response,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    const exam = await this.examsService.getById(actorFrom(req), id);
+    const { institutionName } = await this.examsService.getExamForExport(actorFrom(req), id);
+    const options = parseExportOptions(query);
+    setDownloadHeaders(res, `Hoja de respuestas - ${exam.title}`, { ...options, showAnswers: false }, "pdf", "application/pdf");
+    const doc = this.answerSheetService.build({
+      institutionName,
+      exam: exam as any,
+      versions: options.versions,
+    });
+    doc.pipe(res);
+    doc.end();
   }
 
   // =========================

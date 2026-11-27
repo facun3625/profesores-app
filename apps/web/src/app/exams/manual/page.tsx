@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { renderLatex } from "@/lib/latex";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, apiBlob } from "@/lib/api";
 import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
+import { Course, courseLabel, fetchCourses } from "@/lib/courses";
 import { toast } from "sonner";
 import ConfirmModal from "@/components/ConfirmModal";
 import PdfCustomizeModal, { ExportFormat, PdfOptions } from "@/components/PdfCustomizeModal";
@@ -26,6 +28,8 @@ type Question = {
   difficulty?: Difficulty;
   statement?: string;
   options?: string[] | null;
+  usedInExams?: number;
+  usedInCourse?: boolean;
 };
 
 type ExamItem = {
@@ -46,6 +50,8 @@ type Exam = {
   items?: ExamItem[] | null;
   questions?: Question[] | null;
   headerFields?: string[] | null;
+  courseId?: string | null;
+  examDate?: string | null;
 };
 
 /* =====================
@@ -204,6 +210,10 @@ export default function Page() {
   const [title, setTitle] = useState("Nuevo examen");
   const [description, setDescription] = useState("");
   const [headerFieldsText, setHeaderFieldsText] = useState("");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseId, setCourseId] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [hideUsedInCourse, setHideUsedInCourse] = useState(false);
 
   const [bankLoading, setBankLoading] = useState(false);
   const [bank, setBank] = useState<Question[]>([]);
@@ -232,6 +242,7 @@ export default function Page() {
 
   /* Load subjects */
   useEffect(() => {
+    fetchCourses().then(setCourses).catch(() => setCourses([]));
     api<Subject[]>("/subjects")
       .then(setSubjects)
       .catch((e: any) => setError(e?.message ?? "Error cargando materias"));
@@ -257,6 +268,10 @@ export default function Page() {
         }
 
         setDescription(exam.description ?? "");
+        if (!isDuplicate) {
+          setCourseId(exam.courseId ?? "");
+          setExamDate(exam.examDate ? exam.examDate.slice(0, 10) : "");
+        }
 
         const parsed = resolveFromExam(exam);
 
@@ -313,22 +328,22 @@ export default function Page() {
       setError("");
       setBankLoading(true);
       try {
-        let all: Question[] = [];
+        // La API devuelve hasta 100 por página: se recorren todas
+        const fetchAll = async (base: string) => {
+          const out: Question[] = [];
+          for (let page = 1; ; page++) {
+            const r = await api<{ data: Question[]; meta: { totalPages: number } }>(
+              `${base}&limit=100&page=${page}${courseId ? `&courseId=${courseId}` : ""}`
+            );
+            out.push(...(r.data ?? []));
+            if (page >= (r.meta?.totalPages ?? 1)) break;
+          }
+          return out;
+        };
 
-        if (topicIds.length) {
-          const responses = await Promise.all(
-            topicIds.map((tid) =>
-              api<any>(`/questions?subjectId=${subjectId}&topicId=${tid}&page=1&limit=1000`)
-            )
-          );
-
-          all = responses.flatMap((r) =>
-            Array.isArray(r?.data) ? r.data : Array.isArray(r) ? r : []
-          );
-        } else {
-          const r = await api<any>(`/questions?subjectId=${subjectId}&page=1&limit=1000`);
-          all = Array.isArray(r?.data) ? r.data : Array.isArray(r) ? r : [];
-        }
+        const all = topicIds.length
+          ? (await Promise.all(topicIds.map((tid) => fetchAll(`/questions?subjectId=${subjectId}&topicId=${tid}`)))).flat()
+          : await fetchAll(`/questions?subjectId=${subjectId}`);
 
         setBank(all);
       } catch (e: any) {
@@ -338,13 +353,14 @@ export default function Page() {
         setBankLoading(false);
       }
     })();
-  }, [subjectId, topicIds]);
+  }, [subjectId, topicIds, courseId]);
 
   const filteredBank = useMemo(() => {
     let list = [...bank];
 
     if (typeFilter !== "ALL") list = list.filter((q) => q.type === typeFilter);
     if (diffFilter !== "ALL") list = list.filter((q) => q.difficulty === diffFilter);
+    if (hideUsedInCourse) list = list.filter((q) => !q.usedInCourse);
 
     const needle = dSearch.trim().toLowerCase();
     if (needle) {
@@ -352,7 +368,7 @@ export default function Page() {
     }
 
     return list;
-  }, [bank, typeFilter, diffFilter, dSearch]);
+  }, [bank, typeFilter, diffFilter, dSearch, hideUsedInCourse]);
 
   const selectedQuestions = useMemo(() => {
     const map = new Map(bank.map((q) => [q.id, q]));
@@ -455,6 +471,8 @@ export default function Page() {
         description: description.trim() || undefined,
         questionIds: selectedIds,
         headerFields: headerFieldsText.split("\n").map(s => s.trim()).filter(Boolean),
+        courseId: courseId || null,
+        examDate: examDate || null,
         points: Object.fromEntries(selectedIds.map((id) => [id, parsePoints(points[id])])),
       };
 
@@ -639,6 +657,40 @@ export default function Page() {
             </SelectPretty>
           </label>
 
+          <label className="grid gap-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-500">
+              Curso (opcional) · <a href="/courses" className="text-blue-600 hover:underline">administrar</a>
+            </span>
+            <select
+              value={courseId}
+              onChange={(e) => {
+                touch();
+                setCourseId(e.target.value);
+              }}
+              className="h-10 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-gray-900 dark:text-white"
+            >
+              <option value="">— Sin curso —</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {courseLabel(c)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Fecha del examen (opcional)</span>
+            <input
+              type="date"
+              value={examDate}
+              onChange={(e) => {
+                touch();
+                setExamDate(e.target.value);
+              }}
+              className="h-10 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-gray-900 dark:text-white"
+            />
+          </label>
+
           <label className="grid gap-2 md:col-span-2">
             <span className="text-xs font-medium text-gray-500 dark:text-slate-500">Campos de encabezado (uno por línea, ej: Docente:, Alumno:)</span>
             <textarea
@@ -731,6 +783,13 @@ export default function Page() {
             </label>
           </div>
 
+          {courseId && (
+            <label className="mb-3 flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+              <input type="checkbox" checked={hideUsedInCourse} onChange={(e) => setHideUsedInCourse(e.target.checked)} />
+              Ocultar las preguntas que ya le tomaste a este curso
+            </label>
+          )}
+
           {/* Questions */}
           {bankLoading ? (
             <div className="text-sm text-gray-600 dark:text-slate-400">Cargando preguntas...</div>
@@ -748,9 +807,20 @@ export default function Page() {
                     className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-blue-600 focus:ring-2 focus:ring-blue-500/20"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{q.statement}</div>
-                    <div className="mt-1 text-xs text-gray-500 dark:text-slate-500">
-                      {labelType(q.type)} · {labelDifficulty(q.difficulty)} · {q.id}
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{renderLatex(q.statement)}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-slate-500">
+                      <span>{labelType(q.type)} · {labelDifficulty(q.difficulty)}</span>
+                      {q.usedInCourse ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">
+                          ya la tomaste a este curso
+                        </span>
+                      ) : q.usedInExams ? (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-slate-800">
+                          usada en {q.usedInExams} examen{q.usedInExams === 1 ? "" : "es"}
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">nueva</span>
+                      )}
                     </div>
                   </div>
                 </label>
@@ -801,7 +871,7 @@ export default function Page() {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {idx + 1}. {q.statement ?? "(sin enunciado)"}
+                        {idx + 1}. {q.statement ? renderLatex(q.statement) : "(sin enunciado)"}
                       </div>
                     </div>
                   </div>

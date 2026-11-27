@@ -14,6 +14,7 @@ import {
 } from 'docx';
 import { Question, QuestionType } from '@prisma/client';
 import { fitInside, imageSize } from '../common/image-size';
+import { renderQuestionLatex } from '../common/latex';
 import {
   buildExamVersion,
   ExamWithItems,
@@ -77,7 +78,10 @@ export class ExamDocxService {
 
     for (let v = 0; v < opts.versions; v++) {
       const versionLabel = opts.versions > 1 ? `Tema ${VERSION_LABELS[v]}` : null;
-      const items = buildExamVersion(exam.id, exam.items, v);
+      const items = buildExamVersion(exam.id, exam.items, v).map((it) => ({
+        ...it,
+        question: renderQuestionLatex(it.question),
+      }));
       const children: Paragraph[] = [];
 
       const line = (indentTwips = 0) =>
