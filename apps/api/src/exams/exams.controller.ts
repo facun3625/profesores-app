@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -12,13 +13,33 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 
-import { ExamsService } from "./exams.service";
+import { ExamsService, Actor } from "./exams.service";
 import { CreateExamDto } from "./dto/create-exam.dto";
 import { UpdateExamDto } from "./dto/update-exam.dto";
 import { GenerateExamDto } from "./dto/generate-exam.dto";
-import { ExamPdfService } from "./exam-pdf.service";
+import { ExamPdfService, MAX_VERSIONS } from "./exam-pdf.service";
 import { AuthGuard } from "../auth/guards/auth.guard";
 
+function actorFrom(req: any): Actor {
+  return {
+    userId: req.userId,
+    institutionId: req.activeInstitutionId,
+    role: req.role,
+  };
+}
+
+function clampNumber(raw: string | undefined, fallback: number, min: number, max: number) {
+  const n = raw !== undefined ? Number(raw) : NaN;
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * IMPORTANTE: las rutas estáticas (manual, generate, preview...) tienen que
+ * declararse ANTES que las rutas con parámetro (":id"). Nest/Express usa la
+ * primera ruta que coincide, así que un `@Post(":id")` arriba "se come"
+ * `POST /exams/generate-or-reuse`.
+ */
 @Controller("exams")
 @UseGuards(AuthGuard)
 export class ExamsController {
@@ -32,23 +53,7 @@ export class ExamsController {
   // =========================
   @Post("manual")
   createManual(@Req() req: any, @Body() dto: CreateExamDto) {
-    return this.examsService.create(req.activeInstitutionId, dto, req.userId);
-  }
-
-  @Post(":id") // Some clients use POST for updates, but we'll support PATCH too
-  updateOld(@Req() req: any, @Param("id") id: string, @Body() dto: UpdateExamDto) {
-    return this.examsService.update(req.activeInstitutionId, id, dto, req.userId);
-  }
-
-  @Get(":id/patch") // For easy debugging
-  @Post(":id/update")
-  async patchCompat(@Req() req: any, @Param("id") id: string, @Body() dto: UpdateExamDto) {
-    return this.examsService.update(req.activeInstitutionId, id, dto, req.userId);
-  }
-
-  @Get(":id/edit-proxy")
-  async editProxy(@Req() req: any, @Param("id") id: string, @Body() dto: UpdateExamDto) {
-    return this.examsService.update(req.activeInstitutionId, id, dto, req.userId);
+    return this.examsService.create(actorFrom(req), dto);
   }
 
   // =========================
@@ -56,28 +61,25 @@ export class ExamsController {
   // =========================
   @Post("generate")
   generate(@Req() req: any, @Body() dto: GenerateExamDto) {
-    return this.examsService.generate(req.activeInstitutionId, dto, req.userId);
+    return this.examsService.generate(actorFrom(req), dto);
   }
 
   @Post("generate-or-reuse")
   generateOrReuse(@Req() req: any, @Body() dto: GenerateExamDto) {
-    return this.examsService.generateOrReuse(req.activeInstitutionId, dto, req.userId);
+    return this.examsService.generateOrReuse(actorFrom(req), dto);
   }
 
   // =========================
   // PREVIEWS (NO PERSIST)
   // =========================
-
-  // Stock / plan preview (NO questions)
   @Post("preview")
   preview(@Req() req: any, @Body() dto: GenerateExamDto) {
-    return this.examsService.preview(req.activeInstitutionId, dto);
+    return this.examsService.preview(actorFrom(req), dto);
   }
 
-  // Questions preview (DRY-RUN, NO persist)
   @Post("preview-questions")
   previewQuestions(@Req() req: any, @Body() dto: GenerateExamDto) {
-    return this.examsService.previewQuestions(req.activeInstitutionId, dto);
+    return this.examsService.previewQuestions(actorFrom(req), dto);
   }
 
   // =========================
@@ -85,12 +87,20 @@ export class ExamsController {
   // =========================
   @Get()
   list(@Req() req: any) {
-    return this.examsService.list(req.activeInstitutionId);
+    return this.examsService.list(actorFrom(req));
   }
 
   @Get(":id")
   getById(@Req() req: any, @Param("id") id: string) {
-    return this.examsService.getById(req.activeInstitutionId, id);
+    return this.examsService.getById(actorFrom(req), id);
+  }
+
+  // =========================
+  // UPDATE
+  // =========================
+  @Patch(":id")
+  update(@Req() req: any, @Param("id") id: string, @Body() dto: UpdateExamDto) {
+    return this.examsService.update(actorFrom(req), id, dto);
   }
 
   // =========================
@@ -107,28 +117,41 @@ export class ExamsController {
     @Query("answerSize") answerSize?: string,
     @Query("lineSpacing") lineSpacing?: string,
     @Query("showAnswers") showAnswers?: string,
+    @Query("versions") versions?: string,
   ) {
-    const { exam, institutionName } =
-      await this.examsService.getExamForExport(req.userId, id);
+    const { exam, institutionName } = await this.examsService.getExamForExport(
+      actorFrom(req),
+      id,
+    );
 
-    const downloadName = String(exam.title || "examen")
-      .replace(/[^a-z0-9\-_ ]/gi, "")
-      .trim() || "examen";
+    const title = String(exam.title || "examen").trim() || "examen";
+    const versionCount = Math.round(clampNumber(versions, 1, 1, MAX_VERSIONS));
+    const suffix =
+      (versionCount > 1 ? ` (${versionCount} temas)` : "") +
+      (showAnswers === "true" ? " (respuestas)" : "");
+    const asciiName =
+      title
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9\-_ ]/gi, "")
+        .trim() || "examen";
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${downloadName}.pdf"`,
+      `attachment; filename="${asciiName}${suffix}.pdf"; filename*=UTF-8''${encodeURIComponent(
+        `${title}${suffix}.pdf`,
+      )}`,
     );
 
-    // Parse options
     const pdfOptions = {
       boldStatement: boldStatement === "true",
       fontFamily: fontFamily || "Calibri",
-      questionSize: questionSize ? parseInt(questionSize, 10) : 12,
-      answerSize: answerSize ? parseInt(answerSize, 10) : 11,
-      lineSpacing: lineSpacing ? parseFloat(lineSpacing) : 1.0,
+      questionSize: clampNumber(questionSize, 12, 8, 24),
+      answerSize: clampNumber(answerSize, 11, 8, 24),
+      lineSpacing: clampNumber(lineSpacing, 1.0, 1.0, 3.0),
       showAnswers: showAnswers === "true",
+      versions: Math.round(clampNumber(versions, 1, 1, MAX_VERSIONS)),
     };
 
     const doc = this.examPdfService.buildExamPdfStream({
@@ -142,10 +165,10 @@ export class ExamsController {
   }
 
   // =========================
-  // DELETE
+  // DELETE (archive)
   // =========================
   @Delete(":id")
   remove(@Req() req: any, @Param("id") id: string) {
-    return this.examsService.remove(req.activeInstitutionId, id);
+    return this.examsService.remove(actorFrom(req), id);
   }
 }

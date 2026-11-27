@@ -22,5 +22,10 @@ export const config = {
     "/subjects/:path*",
     "/topics/:path*",
     "/questions/:path*",
+    "/users/:path*",
+    "/profile/:path*",
+    "/institutions/:path*",
+    "/activity-log/:path*",
+    "/admin/:path*",
   ],
 };

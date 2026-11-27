@@ -1,34 +1,50 @@
 import "dotenv/config";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import { ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe } from "@nestjs/common";
+
+/** Agrega la variante con/sin "www." de cada origen permitido. */
+function expandOrigins(origins: string[]) {
+  const out = new Set<string>();
+  for (const origin of origins) {
+    out.add(origin);
+    try {
+      const url = new URL(origin);
+      const alt = url.hostname.startsWith("www.")
+        ? url.hostname.slice(4)
+        : `www.${url.hostname}`;
+      if (!/^(localhost|\d+\.\d+\.\d+\.\d+)$/.test(url.hostname)) {
+        out.add(`${url.protocol}//${alt}${url.port ? `:${url.port}` : ""}`);
+      }
+    } catch {
+      // origen mal formado: se usa tal cual
+    }
+  }
+  return out;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = new Logger("Bootstrap");
 
-  // Set global prefix for all routes
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix("api");
 
-  // CORS configuration
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-    : ['http://localhost:3001'];
+  const allowedOrigins = expandOrigins(
+    process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+      : ["http://localhost:3001", "http://localhost:3000"],
+  );
 
-  console.log('--- DIAGNÓSTICO DE INICIO ---');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('PORT:', process.env.PORT);
-  console.log('ALLOWED_ORIGINS:', allowedOrigins);
-  console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Configurado ✅' : 'FALTANTE ❌');
-  console.log('---------------------------');
+  logger.log(`NODE_ENV=${process.env.NODE_ENV} PORT=${process.env.PORT}`);
+  logger.log(`CORS permitido para: ${[...allowedOrigins].join(", ")}`);
+  if (!process.env.GOOGLE_CLIENT_ID) logger.warn("GOOGLE_CLIENT_ID no configurado");
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Log cada petición para ver qué llega exactamente
-      console.log(`CORS: Petición desde origen -> [${origin}]`);
-
-      // Permitir todo temporalmente para que el usuario pueda usar la app HOY
-      // Luego lo cerraremos cuando el dominio esté propagado.
-      callback(null, true);
+      // Sin header Origin (curl, health checks, mismo origen) -> permitido
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      logger.warn(`CORS bloqueado para origen: ${origin}`);
+      return callback(null, false);
     },
     credentials: true,
   });

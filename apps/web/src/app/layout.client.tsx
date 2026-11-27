@@ -529,7 +529,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         icon: Icons.Generate,
         color: "indigo",
         subItems: [
-          { name: "Generador IA", href: "/exams/builder", icon: Icons.Sparkles, color: "indigo" },
+          { name: "Generador Automático", href: "/exams/builder", icon: Icons.Sparkles, color: "indigo" },
           { name: "Generador Manual", href: "/exams/manual", icon: Icons.Hammer, color: "gray" },
         ],
       },
@@ -718,6 +718,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
           {/* Page Content */}
           <main className="flex-1 overflow-y-auto px-6 pt-4 pb-12">
+            {me?.user?.mustChangePassword && !pathname?.startsWith("/profile") && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                <span>Tu contraseña fue asignada por un administrador. Por seguridad, cambiala.</span>
+                <Link href="/profile" className="font-semibold underline underline-offset-2">
+                  Cambiar contraseña
+                </Link>
+              </div>
+            )}
             {children}
           </main>
         </div>

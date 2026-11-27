@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
+import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
 import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import { toast } from "sonner";
@@ -484,23 +485,13 @@ export default function Page() {
     try {
       // Construir query params si hay opciones
       let url = `/exams/${examId}/export/pdf`;
-      if (options) {
-        const params = new URLSearchParams({
-          boldStatement: String(options.boldStatement),
-          fontFamily: options.fontFamily,
-          questionSize: String(options.questionSize),
-          answerSize: String(options.answerSize),
-          lineSpacing: String(options.lineSpacing),
-          showAnswers: String(options.showAnswers ?? false),
-        });
-        url = `${url}?${params.toString()}`;
-      }
+      url = `${url}${pdfQuery(options)}`;
 
       const blob = await apiBlob(url);
       const urlBlob = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = urlBlob;
-      a.download = `${safeName(String(title ?? "exam"))}.pdf`;
+      a.download = `${safeName(String(title ?? "exam"))}${pdfFileSuffix(options)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -670,7 +661,7 @@ export default function Page() {
             href="/exams/builder"
             className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"
           >
-            Generador IA
+            Generador Automático
           </a>
 
           <button

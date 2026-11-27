@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, apiBlob } from "@/lib/api";
+import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
 import { toast } from "sonner";
 import ConfirmModal from "@/components/ConfirmModal";
 import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
@@ -29,6 +30,7 @@ type Question = {
 
 type ExamItem = {
   order?: number | null;
+  points?: number | null;
   questionId?: string | null;
   question?: Question | null;
 };
@@ -141,8 +143,8 @@ function resolveFromExam(exam: Exam): {
       if (!subjectId && q.subjectId) subjectId = q.subjectId;
       if (q.topicId && !topicIds.includes(q.topicId)) topicIds.push(q.topicId);
     }
-    if (exam.topicId) return { subjectId, topicIds: [exam.topicId], questionIds };
-    return { subjectId, topicIds, questionIds };
+    if (exam.topicId) return { subjectId, topicIds: [exam.topicId], questionIds, headerFields: exam.headerFields };
+    return { subjectId, topicIds, questionIds, headerFields: exam.headerFields };
   }
 
   if (Array.isArray(exam.items) && exam.items.length) {
@@ -157,8 +159,8 @@ function resolveFromExam(exam: Exam): {
         if (q.topicId && !topicIds.includes(q.topicId)) topicIds.push(q.topicId);
       }
     }
-    if (exam.topicId) return { subjectId, topicIds: [exam.topicId], questionIds };
-    return { subjectId, topicIds, questionIds };
+    if (exam.topicId) return { subjectId, topicIds: [exam.topicId], questionIds, headerFields: exam.headerFields };
+    return { subjectId, topicIds, questionIds, headerFields: exam.headerFields };
   }
 
   if (exam.topicId) topicIds.push(exam.topicId);
@@ -170,25 +172,10 @@ async function tryUpdateExam(id: string, payload: any) {
 }
 
 async function tryCreateExam(payload: any) {
-  const candidates = ["/exams", "/exams/manual", "/exams/create", "/exams/manual-create"];
-  let lastErr: any = null;
-
-  for (const path of candidates) {
-    try {
-      const res = await api<any>(path, { method: "POST", body: JSON.stringify(payload) });
-      const id = res?.id || res?.exam?.id;
-      if (!id) throw new Error(`Respuesta inesperada creando examen en ${path}`);
-      return { id, usedPath: path };
-    } catch (e: any) {
-      lastErr = e;
-      const msg = String(e?.message ?? "");
-      const is404 =
-        msg.includes("Cannot POST") || msg.includes("Not Found") || msg.includes("HTTP 404");
-      if (!is404) throw e;
-    }
-  }
-
-  throw lastErr ?? new Error("No se pudo crear el examen (ningún endpoint).");
+  const res = await api<any>("/exams/manual", { method: "POST", body: JSON.stringify(payload) });
+  const id = res?.id || res?.exam?.id;
+  if (!id) throw new Error("Respuesta inesperada creando el examen");
+  return { id, usedPath: "/exams/manual" };
 }
 
 /* =====================
@@ -229,6 +216,9 @@ export default function Page() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  // Puntaje por pregunta (texto del input, para permitir vacío / decimales con coma)
+  const [points, setPoints] = useState<Record<string, string>>({});
+  const [bulkPoints, setBulkPoints] = useState("");
 
   const [confirmSubjectChange, setConfirmSubjectChange] = useState<{
     isOpen: boolean;
@@ -273,6 +263,14 @@ export default function Page() {
         if (parsed.subjectId) setSubjectId(parsed.subjectId);
         if (parsed.topicIds.length) setTopicIds(parsed.topicIds);
         if (parsed.questionIds.length) setSelectedIds(parsed.questionIds);
+
+        // Puntajes guardados
+        const loadedPoints: Record<string, string> = {};
+        for (const it of exam.items ?? []) {
+          const qid = it.questionId ?? it.question?.id;
+          if (qid && typeof it.points === "number") loadedPoints[qid] = String(it.points).replace(".", ",");
+        }
+        setPoints(loadedPoints);
 
         if (parsed.headerFields && Array.isArray(parsed.headerFields)) {
           setHeaderFieldsText(parsed.headerFields.join("\n"));
@@ -398,7 +396,43 @@ export default function Page() {
     setSelectedIds((prev) => prev.filter((x) => x !== id));
   }
 
+  function parsePoints(raw: string | undefined): number | null {
+    if (raw === undefined || raw.trim() === "") return null;
+    const n = Number(raw.replace(",", "."));
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  const totalPoints = useMemo(
+    () =>
+      selectedIds.reduce((sum, id) => {
+        const n = parsePoints(points[id]);
+        return sum + (n !== null && Number.isFinite(n) ? n : 0);
+      }, 0),
+    [selectedIds, points]
+  );
+
+  function setQuestionPoints(id: string, value: string) {
+    touch();
+    setPoints((prev) => ({ ...prev, [id]: value }));
+  }
+
+  function applyBulkPoints() {
+    if (parsePoints(bulkPoints) === null || Number.isNaN(parsePoints(bulkPoints))) return;
+    touch();
+    setPoints((prev) => {
+      const next = { ...prev };
+      for (const id of selectedIds) next[id] = bulkPoints;
+      return next;
+    });
+  }
+
   function validate(): string | null {
+    for (const id of selectedIds) {
+      const n = parsePoints(points[id]);
+      if (n !== null && (Number.isNaN(n) || n < 0 || n > 1000)) {
+        return "Revisá los puntajes: deben ser números entre 0 y 1000.";
+      }
+    }
     if (!title.trim()) return "Poné un título.";
     if (!subjectId) return "Elegí una materia.";
     if (selectedIds.length === 0) return "Seleccioná al menos una pregunta.";
@@ -421,6 +455,7 @@ export default function Page() {
         description: description.trim() || undefined,
         questionIds: selectedIds,
         headerFields: headerFieldsText.split("\n").map(s => s.trim()).filter(Boolean),
+        points: Object.fromEntries(selectedIds.map((id) => [id, parsePoints(points[id])])),
       };
 
       if (isEdit && editId) {
@@ -449,23 +484,13 @@ export default function Page() {
     try {
       // Construir query params si hay opciones
       let url = `/exams/${createdExamId}/export/pdf`;
-      if (options) {
-        const params = new URLSearchParams({
-          boldStatement: String(options.boldStatement),
-          fontFamily: options.fontFamily,
-          questionSize: String(options.questionSize),
-          answerSize: String(options.answerSize),
-          lineSpacing: String(options.lineSpacing),
-          showAnswers: String(options.showAnswers),
-        });
-        url = `${url}?${params.toString()}`;
-      }
+      url = `${url}${pdfQuery(options)}`;
 
       const blob = await apiBlob(url);
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `${safeName(title)}.pdf`;
+      a.download = `${safeName(title)}${pdfFileSuffix(options)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -739,9 +764,33 @@ export default function Page() {
 
         {/* Selected */}
         <section className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/50 backdrop-blur p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Seleccionadas ({selectedIds.length})
-          </h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Seleccionadas ({selectedIds.length})
+            </h2>
+            {selectedIds.length > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 font-semibold text-emerald-700 dark:text-emerald-400">
+                  Total: {String(Math.round(totalPoints * 100) / 100).replace(".", ",")} pts
+                </span>
+                <input
+                  value={bulkPoints}
+                  onChange={(e) => setBulkPoints(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="pts"
+                  aria-label="Puntaje para todas"
+                  className="h-7 w-14 rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs text-gray-900 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={applyBulkPoints}
+                  className="h-7 rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
+                >
+                  Aplicar a todas
+                </button>
+              </div>
+            )}
+          </div>
 
           {selectedIds.length === 0 ? (
             <div className="text-sm text-gray-600 dark:text-slate-400">Elegí preguntas del banco.</div>
@@ -754,11 +803,20 @@ export default function Page() {
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {idx + 1}. {q.statement ?? "(sin enunciado)"}
                       </div>
-                      <div className="mt-1 text-xs text-gray-500 dark:text-slate-500 font-mono">{q.id}</div>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <label className="mr-auto flex items-center gap-1.5 text-xs text-gray-600 dark:text-slate-400">
+                      Puntaje
+                      <input
+                        value={points[q.id] ?? ""}
+                        onChange={(e) => setQuestionPoints(q.id, e.target.value)}
+                        inputMode="decimal"
+                        placeholder="—"
+                        className="h-7 w-16 rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs text-gray-900 dark:text-white"
+                      />
+                    </label>
                     <button
                       type="button"
                       onClick={() => moveSelected(q.id, -1)}

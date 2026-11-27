@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api, apiBlob } from "@/lib/api";
+import { pdfFileSuffix, pdfQuery } from "@/lib/pdf";
 import { toast } from "sonner";
 import PdfCustomizeModal, { PdfOptions } from "@/components/PdfCustomizeModal";
 
@@ -498,24 +499,14 @@ export default function Page() {
     try {
       // Construir query params si hay opciones
       let url = result.exportPdfUrl;
-      if (options) {
-        const params = new URLSearchParams({
-          boldStatement: String(options.boldStatement),
-          fontFamily: options.fontFamily,
-          questionSize: String(options.questionSize),
-          answerSize: String(options.answerSize),
-          lineSpacing: String(options.lineSpacing),
-          showAnswers: String(options.showAnswers),
-        });
-        url = `${url}?${params.toString()}`;
-      }
+      url = `${url}${pdfQuery(options)}`;
 
       const blob = await apiBlob(url);
 
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      const downloadName = `${safeName(title)}.pdf`;
+      const downloadName = `${safeName(title)}${pdfFileSuffix(options)}.pdf`;
       a.download = downloadName;
       document.body.appendChild(a);
       a.click();
@@ -559,7 +550,7 @@ export default function Page() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-            Generador IA
+            Generador Automático
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-slate-400">
             Creá exámenes automáticamente desde tu banco de preguntas.

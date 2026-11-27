@@ -152,11 +152,11 @@ export class InstitutionsService {
           institutionId,
         },
       },
-      select: { id: true },
+      select: { role: true },
     });
 
-    if (!membership) {
-      throw new ForbiddenException("You don't have access to this institution");
+    if (!membership || membership.role !== "admin") {
+      throw new ForbiddenException("Only admins can rename this institution");
     }
 
     const exists = await this.prisma.institution.findUnique({

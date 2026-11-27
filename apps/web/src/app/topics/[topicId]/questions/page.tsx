@@ -311,12 +311,17 @@ export default function TopicQuestionsPage() {
     }
 
     try {
-      const r = await api<ListResponse>(
-        `/questions?subjectId=${encodeURIComponent(
-          subjectId
-        )}&topicId=${encodeURIComponent(topicId)}&limit=100&page=1`
-      );
-      setQuestions(r.data || []);
+      // La API devuelve hasta 100 por página: se traen todas las páginas
+      const base = `/questions?subjectId=${encodeURIComponent(
+        subjectId
+      )}&topicId=${encodeURIComponent(topicId)}&limit=100`;
+      const first = await api<ListResponse>(`${base}&page=1`);
+      const all = [...(first.data || [])];
+      for (let page = 2; page <= (first.meta?.totalPages ?? 1); page++) {
+        const r = await api<ListResponse>(`${base}&page=${page}`);
+        all.push(...(r.data || []));
+      }
+      setQuestions(all);
     } catch (e: any) {
       setError(e?.message || "No se pudieron cargar preguntas");
       setQuestions([]);
@@ -360,14 +365,6 @@ export default function TopicQuestionsPage() {
     } catch {
       setTopicsInSubject([]);
     }
-  }
-
-  function handlePaste(e: React.ClipboardEvent, setter: (val: string) => void, currentVal: string) {
-    e.preventDefault();
-    const text = e.clipboardData.getData("text/plain");
-    // Insertar en la posición del cursor si fuera posible, pero para simplificar concatenamos o reemplazamos
-    // Aquí implementamos reemplazo simple por ahora para asegurar limpieza de formato
-    setter(text);
   }
 
   useEffect(() => {
@@ -465,6 +462,8 @@ export default function TopicQuestionsPage() {
       if (type === "TRUE_FALSE") {
         payload.correctIndex = correctIndex;
         payload.requiresJustification = requiresJustification;
+        // Renglones para la justificación
+        if (requiresJustification) payload.openLines = openLines;
       }
 
       if (type === ("MULTI_TRUE_FALSE" as any)) {

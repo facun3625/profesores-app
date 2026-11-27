@@ -8,10 +8,38 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateProfessorDto } from './dto/create-professor.dto';
 import { UpdateProfessorDto } from './dto/update-professor.dto';
 import * as bcrypt from 'bcrypt';
+import { QuotaService } from '../quota/quota.service';
+import { SubjectAccessDto } from './dto/create-professor.dto';
+
+function normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+}
 
 @Injectable()
 export class UsersService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly quota: QuotaService,
+    ) { }
+
+    /** Verifica que el admin administre cada institución y que las materias pertenezcan a ella. */
+    private async validateAccess(adminId: string, access: SubjectAccessDto[]) {
+        for (const a of access) {
+            await this.requireAdmin(adminId, a.institutionId);
+
+            const subjectIds = [...new Set(a.subjectIds)];
+            const count = await this.prisma.subject.count({
+                where: { id: { in: subjectIds }, institutionId: a.institutionId },
+            });
+            if (count !== subjectIds.length) {
+                throw new BadRequestException('Una o más materias no pertenecen a la institución indicada');
+            }
+
+            if (!(await this.quota.canManageProfessors(a.institutionId))) {
+                throw new ForbiddenException('Tu plan actual no permite gestionar profesores. Pasate a FULL o PREMIUM.');
+            }
+        }
+    }
 
     private async requireAdmin(userId: string, institutionId: string) {
         const membership = await this.prisma.userInstitution.findUnique({
@@ -25,49 +53,43 @@ export class UsersService {
 
     async create(adminId: string, activeInstitutionId: string, dto: CreateProfessorDto) {
         await this.requireAdmin(adminId, activeInstitutionId);
+        await this.validateAccess(adminId, dto.access);
 
-        // Check all institutions belong to the admin
-        for (const a of dto.access) {
-            await this.requireAdmin(adminId, a.institutionId);
-        }
-
-        // Check email not taken
-        const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+        const email = normalizeEmail(dto.email);
+        const existing = await this.prisma.user.findUnique({ where: { email } });
         if (existing) throw new BadRequestException('Email already in use');
 
         const passwordHash = await bcrypt.hash(dto.password, 10);
 
-        const user = await this.prisma.user.create({
-            data: {
-                email: dto.email,
-                name: dto.name,
-                lastName: dto.lastName,
-                passwordHash,
-                mustChangePassword: true,
-                authProvider: 'local',
-            },
-        });
-
-        // Create institution memberships and subject access
-        for (const a of dto.access) {
-            await this.prisma.userInstitution.create({
+        const user = await this.prisma.$transaction(async (tx) => {
+            const created = await tx.user.create({
                 data: {
-                    userId: user.id,
-                    institutionId: a.institutionId,
-                    role: 'professor',
+                    email,
+                    name: dto.name,
+                    lastName: dto.lastName,
+                    passwordHash,
+                    mustChangePassword: true,
+                    authProvider: 'local',
+                    activeInstitutionId: dto.access[0]?.institutionId ?? null,
                 },
             });
 
-            for (const subjectId of a.subjectIds) {
-                await this.prisma.userSubject.create({
-                    data: {
-                        userId: user.id,
+            for (const a of dto.access) {
+                await tx.userInstitution.create({
+                    data: { userId: created.id, institutionId: a.institutionId, role: 'professor' },
+                });
+                await tx.userSubject.createMany({
+                    data: [...new Set(a.subjectIds)].map((subjectId) => ({
+                        userId: created.id,
                         subjectId,
                         institutionId: a.institutionId,
-                    },
+                    })),
+                    skipDuplicates: true,
                 });
             }
-        }
+
+            return created;
+        });
 
         return this.findById(adminId, activeInstitutionId, user.id);
     }
@@ -179,46 +201,64 @@ export class UsersService {
         if (!professorLink) throw new ForbiddenException('Professor not in your institutions');
 
         const data: any = {};
-        if (dto.email) data.email = dto.email;
+        if (dto.email) {
+            const email = normalizeEmail(dto.email);
+            if (email !== professor.email) {
+                const taken = await this.prisma.user.findUnique({ where: { email } });
+                if (taken) throw new BadRequestException('Email already in use');
+            }
+            data.email = email;
+        }
         if (dto.name) data.name = dto.name;
         if (dto.lastName !== undefined) data.lastName = dto.lastName;
         if (dto.password) {
+            if (dto.password.length < 6) {
+                throw new BadRequestException('La contraseña debe tener al menos 6 caracteres');
+            }
             data.passwordHash = await bcrypt.hash(dto.password, 10);
             data.mustChangePassword = true;
         }
 
-        await this.prisma.user.update({ where: { id: professorId }, data });
+        if (dto.access) await this.validateAccess(adminId, dto.access);
 
-        // Replace access if provided
-        if (dto.access) {
-            for (const a of dto.access) {
-                await this.requireAdmin(adminId, a.institutionId);
+        await this.prisma.$transaction(async (tx) => {
+            await tx.user.update({ where: { id: professorId }, data });
+
+            if (dto.password) {
+                // La contraseña la reseteó el admin: cerrar sesiones abiertas del profesor
+                await tx.session.updateMany({
+                    where: { userId: professorId, revokedAt: null },
+                    data: { revokedAt: new Date() },
+                });
             }
 
-            // Remove old memberships + subject access managed by this admin
-            await this.prisma.userSubject.deleteMany({
+            if (!dto.access) return;
+
+            // Reemplazar memberships + acceso a materias gestionados por este admin
+            await tx.userSubject.deleteMany({
                 where: { userId: professorId, institutionId: { in: adminInstIds } },
             });
-            await this.prisma.userInstitution.deleteMany({
+            await tx.userInstitution.deleteMany({
                 where: { userId: professorId, institutionId: { in: adminInstIds }, role: 'professor' },
             });
 
             for (const a of dto.access) {
-                await this.prisma.userInstitution.upsert({
+                await tx.userInstitution.upsert({
                     where: { userId_institutionId: { userId: professorId, institutionId: a.institutionId } },
                     create: { userId: professorId, institutionId: a.institutionId, role: 'professor' },
                     update: { role: 'professor' },
                 });
 
-                for (const subjectId of a.subjectIds) {
-                    await this.prisma.userSubject.upsert({
-                        where: { userId_subjectId: { userId: professorId, subjectId } },
-                        create: { userId: professorId, subjectId, institutionId: a.institutionId },
-                        update: {},
-                    });
-                }
+                await tx.userSubject.createMany({
+                    data: [...new Set(a.subjectIds)].map((subjectId) => ({
+                        userId: professorId,
+                        subjectId,
+                        institutionId: a.institutionId,
+                    })),
+                    skipDuplicates: true,
+                });
             }
-        }
+        });
 
         return this.findById(adminId, activeInstitutionId, professorId);
     }
@@ -240,6 +280,10 @@ export class UsersService {
         await this.prisma.user.update({
             where: { id: professorId },
             data: { status: 'suspended' },
+        });
+        await this.prisma.session.updateMany({
+            where: { userId: professorId, revokedAt: null },
+            data: { revokedAt: new Date() },
         });
 
         return { ok: true };

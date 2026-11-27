@@ -54,7 +54,7 @@ export class QuotaService {
 
         if (resource === 'topics') {
             if (!parentId) throw new ForbiddenException('Se requiere subjectId para validar temas.');
-            const count = await this.prisma.topic.count({ where: { subjectId: parentId } });
+            const count = await this.prisma.topic.count({ where: { subjectId: parentId, status: 'active' } });
             if (count >= limits.maxTopicsPerSubject) {
                 throw new ForbiddenException(`Límite de temas por materia alcanzado (${limits.maxTopicsPerSubject}). Tu plan actual es ${plan}.`);
             }
@@ -62,7 +62,7 @@ export class QuotaService {
 
         if (resource === 'questions') {
             if (!parentId) throw new ForbiddenException('Se requiere topicId para validar preguntas.');
-            const count = await this.prisma.question.count({ where: { topicId: parentId } });
+            const count = await this.prisma.question.count({ where: { topicId: parentId, status: 'active' } });
             if (count >= limits.maxQuestionsPerTopic) {
                 throw new ForbiddenException(`Límite de preguntas por tema alcanzado (${limits.maxQuestionsPerTopic}). Tu plan actual es ${plan}.`);
             }

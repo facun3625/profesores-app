@@ -3,14 +3,16 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateExamDto } from "./dto/create-exam.dto";
 import { UpdateExamDto } from "./dto/update-exam.dto";
 import { GenerateExamDto } from "./dto/generate-exam.dto";
-import { Prisma, QuestionDifficulty, QuestionType, LogAction } from "@prisma/client";
+import { Prisma, QuestionDifficulty, QuestionType } from "@prisma/client";
 import * as crypto from "crypto";
 import { ActivityLogService } from "../activity-log/activity-log.service";
+import { assertSubjectAccess, getAllowedSubjectIds } from "../common/access";
 
 import {
   buildInitialPlan,
@@ -19,6 +21,12 @@ import {
 } from "./utils/difficulty-plan";
 
 type StockPlan = Record<QuestionType, Record<QuestionDifficulty, number>>;
+
+export type Actor = {
+  userId: string;
+  institutionId: string | null | undefined;
+  role?: string | null;
+};
 
 @Injectable()
 export class ExamsService {
@@ -34,34 +42,92 @@ export class ExamsService {
     return institutionId;
   }
 
-  async create(institutionIdRaw: string, dto: CreateExamDto, userId?: string) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
+  /** Admin ve todos los exámenes de la institución; profesor solo los suyos. */
+  private examScope(actor: Actor): Prisma.ExamWhereInput {
+    const institutionId = this.requireInstitutionId(actor.institutionId);
+    if (actor.role === "admin") return { institutionId };
+    return { institutionId, createdById: actor.userId };
+  }
 
-    if (!dto.questionIds || dto.questionIds.length === 0) {
+  private async findExamOrThrow(actor: Actor, examId: string) {
+    const exam = await this.prisma.exam.findFirst({
+      where: { id: examId, ...this.examScope(actor) },
+    });
+    if (!exam) throw new NotFoundException("Examen no encontrado");
+    return exam;
+  }
+
+  /** Valida que las preguntas existan en la institución y que el usuario tenga acceso a sus materias. */
+  private async validateQuestionIds(actor: Actor, questionIdsRaw: string[]) {
+    const institutionId = this.requireInstitutionId(actor.institutionId);
+    const questionIds = [...new Set(questionIdsRaw)];
+
+    if (questionIds.length === 0) {
       throw new BadRequestException("questionIds must not be empty");
     }
 
-    const count = await this.prisma.question.count({
-      where: { id: { in: dto.questionIds }, institutionId },
+    const questions = await this.prisma.question.findMany({
+      where: { id: { in: questionIds }, institutionId, status: { not: "deleted" } },
+      select: { id: true, subjectId: true },
     });
 
-    if (count !== dto.questionIds.length) {
+    if (questions.length !== questionIds.length) {
       throw new ForbiddenException(
-        "One or more questions do not belong to active institution",
+        "Una o más preguntas no existen o no pertenecen a la institución activa",
       );
     }
+
+    await assertSubjectAccess(
+      this.prisma,
+      actor.userId,
+      institutionId,
+      [...new Set(questions.map((q) => q.subjectId))],
+      actor.role,
+    );
+
+    return questionIds;
+  }
+
+  /** Normaliza el mapa de puntajes: números entre 0 y 1000, redondeados a 2 decimales. */
+  private cleanPoints(points?: Record<string, number | null> | null) {
+    if (!points || typeof points !== "object") return undefined;
+    const out: Record<string, number | null> = {};
+    for (const [questionId, raw] of Object.entries(points)) {
+      if (raw === null || raw === undefined || (raw as any) === "") {
+        out[questionId] = null;
+        continue;
+      }
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0 || n > 1000) {
+        throw new BadRequestException("Cada puntaje debe ser un número entre 0 y 1000");
+      }
+      out[questionId] = Math.round(n * 100) / 100;
+    }
+    return out;
+  }
+
+  private cleanHeaderFields(fields?: string[] | null) {
+    if (!fields) return undefined;
+    return fields.map((f) => String(f).trim()).filter(Boolean).slice(0, 12);
+  }
+
+  async create(actor: Actor, dto: CreateExamDto) {
+    const institutionId = this.requireInstitutionId(actor.institutionId);
+    const questionIds = await this.validateQuestionIds(actor, dto.questionIds ?? []);
+    const points = this.cleanPoints(dto.points);
 
     const exam = await this.prisma.exam.create({
       data: {
         institutionId,
-        createdById: userId ?? null,
-        title: dto.title,
+        createdById: actor.userId,
+        title: dto.title.trim(),
         description: dto.description,
-        headerFields: dto.headerFields || undefined,
+        headerFields: this.cleanHeaderFields(dto.headerFields),
         items: {
-          create: dto.questionIds.map((questionId, index) => ({
+          create: questionIds.map((questionId, index) => ({
             questionId,
             order: index + 1,
+            points: points?.[questionId] ?? null,
           })),
         },
       },
@@ -74,19 +140,17 @@ export class ExamsService {
       },
     });
 
-    await this.activityLog.log(userId ?? "system", "CREATE", "exam", exam.id, {
-      title: dto.title,
-      questionCount: dto.questionIds.length,
+    await this.activityLog.log(actor.userId, "CREATE", "exam", exam.id, {
+      title: exam.title,
+      questionCount: questionIds.length,
     });
 
     return exam;
   }
 
-  async list(institutionIdRaw: string) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
-
+  async list(actor: Actor) {
     return this.prisma.exam.findMany({
-      where: { institutionId, status: 'active' },
+      where: { ...this.examScope(actor), status: "active" },
       orderBy: { createdAt: "desc" },
       include: {
         items: {
@@ -99,11 +163,9 @@ export class ExamsService {
     });
   }
 
-  async getById(institutionIdRaw: string, examId: string) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
-
+  async getById(actor: Actor, examId: string) {
     const exam = await this.prisma.exam.findFirst({
-      where: { id: examId, institutionId },
+      where: { id: examId, ...this.examScope(actor) },
       include: {
         items: {
           orderBy: { order: "asc" },
@@ -112,86 +174,88 @@ export class ExamsService {
       },
     });
 
-    if (!exam) throw new ForbiddenException("Exam not found for active institution");
+    if (!exam) throw new NotFoundException("Examen no encontrado");
 
     return exam;
   }
 
-  async update(institutionIdRaw: string, examId: string, dto: UpdateExamDto, userId?: string) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
-
-    const exam = await this.prisma.exam.findFirst({
-      where: { id: examId, institutionId },
-    });
-
-    if (!exam) throw new ForbiddenException("Exam not found for active institution");
+  async update(actor: Actor, examId: string, dto: UpdateExamDto) {
+    const exam = await this.findExamOrThrow(actor, examId);
 
     const data: Prisma.ExamUpdateInput = {
-      title: dto.title,
+      title: dto.title?.trim() || undefined,
       description: dto.description,
-      headerFields: dto.headerFields || undefined,
+      headerFields: this.cleanHeaderFields(dto.headerFields),
     };
 
+    const points = this.cleanPoints(dto.points);
+
+    let questionIds: string[] | undefined;
     if (dto.questionIds) {
-      if (dto.questionIds.length === 0) {
-        throw new BadRequestException("questionIds must not be empty");
-      }
+      questionIds = await this.validateQuestionIds(actor, dto.questionIds);
 
-      const count = await this.prisma.question.count({
-        where: { id: { in: dto.questionIds }, institutionId },
-      });
-
-      if (count !== dto.questionIds.length) {
-        throw new ForbiddenException(
-          "One or more questions do not belong to active institution",
-        );
-      }
+      // Si no mandan puntajes, se conservan los que ya tenían esas preguntas
+      const previous = points
+        ? null
+        : await this.prisma.examQuestion.findMany({
+          where: { examId },
+          select: { questionId: true, points: true },
+        });
+      const previousPoints = new Map(previous?.map((p) => [p.questionId, p.points]) ?? []);
 
       data.items = {
         deleteMany: {},
-        create: dto.questionIds.map((questionId, index) => ({
+        create: questionIds.map((questionId, index) => ({
           questionId,
           order: index + 1,
+          points: points ? (points[questionId] ?? null) : (previousPoints.get(questionId) ?? null),
         })),
       };
     }
 
-    const updated = await this.prisma.exam.update({
-      where: { id: examId },
-      data,
-      include: {
-        items: {
-          orderBy: { order: "asc" },
-          include: { question: true },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Si cambian las preguntas, la firma del examen generado deja de ser válida
+      if (questionIds) {
+        await tx.examSignature.deleteMany({ where: { examId } });
+      } else if (points) {
+        // Solo cambian los puntajes
+        for (const [questionId, value] of Object.entries(points)) {
+          await tx.examQuestion.updateMany({
+            where: { examId, questionId },
+            data: { points: value },
+          });
+        }
+      }
+      return tx.exam.update({
+        where: { id: examId },
+        data,
+        include: {
+          items: {
+            orderBy: { order: "asc" },
+            include: { question: true },
+          },
         },
-      },
+      });
     });
 
-    await this.activityLog.log(userId ?? "system", "UPDATE", "exam", examId, {
-      title: dto.title || exam.title,
-      questionCount: dto.questionIds?.length,
+    await this.activityLog.log(actor.userId, "UPDATE", "exam", examId, {
+      title: updated.title || exam.title,
+      questionCount: questionIds?.length,
     });
 
     return updated;
   }
 
-  async remove(institutionIdRaw: string, examId: string) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
+  async remove(actor: Actor, examId: string) {
+    const exam = await this.findExamOrThrow(actor, examId);
 
-    const exam = await this.prisma.exam.findFirst({
-      where: { id: examId, institutionId },
-      select: { id: true },
-    });
-
-    if (!exam) throw new ForbiddenException("Exam not found for active institution");
-
-    const removed = await this.prisma.exam.update({
+    await this.prisma.exam.update({
       where: { id: examId },
-      data: { status: 'archived' }
+      data: { status: "archived" },
     });
 
-    await this.activityLog.log("admin", "DELETE", "exam", examId, {
-      title: (removed as any).title,
+    await this.activityLog.log(actor.userId, "DELETE", "exam", examId, {
+      title: exam.title,
       archived: true,
     });
 
@@ -232,10 +296,8 @@ export class ExamsService {
     return this.shuffle(pool).slice(0, n);
   }
 
-  private async resolveTopicIds(
-    institutionId: string,
-    dto: GenerateExamDto,
-  ): Promise<string[]> {
+  private async resolveTopicIds(actor: Actor, dto: GenerateExamDto): Promise<string[]> {
+    const institutionId = this.requireInstitutionId(actor.institutionId);
     const hasTopics = Array.isArray(dto.topicIds) && dto.topicIds.length > 0;
     const hasSubjects = Array.isArray(dto.subjectIds) && dto.subjectIds.length > 0;
 
@@ -243,29 +305,45 @@ export class ExamsService {
       throw new BadRequestException("You must provide topicIds or subjectIds");
     }
 
+    const allowedSubjects = await getAllowedSubjectIds(
+      this.prisma,
+      actor.userId,
+      institutionId,
+      actor.role,
+    );
+
     if (hasTopics) {
-      const count = await this.prisma.topic.count({
-        where: { id: { in: dto.topicIds! }, institutionId },
+      const topicIds = [...new Set(dto.topicIds!)];
+      const topics = await this.prisma.topic.findMany({
+        where: { id: { in: topicIds }, institutionId },
+        select: { id: true, subjectId: true },
       });
-      if (count !== dto.topicIds!.length) {
+      if (topics.length !== topicIds.length) {
         throw new ForbiddenException(
           "One or more topics do not belong to active institution",
         );
       }
-      return dto.topicIds!;
+      if (allowedSubjects && topics.some((t) => !allowedSubjects.includes(t.subjectId))) {
+        throw new ForbiddenException("No tenés acceso a una o más materias seleccionadas");
+      }
+      return topicIds;
     }
 
+    const subjectIds = [...new Set(dto.subjectIds!)];
     const subjectCount = await this.prisma.subject.count({
-      where: { id: { in: dto.subjectIds! }, institutionId },
+      where: { id: { in: subjectIds }, institutionId },
     });
-    if (subjectCount !== dto.subjectIds!.length) {
+    if (subjectCount !== subjectIds.length) {
       throw new ForbiddenException(
         "One or more subjects do not belong to active institution",
       );
     }
+    if (allowedSubjects && subjectIds.some((id) => !allowedSubjects.includes(id))) {
+      throw new ForbiddenException("No tenés acceso a una o más materias seleccionadas");
+    }
 
     const topics = await this.prisma.topic.findMany({
-      where: { institutionId, subjectId: { in: dto.subjectIds! } },
+      where: { institutionId, subjectId: { in: subjectIds }, status: "active" },
       select: { id: true },
     });
 
@@ -455,8 +533,13 @@ export class ExamsService {
     });
   }
 
-  async generate(institutionIdRaw: string, dto: GenerateExamDto, userId?: string) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
+  /**
+   * Intenta crear un examen con una combinación de preguntas que no se haya
+   * usado antes (firma única por institución). Devuelve el examen creado o,
+   * si se agotan los intentos, la última firma con la que colisionó.
+   */
+  private async tryGenerateUnique(actor: Actor, dto: GenerateExamDto) {
+    const institutionId = this.requireInstitutionId(actor.institutionId);
 
     if (!dto.title || dto.title.trim().length === 0) {
       throw new BadRequestException("title is required");
@@ -464,91 +547,7 @@ export class ExamsService {
 
     this.validateGenerateDto(dto);
 
-    const topicIds = await this.resolveTopicIds(institutionId, dto);
-
-    const MAX_ATTEMPTS = 30;
-
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const selectedIds = await this.selectQuestionIdsOnce(institutionId, topicIds, dto);
-      const signature = this.buildSignature(selectedIds);
-
-      try {
-        const exam = await this.prisma.$transaction(async (tx) => {
-          const createdExam = await tx.exam.create({
-            data: {
-              institutionId,
-              createdById: userId ?? null,
-              title: dto.title,
-              description: dto.description,
-            },
-          });
-
-          await tx.examSignature.create({
-            data: { institutionId, signature, examId: createdExam.id },
-          });
-
-          const ordered = this.shuffle(selectedIds);
-
-          await tx.examQuestion.createMany({
-            data: ordered.map((questionId, idx) => ({
-              examId: createdExam.id,
-              questionId,
-              order: idx + 1,
-            })),
-          });
-
-          const exam = await tx.exam.findUnique({
-            where: { id: createdExam.id },
-            include: {
-              items: {
-                orderBy: { order: "asc" },
-                include: { question: true },
-              },
-            },
-          });
-
-          if (exam) {
-            await this.activityLog.log(userId ?? "system", "CREATE", "exam", exam.id, {
-              title: dto.title,
-              questionCount: ordered.length,
-              subjectIds: dto.subjectIds,
-              topicIds: dto.topicIds,
-            });
-          }
-
-          return exam;
-        });
-
-        if (!exam) throw new Error("Exam was not created correctly");
-
-        return exam;
-      } catch (err: any) {
-        if (
-          err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === "P2002"
-        ) {
-          continue;
-        }
-        throw err;
-      }
-    }
-
-    throw new ConflictException(
-      "No more unique exams can be generated with these parameters (combinations exhausted)",
-    );
-  }
-
-  async generateOrReuse(institutionIdRaw: string, dto: GenerateExamDto, userId?: string) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
-
-    if (!dto.title || dto.title.trim().length === 0) {
-      throw new BadRequestException("title is required");
-    }
-
-    this.validateGenerateDto(dto);
-
-    const topicIds = await this.resolveTopicIds(institutionId, dto);
-
+    const topicIds = await this.resolveTopicIds(actor, dto);
     const MAX_ATTEMPTS = 30;
     let lastCollidedSignature: string | null = null;
 
@@ -561,9 +560,10 @@ export class ExamsService {
           const createdExam = await tx.exam.create({
             data: {
               institutionId,
-              createdById: userId ?? null,
-              title: dto.title,
+              createdById: actor.userId,
+              title: dto.title.trim(),
               description: dto.description,
+              headerFields: this.cleanHeaderFields(dto.headerFields),
             },
           });
 
@@ -581,7 +581,7 @@ export class ExamsService {
             })),
           });
 
-          const exam = await tx.exam.findUnique({
+          return tx.exam.findUnique({
             where: { id: createdExam.id },
             include: {
               items: {
@@ -590,26 +590,18 @@ export class ExamsService {
               },
             },
           });
-
-          if (exam) {
-            await this.activityLog.log(userId ?? "system", "CREATE", "exam", exam.id, {
-              title: dto.title,
-              questionCount: ordered.length,
-              subjectIds: dto.subjectIds,
-              topicIds: dto.topicIds,
-            });
-          }
-
-          return exam;
         });
 
         if (!exam) throw new Error("Exam was not created correctly");
 
-        return {
-          mode: "created",
-          exam,
-          exportPdfUrl: `/exams/${exam.id}/export/pdf`,
-        };
+        await this.activityLog.log(actor.userId, "CREATE", "exam", exam.id, {
+          title: exam.title,
+          questionCount: exam.items.length,
+          subjectIds: dto.subjectIds,
+          topicIds: dto.topicIds,
+        });
+
+        return { exam, lastCollidedSignature: null as string | null };
       } catch (err: any) {
         if (
           err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -622,10 +614,32 @@ export class ExamsService {
       }
     }
 
-    if (lastCollidedSignature) {
+    return { exam: null, lastCollidedSignature, institutionId };
+  }
+
+  async generate(actor: Actor, dto: GenerateExamDto) {
+    const { exam } = await this.tryGenerateUnique(actor, dto);
+    if (exam) return exam;
+    throw new ConflictException(
+      "No more unique exams can be generated with these parameters (combinations exhausted)",
+    );
+  }
+
+  async generateOrReuse(actor: Actor, dto: GenerateExamDto) {
+    const result = await this.tryGenerateUnique(actor, dto);
+
+    if (result.exam) {
+      return {
+        mode: "created",
+        exam: result.exam,
+        exportPdfUrl: `/exams/${result.exam.id}/export/pdf`,
+      };
+    }
+
+    if (result.lastCollidedSignature && result.institutionId) {
       const existingExam = await this.findExistingExamBySignature(
-        institutionId,
-        lastCollidedSignature,
+        result.institutionId,
+        result.lastCollidedSignature,
       );
 
       if (existingExam) {
@@ -653,12 +667,12 @@ export class ExamsService {
     return res;
   }
 
-  async preview(institutionIdRaw: string, dto: GenerateExamDto) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
+  async preview(actor: Actor, dto: GenerateExamDto) {
+    const institutionId = this.requireInstitutionId(actor.institutionId);
 
     this.validateGenerateDto(dto);
 
-    const topicIds = await this.resolveTopicIds(institutionId, dto);
+    const topicIds = await this.resolveTopicIds(actor, dto);
     const stockPlan = await this.getStockPlan(institutionId, topicIds);
 
     const { initialPlan, finalPlan, movements, shortage, isPossible, buckets } =
@@ -693,8 +707,8 @@ export class ExamsService {
 
 
 
-  async previewQuestions(institutionIdRaw: string, dto: GenerateExamDto) {
-    const institutionId = this.requireInstitutionId(institutionIdRaw);
+  async previewQuestions(actor: Actor, dto: GenerateExamDto) {
+    const institutionId = this.requireInstitutionId(actor.institutionId);
 
     if (!dto.title || dto.title.trim().length === 0) {
       throw new BadRequestException("title is required");
@@ -702,7 +716,7 @@ export class ExamsService {
 
     this.validateGenerateDto(dto);
 
-    const topicIds = await this.resolveTopicIds(institutionId, dto);
+    const topicIds = await this.resolveTopicIds(actor, dto);
 
     const selectedIds = await this.selectQuestionIdsOnce(institutionId, topicIds, dto);
 
@@ -735,36 +749,8 @@ export class ExamsService {
     };
   }
 
-  async getExamForExport(userId: string, examId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-
-    if (!user) throw new ForbiddenException("Invalid user");
-
-    const exam = await this.prisma.exam.findUnique({
-      where: { id: examId },
-      include: {
-        items: {
-          orderBy: { order: "asc" },
-          include: { question: true },
-        },
-      },
-    });
-
-    if (!exam) {
-      throw new ForbiddenException("Exam not found");
-    }
-
-    const membership = await this.prisma.userInstitution.findFirst({
-      where: { userId, institutionId: exam.institutionId },
-      select: { id: true },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException("Exam not accessible for this user");
-    }
+  async getExamForExport(actor: Actor, examId: string) {
+    const exam = await this.getById(actor, examId);
 
     const institution = await this.prisma.institution.findUnique({
       where: { id: exam.institutionId },

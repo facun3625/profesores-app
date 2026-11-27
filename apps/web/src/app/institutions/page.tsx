@@ -114,11 +114,7 @@ export default function InstitutionsPage() {
     try {
       me = await api<MeAny>("/auth/me");
     } catch {
-      try {
-        me = await api<MeAny>("/me");
-      } catch {
-        me = null;
-      }
+      me = null;
     }
 
     const activeId =

@@ -9,6 +9,7 @@ import { UpdateQuestionDto } from './dto/update-question.dto';
 import { QuestionDifficulty, QuestionType, Prisma } from '@prisma/client';
 import { ListQuestionsDto } from './dto/list-questions.dto';
 import { ActivityLogService } from '../activity-log/activity-log.service';
+import { assertSubjectAccess, getAllowedSubjectIds } from '../common/access';
 
 @Injectable()
 export class QuestionsService {
@@ -44,6 +45,18 @@ export class QuestionsService {
     });
     if (!subjectAccess) {
       throw new ForbiddenException('You do not have access to this subject');
+    }
+  }
+
+  private validateMultiTf(options: unknown) {
+    if (!Array.isArray(options) || options.length === 0) {
+      throw new BadRequestException('MULTI_TRUE_FALSE requires at least one sub-question');
+    }
+    for (const item of options) {
+      const statement = typeof item === 'string' ? item : (item as any)?.statement;
+      if (typeof statement !== 'string' || !statement.trim()) {
+        throw new BadRequestException('Cada afirmación de Múltiple V/F necesita un texto');
+      }
     }
   }
 
@@ -96,10 +109,7 @@ export class QuestionsService {
         break;
 
       case 'MULTI_TRUE_FALSE' as any:
-        if (!dto.options || !Array.isArray(dto.options) || dto.options.length === 0) {
-          throw new BadRequestException('MULTI_TRUE_FALSE requires at least one sub-question');
-        }
-        // Validar estructura de sub-preguntas si es necesario, pero por ahora confiamos en el JSON
+        this.validateMultiTf(dto.options);
         options = dto.options;
         correctIndex = null; // No hay un solo correctIndex compartido
         break;
@@ -164,11 +174,18 @@ export class QuestionsService {
     if (limit > 100) limit = 100;
     const skip = (page - 1) * limit;
 
+    if (subjectFilter && query.subjectId && !subjectFilter.includes(query.subjectId)) {
+      throw new ForbiddenException('You do not have access to this subject');
+    }
+
     const where: Prisma.QuestionWhereInput = {
       institutionId,
       status: 'active', // Solo preguntas activas por defecto
-      ...(subjectFilter ? { subjectId: { in: subjectFilter } } : {}),
-      ...(query.subjectId ? { subjectId: query.subjectId } : {}),
+      subjectId: query.subjectId
+        ? query.subjectId
+        : subjectFilter
+          ? { in: subjectFilter }
+          : undefined,
       ...(query.topicId ? { topicId: query.topicId } : {}),
       ...(query.difficulty ? { difficulty: query.difficulty } : {}),
       ...(query.type ? { type: query.type } : {}),
@@ -224,7 +241,7 @@ export class QuestionsService {
       }
 
       const topics = await this.prisma.topic.findMany({
-        where: { institutionId, subjectId: { in: subjectIds! } },
+        where: { institutionId, subjectId: { in: subjectIds! }, status: 'active' },
         select: { id: true },
       });
 
@@ -235,22 +252,20 @@ export class QuestionsService {
       resolvedTopicIds = topics.map((t) => t.id);
     }
 
+    const allowedSubjects = await getAllowedSubjectIds(this.prisma, userId, institutionId);
+
     const grouped = await this.prisma.question.groupBy({
       by: ['type', 'difficulty'],
       where: {
         institutionId,
         topicId: { in: resolvedTopicIds },
+        ...(allowedSubjects ? { subjectId: { in: allowedSubjects } } : {}),
         status: 'active' // Solo contar las activas para las estadísticas de creación
       },
       _count: { _all: true },
     });
 
-    const types: QuestionType[] = [
-      QuestionType.MULTIPLE_CHOICE,
-      QuestionType.TRUE_FALSE,
-      QuestionType.OPEN,
-      QuestionType.FILL_IN,
-    ];
+    const types: QuestionType[] = Object.values(QuestionType);
     const diffs: QuestionDifficulty[] = [
       QuestionDifficulty.easy,
       QuestionDifficulty.medium,
@@ -264,6 +279,7 @@ export class QuestionsService {
     }
 
     for (const row of grouped) {
+      counts[row.type] ??= {};
       counts[row.type][row.difficulty] = row._count._all;
     }
 
@@ -300,9 +316,7 @@ export class QuestionsService {
       }
       options = ['Verdadero', 'Falso'];
     } else if (type === 'MULTI_TRUE_FALSE' as any) {
-      if (!options || !Array.isArray(options) || options.length === 0) {
-        throw new BadRequestException('MULTI_TRUE_FALSE requires at least one sub-question');
-      }
+      this.validateMultiTf(options);
       correctIndex = null;
     } else if (type === QuestionType.OPEN || type === QuestionType.FILL_IN) {
       options = null;
@@ -377,6 +391,18 @@ export class QuestionsService {
 
     // Validar acceso a la materia destino si es profesor
     await this.checkSubjectAccess(userId, institutionId, targetTopic.subjectId);
+
+    // Validar acceso a las materias de ORIGEN de las preguntas
+    const sourceQuestions = await this.prisma.question.findMany({
+      where: { id: { in: dto.questionIds }, institutionId },
+      select: { subjectId: true },
+    });
+    await assertSubjectAccess(
+      this.prisma,
+      userId,
+      institutionId,
+      [...new Set(sourceQuestions.map((q) => q.subjectId))],
+    );
 
     // Actualizar todas las preguntas seleccionadas
     const result = await this.prisma.question.updateMany({

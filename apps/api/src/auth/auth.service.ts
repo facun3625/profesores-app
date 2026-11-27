@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import * as bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
@@ -31,6 +32,26 @@ export class AuthService {
 
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
+  }
+
+  private membershipInclude() {
+    return {
+      memberships: {
+        include: { institution: true },
+        orderBy: { createdAt: "asc" as const },
+      },
+    } satisfies Prisma.UserInclude;
+  }
+
+  /** Devuelve la membresía de la institución activa (o la primera). */
+  private pickMembership(user: {
+    activeInstitutionId: string | null;
+    memberships: Array<{ institutionId: string; role: string; institution: { id: string; name: string; status: string } }>;
+  }) {
+    return (
+      user.memberships.find((m) => m.institutionId === user.activeInstitutionId) ??
+      user.memberships[0]
+    );
   }
 
   private buildSession() {
@@ -126,43 +147,30 @@ export class AuthService {
 
   async login(input: LoginInput) {
     const email = this.normalizeEmail(input.email);
-    console.log(`[AuthService] Intento de login para: ${email}`);
 
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: {
-        memberships: {
-          include: { institution: true },
-          take: 1,
-        },
-      },
+      include: this.membershipInclude(),
     });
 
-    if (!user) {
-      console.log(`[AuthService] Usuario no encontrado: ${email}`);
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    if (user.authProvider !== "local" || !user.passwordHash) {
-      console.log(`[AuthService] Usuario ${email} no usa auth local`);
+    // Una cuenta vinculada a Google puede seguir entrando con contraseña si tiene una.
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException("Invalid credentials");
     }
 
     const ok = await bcrypt.compare(input.password, user.passwordHash);
     if (!ok) {
-      console.log(`[AuthService] Contraseña incorrecta para: ${email}`);
       throw new UnauthorizedException("Invalid credentials");
     }
 
     if (user.status === "suspended") {
-      console.log(`[AuthService] Usuario suspendido intentando acceder: ${email}`);
       throw new UnauthorizedException(
         "Su cuenta está inactiva. Por favor, contacte a info@profly.com.ar"
       );
     }
 
     const session = await this.createSession(user.id);
-    const membership = user.memberships[0];
+    const membership = this.pickMembership(user);
 
     return {
       accessToken: session.token,
@@ -196,18 +204,16 @@ export class AuthService {
       if (!payload || !payload.email) {
         throw new UnauthorizedException("Invalid Google token payload");
       }
+      if (payload.email_verified === false) {
+        throw new UnauthorizedException("El email de Google no está verificado");
+      }
 
       const email = this.normalizeEmail(payload.email);
       const googleSub = payload.sub;
 
       let user = await this.prisma.user.findUnique({
         where: { email },
-        include: {
-          memberships: {
-            include: { institution: true },
-            take: 1,
-          },
-        },
+        include: this.membershipInclude(),
       });
 
       if (!user) {
@@ -242,29 +248,20 @@ export class AuthService {
           return tx.user.update({
             where: { id: newUser.id },
             data: { activeInstitutionId: institution.id },
-            include: {
-              memberships: {
-                include: { institution: true },
-                take: 1,
-              },
-            },
+            include: this.membershipInclude(),
           });
         });
       } else {
-        // Vincular si no tenía googleSub o authProvider diferente
-        if (!user.googleSub || user.authProvider !== "google") {
+        if (user.googleSub && user.googleSub !== googleSub) {
+          throw new UnauthorizedException("Esta cuenta está vinculada a otra cuenta de Google");
+        }
+        // Vincular Google SIN cambiar authProvider: así la cuenta puede
+        // seguir entrando con contraseña y recuperarla si la olvida.
+        if (!user.googleSub) {
           user = await this.prisma.user.update({
             where: { id: user.id },
-            data: {
-              googleSub,
-              authProvider: "google",
-            },
-            include: {
-              memberships: {
-                include: { institution: true },
-                take: 1,
-              },
-            },
+            data: { googleSub },
+            include: this.membershipInclude(),
           });
         }
       }
@@ -276,9 +273,7 @@ export class AuthService {
       }
 
       const session = await this.createSession(user.id);
-      const membership = user.memberships[0];
-
-      console.log(`[AuthService] Google Login exitoso para: ${email}`);
+      const membership = this.pickMembership(user);
 
       return {
         accessToken: session.token,
@@ -301,10 +296,8 @@ export class AuthService {
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
-      console.error("[AuthService] Google login error detallado:", {
-        error: error.message,
-        stack: error.stack,
-        googleClientIdConfigured: process.env.GOOGLE_CLIENT_ID ? "Configurado (Largo: " + process.env.GOOGLE_CLIENT_ID.length + ")" : "NO CONFIGURADO",
+      console.error("[AuthService] Google login error:", error?.message, {
+        googleClientIdConfigured: Boolean(process.env.GOOGLE_CLIENT_ID),
       });
       throw new UnauthorizedException("Falla en la autenticación con Google");
     }
@@ -340,6 +333,8 @@ export class AuthService {
         plan: user.plan,
         activeRole,                     // "admin" | "professor" | null
         mustChangePassword: user.mustChangePassword,
+        hasPassword: Boolean(user.passwordHash),
+        googleLinked: Boolean(user.googleSub),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -362,10 +357,26 @@ export class AuthService {
       province?: string;
       country?: string;
       password?: string;
-    }
+      currentPassword?: string;
+    },
+    currentSessionToken?: string,
   ) {
     let passwordHash: string | undefined = undefined;
     if (input.password) {
+      if (input.password.length < 8) {
+        throw new BadRequestException("La contraseña debe tener al menos 8 caracteres");
+      }
+      const existing = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { passwordHash: true },
+      });
+      // Si ya tiene contraseña, hay que confirmar la actual
+      if (existing?.passwordHash) {
+        const ok = input.currentPassword
+          ? await bcrypt.compare(input.currentPassword, existing.passwordHash)
+          : false;
+        if (!ok) throw new BadRequestException("La contraseña actual no es correcta");
+      }
       passwordHash = await bcrypt.hash(input.password, 10);
     }
 
@@ -377,9 +388,21 @@ export class AuthService {
         city: input.city ?? undefined,
         province: input.province ?? undefined,
         country: input.country ?? undefined,
-        passwordHash: passwordHash ?? undefined,
+        ...(passwordHash ? { passwordHash, mustChangePassword: false } : {}),
       },
     });
+
+    if (passwordHash) {
+      // Cerrar las demás sesiones abiertas
+      await this.prisma.session.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+          ...(currentSessionToken ? { token: { not: currentSessionToken } } : {}),
+        },
+        data: { revokedAt: new Date() },
+      });
+    }
 
     return {
       id: user.id,
@@ -391,6 +414,7 @@ export class AuthService {
       country: user.country,
       status: user.status,
       activeInstitutionId: user.activeInstitutionId,
+      mustChangePassword: user.mustChangePassword,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
